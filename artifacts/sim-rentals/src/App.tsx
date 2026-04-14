@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, Show, SignInButton, SignUpButton, useClerk } from "@clerk/react";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,24 +22,53 @@ if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in .env file");
 }
 
-function SignInPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
+function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
+  const isSignIn = mode === "sign-in";
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+    <div className="min-h-screen premium-shell flex items-center justify-center px-4">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
+      <div className="glass-card blue-glow w-full max-w-md rounded-3xl p-8 text-center">
+        <a href={`${basePath}/`} className="mx-auto mb-8 flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold">
+          <span className="text-sky-300">✦</span>
+          SMS Rentals
+        </a>
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.35em] text-sky-300">{isSignIn ? "Welcome back" : "Create account"}</p>
+        <h1 className="text-4xl font-black tracking-tight text-white">{isSignIn ? "Access your dashboard" : "Start renting numbers"}</h1>
+        <p className="mt-4 text-sm leading-6 text-slate-400">
+          Continue with Google to manage credits, rent live SMS numbers, and track verification messages from one secure account.
+        </p>
+        <div className="mt-8">
+          {isSignIn ? (
+            <SignInButton mode="modal" forceRedirectUrl={`${basePath}/dashboard`}>
+              <button className="h-12 w-full rounded-full bg-sky-400 px-6 text-sm font-bold text-slate-950 shadow-[0_0_35px_rgba(56,189,248,0.35)] transition hover:bg-sky-300">
+                Continue with Google
+              </button>
+            </SignInButton>
+          ) : (
+            <SignUpButton mode="modal" forceRedirectUrl={`${basePath}/dashboard`}>
+              <button className="h-12 w-full rounded-full bg-sky-400 px-6 text-sm font-bold text-slate-950 shadow-[0_0_35px_rgba(56,189,248,0.35)] transition hover:bg-sky-300">
+                Continue with Google
+              </button>
+            </SignUpButton>
+          )}
+        </div>
+        <div className="mt-6 text-sm text-slate-400">
+          {isSignIn ? "Need an account?" : "Already have an account?"}{" "}
+          <a className="font-semibold text-sky-300 hover:text-sky-200" href={`${basePath}/${isSignIn ? "sign-up" : "sign-in"}`}>
+            {isSignIn ? "Sign up" : "Log in"}
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
 
+function SignInPage() {
+  return <AuthPage mode="sign-in" />;
+}
+
 function SignUpPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
-  return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-    </div>
-  );
+  return <AuthPage mode="sign-up" />;
 }
 
 function HomeRedirect() {

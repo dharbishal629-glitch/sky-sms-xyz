@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw, X, MessageSquare, Clock, Copy, Check } from "lucide-react";
+import { RefreshCw, X, MessageSquare, Clock, Copy, Check, Loader2, Phone, History } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function RentalCard({ rental }: { rental: any }) {
@@ -81,8 +81,8 @@ function RentalCard({ rental }: { rental: any }) {
   };
 
   return (
-    <Card className={`overflow-hidden transition-all duration-200 ${isActive ? 'border-primary/50 shadow-md ring-1 ring-primary/10' : 'opacity-80 hover:opacity-100'}`} data-testid={`card-rental-${rental.id}`}>
-      <div className={`h-1.5 w-full ${isActive ? 'bg-primary' : rental.status === 'completed' || rental.status === 'sms_received' ? 'bg-green-500' : 'bg-gray-200'}`} />
+    <Card className={`glass-card overflow-hidden transition-all duration-200 ${isActive ? 'blue-glow' : 'opacity-80 hover:opacity-100'}`} data-testid={`card-rental-${rental.id}`}>
+      <div className={`h-1.5 w-full ${isActive ? 'bg-primary' : rental.status === 'completed' || rental.status === 'sms_received' ? 'bg-emerald-400' : 'bg-slate-700'}`} />
       
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
@@ -109,7 +109,7 @@ function RentalCard({ rental }: { rental: any }) {
       </CardHeader>
       
       <CardContent className="pb-4">
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 flex items-center justify-between mb-4">
+        <div className="bg-white/[0.04] rounded-lg p-4 border border-white/10 flex items-center justify-between mb-4">
           <div>
             <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Phone Number</div>
             <div className="text-xl font-mono tracking-tight font-medium" data-testid={`text-rental-number-${rental.id}`}>
@@ -146,22 +146,22 @@ function RentalCard({ rental }: { rental: any }) {
           {hasMessages ? (
             <div className="space-y-3 mt-3">
               {rental.messages.map((msg: any) => (
-                <div key={msg.id} className="bg-blue-50 border border-blue-100 rounded-lg p-3" data-testid={`row-message-${msg.id}`}>
+                <div key={msg.id} className="bg-sky-400/10 border border-sky-300/20 rounded-lg p-3" data-testid={`row-message-${msg.id}`}>
                   <div className="flex justify-between items-start mb-1">
-                    <span className="text-xs font-medium text-blue-800">{msg.sender}</span>
-                    <span className="text-xs text-blue-600/70">{format(new Date(msg.receivedAt), "HH:mm:ss")}</span>
+                    <span className="text-xs font-medium text-sky-200">{msg.sender}</span>
+                    <span className="text-xs text-sky-200/70">{format(new Date(msg.receivedAt), "HH:mm:ss")}</span>
                   </div>
-                  <div className="text-sm text-gray-800">{msg.message}</div>
+                  <div className="text-sm text-slate-100">{msg.message}</div>
                   
                   {msg.code && (
-                    <div className="mt-2 pt-2 border-t border-blue-200/50 flex items-center justify-between">
-                      <span className="text-xs text-blue-700 font-medium">Verification Code:</span>
+                    <div className="mt-2 pt-2 border-t border-sky-200/20 flex items-center justify-between">
+                      <span className="text-xs text-sky-200 font-medium">Verification Code:</span>
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-lg text-primary tracking-widest">{msg.code}</span>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-7 w-7 p-0 rounded-full hover:bg-blue-100 text-blue-700"
+                          className="h-7 w-7 p-0 rounded-full hover:bg-sky-400/15 text-sky-200"
                           onClick={() => copyToClipboard(msg.code, true)}
                         >
                           {copiedCode === msg.code ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
@@ -173,7 +173,7 @@ function RentalCard({ rental }: { rental: any }) {
               ))}
             </div>
           ) : (
-            <div className="text-center py-6 bg-gray-50/50 rounded-lg border border-dashed text-sm text-muted-foreground">
+            <div className="text-center py-6 bg-white/[0.03] rounded-lg border border-dashed border-white/10 text-sm text-muted-foreground">
               {isActive ? "Waiting for incoming SMS..." : "No messages received."}
             </div>
           )}
@@ -181,7 +181,7 @@ function RentalCard({ rental }: { rental: any }) {
       </CardContent>
       
       {isActive && (
-        <CardFooter className="bg-gray-50 px-6 py-3 border-t flex justify-between">
+        <CardFooter className="bg-white/[0.03] px-6 py-3 border-t border-white/10 flex justify-between">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -243,7 +243,7 @@ export default function Rentals() {
   return (
     <div className="max-w-4xl mx-auto space-y-10">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Rentals</h1>
+        <h1 className="text-3xl font-black tracking-tight text-white">My Rentals</h1>
         <p className="text-muted-foreground mt-1">Manage active numbers and view your history.</p>
       </div>
 
@@ -257,7 +257,7 @@ export default function Rentals() {
         </h2>
         
         {activeRentals.length === 0 ? (
-          <Card className="border-dashed bg-gray-50/50">
+          <Card className="glass-card border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-10">
               <Phone className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
               <p className="text-muted-foreground mb-4">You don't have any active rentals right now.</p>

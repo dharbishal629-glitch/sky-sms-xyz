@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Globe, Server, CheckCircle2, AlertCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Rent() {
   const [countryCode, setCountryCode] = useState<string>("");
@@ -61,12 +62,12 @@ export default function Rent() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Rent a Number</h1>
+        <h1 className="text-3xl font-black tracking-tight text-white">Rent a Number</h1>
         <p className="text-muted-foreground mt-1">Select a country and service to get a temporary verification number.</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="md:col-span-2 shadow-sm border" data-testid="card-rent-selection">
+        <Card className="md:col-span-2 glass-card" data-testid="card-rent-selection">
           <CardHeader>
             <CardTitle>Select Options</CardTitle>
             <CardDescription>Choose your desired country and service.</CardDescription>
@@ -126,7 +127,7 @@ export default function Rent() {
         </Card>
 
         {countryCode && serviceCode && (
-          <Card className="md:col-span-2 bg-gray-50 border-primary/20 shadow-sm" data-testid="card-availability">
+          <Card className="md:col-span-2 glass-card blue-glow" data-testid="card-availability">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center justify-between">
                 Availability Check
@@ -142,28 +143,28 @@ export default function Rent() {
               ) : availability ? (
                 <div className="space-y-4">
                   {availability.available > 0 ? (
-                    <div className="flex items-start gap-3 text-green-700 bg-green-50 p-4 rounded-lg border border-green-100">
+                    <div className="flex items-start gap-3 text-emerald-200 bg-emerald-400/10 p-4 rounded-lg border border-emerald-300/20">
                       <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" />
                       <div>
-                        <div className="font-semibold text-green-900">Numbers available</div>
-                        <div className="text-sm mt-1 text-green-800/80">
+                        <div className="font-semibold text-emerald-100">Numbers available</div>
+                        <div className="text-sm mt-1 text-emerald-100/80">
                           {availability.available} numbers ready. Estimated wait: {availability.estimatedWait}.
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start gap-3 text-amber-700 bg-amber-50 p-4 rounded-lg border border-amber-100">
+                    <div className="flex items-start gap-3 text-amber-200 bg-amber-400/10 p-4 rounded-lg border border-amber-300/20">
                       <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
                       <div>
-                        <div className="font-semibold text-amber-900">No numbers currently available</div>
-                        <div className="text-sm mt-1 text-amber-800/80">
+                        <div className="font-semibold text-amber-100">No numbers currently available</div>
+                        <div className="text-sm mt-1 text-amber-100/80">
                           This provider is out of stock for this specific combination right now. Check back later.
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center py-2 px-1 border-t border-b border-gray-200">
+                  <div className="flex justify-between items-center py-2 px-1 border-t border-b border-white/10">
                     <span className="text-muted-foreground text-sm font-medium">Price per SMS</span>
                     <span className="text-xl font-bold text-primary" data-testid="text-price-quote">${availability.price.toFixed(2)} credits</span>
                   </div>
@@ -171,7 +172,7 @@ export default function Rent() {
                   <div className="text-xs text-muted-foreground flex justify-between items-center px-1">
                     <span>Provider: {availability.provider.name}</span>
                     {availability.provider.mode !== 'live' && (
-                      <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+                      <Badge variant="outline" className="text-amber-200 border-amber-300/20 bg-amber-400/10">
                         {availability.provider.mode}
                       </Badge>
                     )}

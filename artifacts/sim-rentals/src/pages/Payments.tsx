@@ -48,7 +48,7 @@ export default function Payments() {
   return (
     <div className="max-w-5xl mx-auto space-y-10">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Payments & Credits</h1>
+        <h1 className="text-3xl font-black tracking-tight text-white">Payments & Credits</h1>
         <p className="text-muted-foreground mt-1">Add credits to your account to rent numbers.</p>
       </div>
 
@@ -58,19 +58,19 @@ export default function Payments() {
           {PACKAGES.map((pkg) => (
             <Card 
               key={pkg.amount} 
-              className={`relative overflow-hidden transition-all duration-200 hover:shadow-md ${pkg.popular ? 'border-primary shadow-sm ring-1 ring-primary/20' : ''}`}
+              className={`glass-card relative overflow-hidden transition-all duration-200 hover:shadow-sky-950/40 ${pkg.popular ? 'blue-glow' : ''}`}
               data-testid={`card-package-${pkg.amount}`}
             >
               {pkg.popular && (
                 <div className="absolute top-0 inset-x-0 h-1 bg-primary"></div>
               )}
               {pkg.popular && (
-                <Badge className="absolute top-3 right-3 bg-primary/10 text-primary hover:bg-primary/20 font-semibold border-0">
+                <Badge className="absolute top-3 right-3 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20 font-semibold border-0">
                   Most Popular
                 </Badge>
               )}
               <CardHeader className="pb-4">
-                <CardTitle className="text-2xl font-bold text-gray-900">${pkg.amount}</CardTitle>
+                <CardTitle className="text-2xl font-black text-white">${pkg.amount}</CardTitle>
                 <CardDescription>USD</CardDescription>
               </CardHeader>
               <CardContent className="pb-4">
@@ -79,7 +79,7 @@ export default function Payments() {
                   <span className="text-muted-foreground font-medium">credits</span>
                 </div>
                 {pkg.bonus && (
-                  <p className="text-sm font-medium text-green-600 mt-2 flex items-center gap-1">
+                  <p className="text-sm font-medium text-emerald-300 mt-2 flex items-center gap-1">
                     <Check className="h-3 w-3" /> {pkg.bonus} extra credits
                   </p>
                 )}
@@ -114,20 +114,20 @@ export default function Payments() {
             ))}
           </div>
         ) : error || !data ? (
-          <div className="text-center py-8 bg-gray-50/50 rounded-xl border border-dashed text-muted-foreground">
+          <div className="text-center py-8 bg-white/[0.03] rounded-xl border border-dashed border-white/10 text-muted-foreground">
             Failed to load payment history.
           </div>
         ) : data.payments.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50/50 rounded-xl border border-dashed">
+          <div className="text-center py-12 bg-white/[0.03] rounded-xl border border-dashed border-white/10">
             <CreditCard className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="font-medium text-gray-900 mb-1">No payments yet</h3>
+            <h3 className="font-medium text-white mb-1">No payments yet</h3>
             <p className="text-sm text-muted-foreground">When you purchase credits, they will appear here.</p>
           </div>
         ) : (
-          <Card className="overflow-hidden">
-            <div className="divide-y">
+          <Card className="glass-card overflow-hidden">
+            <div className="divide-y divide-white/10">
               {data.payments.map((payment) => (
-                <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-gray-50 transition-colors" data-testid={`row-payment-${payment.id}`}>
+                <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/[0.03] transition-colors" data-testid={`row-payment-${payment.id}`}>
                   <div className="flex items-center gap-4 mb-2 sm:mb-0">
                     <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
                       payment.status === 'paid' ? 'bg-green-100 text-green-600' :

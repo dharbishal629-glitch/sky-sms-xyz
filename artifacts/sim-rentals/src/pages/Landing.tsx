@@ -1,96 +1,117 @@
 import { Link } from "wouter";
-import { Shield, Zap, Globe, Lock, ChevronRight } from "lucide-react";
+import { Shield, Zap, Globe, Lock, ChevronRight, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold tracking-tight">SMS Rentals</span>
+    <div className="min-h-screen premium-shell overflow-hidden text-white">
+      <header className="sticky top-5 z-50 mx-auto flex max-w-5xl justify-center px-4">
+        <div className="glass-card flex h-16 w-full items-center justify-between rounded-full px-5">
+          <div className="flex items-center gap-2 font-black">
+            <Shield className="h-5 w-5 text-sky-300" />
+            <span>SMS Rentals</span>
           </div>
-          <div className="flex items-center gap-4">
-            <a href={`${basePath}/sign-in`} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-landing-login">
-              Log in
+          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-400 md:flex">
+            <a className="rounded-full border border-sky-400/30 bg-sky-400/10 px-5 py-2 text-sky-100" href="#home">Home</a>
+            <a className="hover:text-white" href="#services">Services</a>
+            <a className="hover:text-white" href="#features">Features</a>
+            <a className="hover:text-white" href="#faq">FAQ</a>
+          </nav>
+          <div className="flex items-center gap-3">
+            <a href={`${basePath}/sign-in`} className="hidden text-sm font-bold text-slate-300 transition hover:text-white sm:inline" data-testid="link-landing-login">
+              Login
             </a>
             <a href={`${basePath}/sign-up`}>
-              <Button data-testid="button-landing-signup">Get Started</Button>
+              <Button className="rounded-full bg-sky-400 text-slate-950 hover:bg-sky-300" data-testid="button-landing-signup">Get Started</Button>
             </a>
           </div>
         </div>
       </header>
 
       <main>
-        {/* Hero Section */}
-        <section className="py-20 md:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-6 max-w-4xl mx-auto leading-tight">
-            Fast, secure temporary verification numbers.
+        <section id="home" className="relative mx-auto max-w-7xl px-4 pb-28 pt-32 text-center sm:px-6 lg:px-8">
+          <div className="pointer-events-none absolute inset-0 -z-10 opacity-60 [background-image:radial-gradient(circle_at_center,rgba(56,189,248,.25)_1px,transparent_1px)] [background-size:90px_90px]" />
+          <div className="mx-auto mb-7 flex w-fit items-center gap-2 rounded-full border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-sky-200">
+            <Sparkles className="h-4 w-4" />
+            Real SMS verification marketplace
+          </div>
+          <h1 className="mx-auto mb-6 max-w-5xl text-6xl font-black tracking-tight text-white sm:text-7xl lg:text-8xl">
+            Rent SMS numbers <span className="bg-gradient-to-r from-sky-200 via-white to-cyan-300 bg-clip-text text-transparent">instantly</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Protect your privacy with disposable phone numbers from over 50 countries. Perfect for verifying accounts, testing SMS flows, and staying anonymous online.
+          <p className="mx-auto mb-10 max-w-2xl text-lg font-medium leading-8 text-slate-400">
+            Buy credits, rent clean temporary numbers, and receive verification codes in a premium dashboard built for fast account verification.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mx-auto mb-10 flex h-16 max-w-xl items-center rounded-2xl border border-sky-400/20 bg-slate-950/70 px-5 text-left shadow-2xl shadow-sky-950/30">
+            <Search className="mr-4 h-5 w-5 text-slate-500" />
+            <span className="text-slate-500">Search services like WhatsApp, Telegram, Google...</span>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a href={`${basePath}/sign-up`}>
-              <Button size="lg" className="h-14 px-8 text-lg w-full sm:w-auto group" data-testid="button-hero-cta">
+              <Button size="lg" className="group h-14 w-full rounded-full bg-sky-400 px-9 text-base font-black text-slate-950 shadow-[0_0_45px_rgba(56,189,248,0.35)] hover:bg-sky-300 sm:w-auto" data-testid="button-hero-cta">
                 Rent a Number Now
-                <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
             </a>
-            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-6 py-4">
+            <a href="#features" className="rounded-full border border-sky-400/30 px-8 py-4 text-sm font-black text-white transition hover:bg-sky-400/10">
               View Features
             </a>
           </div>
         </section>
 
-        {/* Features Grid */}
-        <section id="features" className="py-20 bg-gray-50 border-t">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold tracking-tight mb-4">Why choose SMS Rentals?</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">Everything you need to verify accounts without exposing your personal number.</p>
+        <div className="border-y border-sky-400/15 bg-black/40 py-7">
+          <div className="marquee-track flex w-[200%] gap-10 whitespace-nowrap text-5xl font-black uppercase tracking-tight text-white/75 md:text-7xl">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <span key={index}>SMS RENTALS</span>
+            ))}
+          </div>
+        </div>
+
+        <section id="features" className="py-24">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-16 text-center">
+              <div className="mx-auto mb-6 w-fit rounded-full border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-sky-200">Why choose us</div>
+              <h2 className="mb-4 text-4xl font-black tracking-tight text-white md:text-5xl">Premium Features</h2>
+              <p className="mx-auto max-w-2xl text-lg text-slate-400">Everything needed to rent numbers, receive codes, and manage credit purchases without fake history or clutter.</p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-white p-8 rounded-2xl border shadow-sm" data-testid="card-feature-speed">
-                <div className="h-12 w-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+            <div className="grid gap-8 md:grid-cols-3">
+              <div className="glass-card rounded-3xl p-8" data-testid="card-feature-speed">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-300">
                   <Zap className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">Instant Delivery</h3>
-                <p className="text-gray-600 leading-relaxed">Numbers are allocated instantly. Receive SMS codes in real-time as soon as they are sent by the service.</p>
+                <h3 className="mb-3 text-xl font-black text-white">Instant Delivery</h3>
+                <p className="leading-relaxed text-slate-400">Numbers are allocated instantly. Receive SMS codes as soon as the provider receives them.</p>
               </div>
 
-              <div className="bg-white p-8 rounded-2xl border shadow-sm" data-testid="card-feature-global">
-                <div className="h-12 w-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+              <div className="glass-card rounded-3xl p-8" data-testid="card-feature-global">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-300">
                   <Globe className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">Global Coverage</h3>
-                <p className="text-gray-600 leading-relaxed">Access clean, non-VoIP numbers from dozens of countries to bypass regional restrictions and blocks.</p>
+                <h3 className="mb-3 text-xl font-black text-white">Global Coverage</h3>
+                <p className="leading-relaxed text-slate-400">Browse countries and services with live availability before spending credits.</p>
               </div>
 
-              <div className="bg-white p-8 rounded-2xl border shadow-sm" data-testid="card-feature-privacy">
-                <div className="h-12 w-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+              <div className="glass-card rounded-3xl p-8" data-testid="card-feature-privacy">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-300">
                   <Lock className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">Total Privacy</h3>
-                <p className="text-gray-600 leading-relaxed">Keep your real phone number off marketing lists, data breaches, and spam databases forever.</p>
+                <h3 className="mb-3 text-xl font-black text-white">Private Dashboard</h3>
+                <p className="leading-relaxed text-slate-400">New accounts start clean. Only real rentals and payments appear in history.</p>
               </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="bg-white border-t py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <span className="font-bold tracking-tight">SMS Rentals</span>
+      <footer className="border-t border-white/10 py-12">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row lg:px-8">
+          <div className="flex items-center gap-2 font-black">
+            <Shield className="h-5 w-5 text-sky-300" />
+            <span>SMS Rentals</span>
           </div>
-          <p className="text-sm text-gray-500">© {new Date().getFullYear()} SMS Rentals. All rights reserved.</p>
+          <p className="text-sm text-slate-500">© {new Date().getFullYear()} SMS Rentals. All rights reserved.</p>
         </div>
       </footer>
     </div>

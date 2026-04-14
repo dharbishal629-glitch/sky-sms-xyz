@@ -56,7 +56,7 @@ function providerStatus(name: "Hero SMS" | "OxaPay") {
     mode: configured ? "live" : "setup_required",
     message: configured
       ? `${name} credentials are configured for live server-side requests.`
-      : `${name} secret is not configured yet. The app is running with safe demo data until the secret is added.`,
+      : `${name} secret is not configured yet. Live provider actions are disabled until the secret is added securely.`,
   };
 }
 
@@ -120,36 +120,15 @@ async function ensureSchema() {
     );
   `);
 
+  await pool.query("DELETE FROM sim_sms_messages WHERE rental_id IN (SELECT id FROM sim_rentals WHERE user_id = $1)", [demoUserId]);
+  await pool.query("DELETE FROM sim_rentals WHERE user_id = $1", [demoUserId]);
+  await pool.query("DELETE FROM sim_payments WHERE user_id = $1", [demoUserId]);
   await pool.query(
     `INSERT INTO sim_users (id, name, email, role, credits, status)
-     VALUES ($1, 'Demo Customer', 'demo@simsuite.app', 'admin', 42.50, 'active')
-     ON CONFLICT (id) DO NOTHING`,
+     VALUES ($1, 'Customer', 'customer@smsrentals.app', 'user', 0, 'active')
+     ON CONFLICT (id) DO UPDATE SET name = 'Customer', email = 'customer@smsrentals.app', credits = 0, role = 'user'`,
     [demoUserId],
   );
-
-  const rentalCount = await pool.query("SELECT COUNT(*)::int AS count FROM sim_rentals WHERE user_id = $1", [demoUserId]);
-  if (rentalCount.rows[0]?.count === 0) {
-    const rentalId = crypto.randomUUID();
-    await pool.query(
-      `INSERT INTO sim_rentals (id, user_id, country_code, country_name, service_code, service_name, phone_number, price, status, expires_at)
-       VALUES ($1, $2, 'US', 'United States', 'tg', 'Telegram', '+1 415 555 0198', 1.45, 'sms_received', NOW() + INTERVAL '14 minutes')`,
-      [rentalId, demoUserId],
-    );
-    await pool.query(
-      `INSERT INTO sim_sms_messages (id, rental_id, sender, message, code)
-       VALUES ($1, $2, 'Telegram', 'Your Telegram code is 482913. Do not share it with anyone.', '482913')`,
-      [crypto.randomUUID(), rentalId],
-    );
-  }
-
-  const paymentCount = await pool.query("SELECT COUNT(*)::int AS count FROM sim_payments WHERE user_id = $1", [demoUserId]);
-  if (paymentCount.rows[0]?.count === 0) {
-    await pool.query(
-      `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider)
-       VALUES ($1, $2, 25, 25, 'USD', 'paid', 'OxaPay')`,
-      [crypto.randomUUID(), demoUserId],
-    );
-  }
 }
 
 function mapRental(row: Record<string, unknown>, messages: Array<Record<string, unknown>> = []) {
@@ -189,7 +168,7 @@ async function listUserRentals(userId: string) {
 async function getAccount(userId: string) {
   await pool.query(
     `INSERT INTO sim_users (id, name, email, role, credits, status)
-     VALUES ($1, 'Demo Customer', 'demo@simsuite.app', 'user', 20, 'active')
+     VALUES ($1, 'Customer', 'customer@smsrentals.app', 'user', 0, 'active')
      ON CONFLICT (id) DO NOTHING`,
     [userId],
   );
