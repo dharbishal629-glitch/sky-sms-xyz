@@ -30,7 +30,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Auth routes: `GET /api/login` → PKCE OIDC flow, `GET /api/callback` → token exchange + session create, `GET /api/logout` → end session, `GET /api/auth/user` → current user JSON.
 - API contract is defined in `lib/api-spec/openapi.yaml`; run codegen after API contract edits.
 - Backend routes for the app live in `artifacts/api-server/src/routes/sim.ts`.
-- The app uses PostgreSQL tables initialized by the API route on first request: `sim_users`, `sim_sessions`, `sim_payments`, `sim_rentals`, and `sim_sms_messages`.
+- The app uses PostgreSQL tables initialized by the API server at startup and rechecked before auth/session access: `sim_users`, `sim_sessions`, `sim_payments`, `sim_rentals`, and `sim_sms_messages`.
 - New accounts start with zero credits, no rental history, and no payment history.
 - Hero SMS and OxaPay provider status checks read secure secrets named `HERO_SMS_API_KEY` and `OXAPAY_MERCHANT_API_KEY`.
 - When provider secrets are configured, provider statuses return `live`; otherwise, live provider actions are disabled with explicit setup messages.

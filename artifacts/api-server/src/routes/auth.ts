@@ -11,6 +11,7 @@ import {
   type SessionData,
   type AuthUser,
 } from "../lib/auth";
+import { ensureSimSchema } from "../lib/simSchema";
 
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 const router: IRouter = Router();
@@ -58,6 +59,7 @@ function getSafeReturnTo(value: unknown, fallback = "/"): string {
 }
 
 async function upsertSimUser(user: AuthUser) {
+  await ensureSimSchema();
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || "User";
   await pool.query(
     `INSERT INTO sim_users (id, name, email, role, credits, status)

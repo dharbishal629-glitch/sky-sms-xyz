@@ -2,6 +2,7 @@ import * as client from "openid-client";
 import crypto from "crypto";
 import { type Request, type Response } from "express";
 import { pool } from "@workspace/db";
+import { ensureSimSchema } from "./simSchema";
 
 export const GOOGLE_ISSUER = "https://accounts.google.com";
 export const SESSION_COOKIE = "sid";
@@ -43,6 +44,7 @@ export async function getOidcConfig(): Promise<client.Configuration> {
 }
 
 export async function createSession(data: SessionData): Promise<string> {
+  await ensureSimSchema();
   const sid = crypto.randomBytes(32).toString("hex");
   const expire = new Date(Date.now() + SESSION_TTL_MS);
   await pool.query(
@@ -53,6 +55,7 @@ export async function createSession(data: SessionData): Promise<string> {
 }
 
 export async function getSession(sid: string): Promise<SessionData | null> {
+  await ensureSimSchema();
   const result = await pool.query(
     `SELECT sess, expire FROM sim_sessions WHERE sid = $1`,
     [sid],
@@ -66,6 +69,7 @@ export async function getSession(sid: string): Promise<SessionData | null> {
 }
 
 export async function updateSession(sid: string, data: SessionData): Promise<void> {
+  await ensureSimSchema();
   const expire = new Date(Date.now() + SESSION_TTL_MS);
   await pool.query(
     `UPDATE sim_sessions SET sess = $1, expire = $2 WHERE sid = $3`,
@@ -74,6 +78,7 @@ export async function updateSession(sid: string, data: SessionData): Promise<voi
 }
 
 export async function deleteSession(sid: string): Promise<void> {
+  await ensureSimSchema();
   await pool.query(`DELETE FROM sim_sessions WHERE sid = $1`, [sid]);
 }
 
