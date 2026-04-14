@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { type Request, type Response } from "express";
 import { pool } from "@workspace/db";
 
-export const ISSUER_URL = process.env.ISSUER_URL ?? "https://replit.com/oidc";
+export const GOOGLE_ISSUER = "https://accounts.google.com";
 export const SESSION_COOKIE = "sid";
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -26,9 +26,17 @@ let oidcConfig: client.Configuration | null = null;
 
 export async function getOidcConfig(): Promise<client.Configuration> {
   if (!oidcConfig) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      throw new Error(
+        "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured to enable authentication.",
+      );
+    }
     oidcConfig = await client.discovery(
-      new URL(ISSUER_URL),
-      process.env.REPL_ID!,
+      new URL(GOOGLE_ISSUER),
+      clientId,
+      clientSecret,
     );
   }
   return oidcConfig;
@@ -71,7 +79,12 @@ export async function deleteSession(sid: string): Promise<void> {
 
 export async function clearSession(res: Response, sid?: string): Promise<void> {
   if (sid) await deleteSession(sid);
-  res.clearCookie(SESSION_COOKIE, { path: "/" });
+  const isProduction = process.env.NODE_ENV === "production";
+  res.clearCookie(SESSION_COOKIE, {
+    path: "/",
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
+  });
 }
 
 export function getSessionId(req: Request): string | undefined {

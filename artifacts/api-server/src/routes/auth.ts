@@ -16,34 +16,43 @@ const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 const router: IRouter = Router();
 
 function getOrigin(req: Request): string {
-  const proto = req.headers["x-forwarded-proto"] || "https";
+  const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
   const host = req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
   return `${proto}://${host}`;
 }
 
+function getCallbackUrl(req: Request): string {
+  return `${getOrigin(req)}/api/callback`;
+}
+
 function setSessionCookie(res: Response, sid: string) {
+  const isProduction = process.env.NODE_ENV === "production";
   res.cookie(SESSION_COOKIE, sid, {
     httpOnly: true,
-    secure: true,
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     path: "/",
     maxAge: SESSION_TTL_MS,
   });
 }
 
 function setOidcCookie(res: Response, name: string, value: string) {
+  const isProduction = process.env.NODE_ENV === "production";
   res.cookie(name, value, {
     httpOnly: true,
-    secure: true,
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     path: "/",
     maxAge: OIDC_COOKIE_TTL,
   });
 }
 
-function getSafeReturnTo(value: unknown): string {
+function getSafeReturnTo(value: unknown, fallback = "/"): string {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
+    if (typeof value === "string" && value.startsWith("http")) {
+      return value;
+    }
+    return fallback;
   }
   return value;
 }
@@ -54,7 +63,7 @@ async function upsertSimUser(user: AuthUser) {
     `INSERT INTO sim_users (id, name, email, role, credits, status)
      VALUES ($1, $2, $3, 'user', 0, 'active')
      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email`,
-    [user.id, name, user.email || `user-${user.id}@sms-rentals.app`],
+    [user.id, name, user.email || `user-${user.id}@example.com`],
   );
 }
 
@@ -63,40 +72,47 @@ router.get("/auth/user", (req: Request, res: Response) => {
 });
 
 router.get("/login", async (req: Request, res: Response) => {
-  const config = await getOidcConfig();
-  const callbackUrl = `${getOrigin(req)}/api/callback`;
-  const returnTo = getSafeReturnTo(req.query.returnTo);
+  try {
+    const config = await getOidcConfig();
+    const callbackUrl = getCallbackUrl(req);
+    const returnTo = getSafeReturnTo(req.query.returnTo, process.env.FRONTEND_URL || "/");
 
-  const state = oidc.randomState();
-  const nonce = oidc.randomNonce();
-  const codeVerifier = oidc.randomPKCECodeVerifier();
-  const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier);
+    const state = oidc.randomState();
+    const nonce = oidc.randomNonce();
+    const codeVerifier = oidc.randomPKCECodeVerifier();
+    const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier);
 
-  const redirectTo = oidc.buildAuthorizationUrl(config, {
-    redirect_uri: callbackUrl,
-    scope: "openid email profile offline_access",
-    code_challenge: codeChallenge,
-    code_challenge_method: "S256",
-    prompt: "login consent",
-    state,
-    nonce,
-  });
+    const redirectTo = oidc.buildAuthorizationUrl(config, {
+      redirect_uri: callbackUrl,
+      scope: "openid email profile",
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
+      state,
+      nonce,
+      access_type: "offline",
+      prompt: "consent",
+    });
 
-  setOidcCookie(res, "code_verifier", codeVerifier);
-  setOidcCookie(res, "nonce", nonce);
-  setOidcCookie(res, "state", state);
-  setOidcCookie(res, "return_to", returnTo);
+    setOidcCookie(res, "code_verifier", codeVerifier);
+    setOidcCookie(res, "nonce", nonce);
+    setOidcCookie(res, "state", state);
+    setOidcCookie(res, "return_to", returnTo);
 
-  res.redirect(redirectTo.href);
+    res.redirect(redirectTo.href);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Auth configuration error";
+    res.status(500).send(`<h2>Authentication Error</h2><p>${msg}</p><p>Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.</p>`);
+  }
 });
 
 router.get("/callback", async (req: Request, res: Response) => {
   const config = await getOidcConfig();
-  const callbackUrl = `${getOrigin(req)}/api/callback`;
+  const callbackUrl = getCallbackUrl(req);
 
   const codeVerifier = req.cookies?.code_verifier;
   const nonce = req.cookies?.nonce;
   const expectedState = req.cookies?.state;
+  const returnTo = getSafeReturnTo(req.cookies?.return_to, process.env.FRONTEND_URL || "/");
 
   if (!codeVerifier || !expectedState) {
     res.redirect("/api/login");
@@ -120,8 +136,6 @@ router.get("/callback", async (req: Request, res: Response) => {
     return;
   }
 
-  const returnTo = getSafeReturnTo(req.cookies?.return_to);
-
   res.clearCookie("code_verifier", { path: "/" });
   res.clearCookie("nonce", { path: "/" });
   res.clearCookie("state", { path: "/" });
@@ -136,9 +150,9 @@ router.get("/callback", async (req: Request, res: Response) => {
   const user: AuthUser = {
     id: claims.sub as string,
     email: (claims.email as string) || null,
-    firstName: (claims.first_name as string) || null,
-    lastName: (claims.last_name as string) || null,
-    profileImageUrl: ((claims.profile_image_url || claims.picture) as string) || null,
+    firstName: (claims.given_name as string) || null,
+    lastName: (claims.family_name as string) || null,
+    profileImageUrl: (claims.picture as string) || null,
   };
 
   await upsertSimUser(user);
@@ -157,18 +171,11 @@ router.get("/callback", async (req: Request, res: Response) => {
 });
 
 router.get("/logout", async (req: Request, res: Response) => {
-  const config = await getOidcConfig();
-  const origin = getOrigin(req);
-
   const sid = getSessionId(req);
   await clearSession(res, sid);
 
-  const endSessionUrl = oidc.buildEndSessionUrl(config, {
-    client_id: process.env.REPL_ID!,
-    post_logout_redirect_uri: origin,
-  });
-
-  res.redirect(endSessionUrl.href);
+  const returnTo = process.env.FRONTEND_URL || getOrigin(req);
+  res.redirect(returnTo);
 });
 
 export default router;

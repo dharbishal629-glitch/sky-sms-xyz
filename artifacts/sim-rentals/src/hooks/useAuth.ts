@@ -16,6 +16,8 @@ interface AuthState {
   logout: () => void;
 }
 
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+
 export function useAuth(): AuthState {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +25,7 @@ export function useAuth(): AuthState {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/auth/user", { credentials: "include" })
+    fetch(`${API_URL}/api/auth/user`, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<{ user: AuthUser | null }>;
@@ -47,12 +49,15 @@ export function useAuth(): AuthState {
   }, []);
 
   const login = useCallback(() => {
-    const base = import.meta.env.BASE_URL.replace(/\/+$/, "") || "/";
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(base || "/")}`;
+    const base = import.meta.env.BASE_URL?.replace(/\/+$/, "") || "";
+    const returnTo = API_URL
+      ? window.location.href
+      : `${window.location.origin}${base}/dashboard`;
+    window.location.href = `${API_URL}/api/login?returnTo=${encodeURIComponent(returnTo)}`;
   }, []);
 
   const logout = useCallback(() => {
-    window.location.href = "/api/logout";
+    window.location.href = `${API_URL}/api/logout`;
   }, []);
 
   return {
