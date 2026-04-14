@@ -1,5 +1,4 @@
 import { Layout } from "@/components/Layout";
-import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Rent from "@/pages/Rent";
 import Rentals from "@/pages/Rentals";
@@ -8,22 +7,29 @@ import Settings from "@/pages/Settings";
 import AdminOverview from "@/pages/admin/Overview";
 import AdminUsers from "@/pages/admin/Users";
 import AdminTransactions from "@/pages/admin/Transactions";
-
-import { Show } from "@clerk/react";
+import { useAuth } from "@/hooks/useAuth";
 import { Switch, Route, Redirect } from "wouter";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoading, isAuthenticated, login } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen premium-shell flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    login();
+    return null;
+  }
+
   return (
-    <>
-      <Show when="signed-in">
-        <Layout>
-          <Component />
-        </Layout>
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
+    <Layout>
+      <Component />
+    </Layout>
   );
 }
 
@@ -45,7 +51,7 @@ export function AppRoutes() {
       <Route path="/settings">
         <ProtectedRoute component={Settings} />
       </Route>
-      
+
       <Route path="/admin">
         <ProtectedRoute component={AdminOverview} />
       </Route>
@@ -54,7 +60,7 @@ export function AppRoutes() {
       </Route>
       <Route path="/admin/transactions">
         <ProtectedRoute component={AdminTransactions} />
-      </Route> 
+      </Route>
     </Switch>
   );
 }

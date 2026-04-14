@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request } from "express";
 import { pool } from "@workspace/db";
+import type { AuthUser } from "../lib/auth";
 import {
   GetMeResponse,
   GetDashboardResponse,
@@ -24,7 +25,6 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-const demoUserId = "demo-user";
 let schemaReady: Promise<void> | null = null;
 
 const countries = [
@@ -68,9 +68,8 @@ function futureIso(minutes: number) {
   return new Date(Date.now() + minutes * 60_000).toISOString();
 }
 
-function getUserId(req: Request) {
-  const auth = (req as Request & { auth?: { userId?: string } }).auth;
-  return auth?.userId ?? demoUserId;
+function getUserId(req: Request): string {
+  return req.user?.id ?? "anonymous";
 }
 
 function getRequestOrigin(req: Request) {
@@ -126,6 +125,12 @@ async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS sim_sessions (
+      sid TEXT PRIMARY KEY,
+      sess JSONB NOT NULL,
+      expire TIMESTAMPTZ NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS sim_payments (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES sim_users(id),
@@ -160,16 +165,6 @@ async function ensureSchema() {
       received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
-
-  await pool.query("DELETE FROM sim_sms_messages WHERE rental_id IN (SELECT id FROM sim_rentals WHERE user_id = $1)", [demoUserId]);
-  await pool.query("DELETE FROM sim_rentals WHERE user_id = $1", [demoUserId]);
-  await pool.query("DELETE FROM sim_payments WHERE user_id = $1", [demoUserId]);
-  await pool.query(
-    `INSERT INTO sim_users (id, name, email, role, credits, status)
-     VALUES ($1, 'Customer', 'customer@smsrentals.app', 'user', 0, 'active')
-     ON CONFLICT (id) DO UPDATE SET name = 'Customer', email = 'customer@smsrentals.app', credits = 0, role = 'user'`,
-    [demoUserId],
-  );
 }
 
 function mapRental(row: Record<string, unknown>, messages: Array<Record<string, unknown>> = []) {
@@ -206,12 +201,17 @@ async function listUserRentals(userId: string) {
   return rentalsResult.rows.map((row) => mapRental(row, messagesResult.rows.filter((message) => message.rental_id === row.id)));
 }
 
-async function getAccount(userId: string) {
+async function getAccount(userId: string, authUser?: AuthUser) {
+  const name = authUser
+    ? [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") || "User"
+    : "User";
+  const email = authUser?.email || `user-${userId}@sms-rentals.app`;
+
   await pool.query(
     `INSERT INTO sim_users (id, name, email, role, credits, status)
-     VALUES ($1, 'Customer', 'customer@smsrentals.app', 'user', 0, 'active')
-     ON CONFLICT (id) DO NOTHING`,
-    [userId],
+     VALUES ($1, $2, $3, 'user', 0, 'active')
+     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email`,
+    [userId, name, email],
   );
   const result = await pool.query("SELECT * FROM sim_users WHERE id = $1", [userId]);
   const user = result.rows[0];
@@ -221,6 +221,7 @@ async function getAccount(userId: string) {
     email: String(user.email),
     role: String(user.role),
     credits: Number(user.credits),
+    avatarUrl: authUser?.profileImageUrl || undefined,
   };
 }
 
@@ -236,13 +237,21 @@ router.use(async (_req, res, next) => {
 });
 
 router.get("/me", async (req, res) => {
-  const data = GetMeResponse.parse(await getAccount(getUserId(req)));
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const data = GetMeResponse.parse(await getAccount(getUserId(req), req.user));
   res.json(data);
 });
 
 router.get("/dashboard", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const userId = getUserId(req);
-  const account = await getAccount(userId);
+  const account = await getAccount(userId, req.user);
   const rentals = await listUserRentals(userId);
   const payments = await pool.query("SELECT * FROM sim_payments WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5", [userId]);
   const data = GetDashboardResponse.parse({
@@ -295,9 +304,13 @@ router.get("/rentals", async (req, res) => {
 });
 
 router.post("/rentals", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const body = CreateRentalBody.parse(req.body);
   const userId = getUserId(req);
-  const account = await getAccount(userId);
+  const account = await getAccount(userId, req.user);
   const country = countries.find((item) => item.code === body.countryCode) ?? countries[0];
   const service = services.find((item) => item.code === body.serviceCode) ?? services[0];
   const price = Number((service.price + country.startingPrice * 0.25).toFixed(2));

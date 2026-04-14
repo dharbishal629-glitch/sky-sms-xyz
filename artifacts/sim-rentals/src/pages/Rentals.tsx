@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { useListRentals, useRefreshRental, useCancelRental, getGetDashboardQueryKey, getListRentalsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, differenceInSeconds } from "date-fns";
@@ -262,7 +263,7 @@ export default function Rentals() {
               <Phone className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
               <p className="text-muted-foreground mb-4">You don't have any active rentals right now.</p>
               <Button asChild>
-                <a href="/rent">Rent a Number</a>
+                <Link href="/rent">Rent a Number</Link>
               </Button>
             </CardContent>
           </Card>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
-import { useClerk } from "@clerk/react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard,
   Phone,
@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { data: user, isLoading } = useGetMe();
-  const { signOut } = useClerk();
+  const { logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
@@ -100,7 +100,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span className="text-xl font-black text-white cursor-pointer tracking-tight"><span className="text-sky-300">✦</span> SMS Rentals</span>
           </Link>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-4">
           <NavLinks />
         </div>
@@ -129,10 +129,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </span>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => signOut()}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
                 className="text-slate-400 hover:text-red-300 shrink-0"
                 data-testid="button-signout"
               >
@@ -143,7 +143,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col md:pl-72 min-h-screen">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-white/10 bg-slate-950/85 backdrop-blur-xl sticky top-0 z-20">
           <Link href="/dashboard">
@@ -183,10 +182,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <span className="text-xs text-muted-foreground truncate">{user.credits} cr</span>
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => signOut()}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={logout}
                       className="text-slate-400 hover:text-red-300 shrink-0"
                     >
                       <LogOut className="h-4 w-4" />

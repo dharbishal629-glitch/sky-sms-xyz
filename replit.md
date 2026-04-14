@@ -24,13 +24,14 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## SMS SIM Rentals Implementation
 
-- Frontend uses React, TypeScript, Tailwind CSS, shadcn/ui components, Wouter routing, React Query generated hooks, Inter typography, and a dark premium glassmorphism theme inspired by snowboosts.com.
-- Landing page includes a centered pill navigation, dark hero, gradient headline, search-style service input, marquee banner, and premium feature cards.
-- Auth uses Google-capable Clerk flow with custom branded `/sign-in` and `/sign-up` pages instead of directly rendering the default Clerk card on the page.
+- Frontend uses React, TypeScript, Tailwind CSS, shadcn/ui components, Wouter routing, React Query generated hooks, Inter typography, and a dark premium glassmorphism theme.
+- Landing page includes a sticky pill navigation with Home/Services/Features/FAQ anchors, dark hero, gradient headline, search bar, marquee banner, services grid, features grid, FAQ accordion, and CTA footer.
+- **Auth uses Replit OIDC (openid-client)** — zero external setup required. Sessions stored in `sim_sessions` table (PostgreSQL). `req.user` is populated by `authMiddleware` from session cookies. Frontend uses a `useAuth()` hook that fetches `/api/auth/user`.
+- Auth routes: `GET /api/login` → PKCE OIDC flow, `GET /api/callback` → token exchange + session create, `GET /api/logout` → end session, `GET /api/auth/user` → current user JSON.
 - API contract is defined in `lib/api-spec/openapi.yaml`; run codegen after API contract edits.
 - Backend routes for the app live in `artifacts/api-server/src/routes/sim.ts`.
-- The app uses PostgreSQL tables initialized by the API route on first request: `sim_users`, `sim_payments`, `sim_rentals`, and `sim_sms_messages`.
-- New accounts start with zero credits, no rental history, and no payment history; old seeded demo payments/rentals are removed during schema initialization.
+- The app uses PostgreSQL tables initialized by the API route on first request: `sim_users`, `sim_sessions`, `sim_payments`, `sim_rentals`, and `sim_sms_messages`.
+- New accounts start with zero credits, no rental history, and no payment history.
 - Hero SMS and OxaPay provider status checks read secure secrets named `HERO_SMS_API_KEY` and `OXAPAY_MERCHANT_API_KEY`.
 - When provider secrets are configured, provider statuses return `live`; otherwise, live provider actions are disabled with explicit setup messages.
 
