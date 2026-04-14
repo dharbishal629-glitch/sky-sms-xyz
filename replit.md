@@ -24,13 +24,15 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## SMS SIM Rentals Implementation
 
-- Frontend uses React, TypeScript, Tailwind CSS, shadcn/ui components, Wouter routing, React Query generated hooks, Inter typography, light theme, and primary accent `#1978E5`.
-- Auth is configured with Google-capable managed sign-in pages at `/sign-in` and `/sign-up`.
+- Frontend uses React, TypeScript, Tailwind CSS, shadcn/ui components, Wouter routing, React Query generated hooks, Inter typography, and a dark premium glassmorphism theme inspired by snowboosts.com.
+- Landing page includes a centered pill navigation, dark hero, gradient headline, search-style service input, marquee banner, and premium feature cards.
+- Auth uses Google-capable Clerk flow with custom branded `/sign-in` and `/sign-up` pages instead of directly rendering the default Clerk card on the page.
 - API contract is defined in `lib/api-spec/openapi.yaml`; run codegen after API contract edits.
 - Backend routes for the app live in `artifacts/api-server/src/routes/sim.ts`.
 - The app uses PostgreSQL tables initialized by the API route on first request: `sim_users`, `sim_payments`, `sim_rentals`, and `sim_sms_messages`.
-- Hero SMS and OxaPay are represented by server-side provider status checks. Live mode requires secure secrets named `HERO_SMS_API_KEY` and `OXAPAY_MERCHANT_API_KEY`.
-- If provider secrets are not configured, the API returns explicit `setup_required` provider statuses and safe demo data so the UI remains functional without exposing or hardcoding keys.
+- New accounts start with zero credits, no rental history, and no payment history; old seeded demo payments/rentals are removed during schema initialization.
+- Hero SMS and OxaPay provider status checks read secure secrets named `HERO_SMS_API_KEY` and `OXAPAY_MERCHANT_API_KEY`.
+- When provider secrets are configured, provider statuses return `live`; otherwise, live provider actions are disabled with explicit setup messages.
 
 ## Key Commands
 
