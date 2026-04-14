@@ -73,6 +73,47 @@ function getUserId(req: Request) {
   return auth?.userId ?? demoUserId;
 }
 
+function getRequestOrigin(req: Request) {
+  const protocol = req.get("x-forwarded-proto") ?? req.protocol;
+  const host = req.get("x-forwarded-host") ?? req.get("host");
+  return host ? `${protocol}://${host}` : "https://smsrentals.app";
+}
+
+async function createOxaPayInvoice(req: Request, paymentId: string, amount: number, currency: string) {
+  const merchant = process.env.OXAPAY_MERCHANT_API_KEY;
+  if (!merchant) {
+    throw new Error("OxaPay merchant key is not configured.");
+  }
+
+  const origin = getRequestOrigin(req);
+  const response = await fetch("https://api.oxapay.com/merchants/request", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      merchant,
+      amount,
+      currency,
+      lifeTime: 60,
+      feePaidByPayer: 1,
+      underPaidCover: 1,
+      orderId: paymentId,
+      description: `SMS Rentals credit package - ${amount} credits`,
+      returnUrl: `${origin}/payments`,
+      callbackUrl: `${origin}/api/payments/oxapay/webhook`,
+    }),
+  });
+
+  const payload = await response.json().catch(() => null) as { result?: number; message?: string; payLink?: string; trackId?: string } | null;
+
+  if (!response.ok || !payload || payload.result !== 100 || !payload.payLink) {
+    throw new Error(payload?.message || "OxaPay did not return a checkout link.");
+  }
+
+  return payload.payLink;
+}
+
 async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sim_users (
@@ -323,28 +364,32 @@ router.post("/payments/checkout", async (req, res) => {
   const body = CreatePaymentCheckoutBody.parse(req.body);
   const id = crypto.randomUUID();
   const userId = getUserId(req);
-  const status = process.env.OXAPAY_MERCHANT_API_KEY ? "pending" : "pending";
-  const result = await pool.query(
-    `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider)
-     VALUES ($1, $2, $3, $3, $4, $5, 'OxaPay') RETURNING *`,
-    [id, userId, body.amount, body.currency, status],
-  );
-  const row = result.rows[0];
-  res.json(
-    CreatePaymentCheckoutResponse.parse({
-      payment: {
-        id: String(row.id),
-        amount: Number(row.amount),
-        credits: Number(row.credits),
-        currency: String(row.currency),
-        status: String(row.status),
-        provider: String(row.provider),
-        createdAt: new Date(String(row.created_at)).toISOString(),
-      },
-      checkoutUrl: process.env.OXAPAY_MERCHANT_API_KEY ? `https://app.oxapay.com/merchants/pay/${id}` : "#oxapay-secret-required",
-      provider: providerStatus("OxaPay"),
-    }),
-  );
+  try {
+    const checkoutUrl = await createOxaPayInvoice(req, id, body.amount, body.currency);
+    const result = await pool.query(
+      `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider)
+       VALUES ($1, $2, $3, $3, $4, 'pending', 'OxaPay') RETURNING *`,
+      [id, userId, body.amount, body.currency],
+    );
+    const row = result.rows[0];
+    res.json(
+      CreatePaymentCheckoutResponse.parse({
+        payment: {
+          id: String(row.id),
+          amount: Number(row.amount),
+          credits: Number(row.credits),
+          currency: String(row.currency),
+          status: String(row.status),
+          provider: String(row.provider),
+          createdAt: new Date(String(row.created_at)).toISOString(),
+        },
+        checkoutUrl,
+        provider: providerStatus("OxaPay"),
+      }),
+    );
+  } catch (error) {
+    res.status(502).json({ error: error instanceof Error ? error.message : "Unable to create OxaPay checkout." });
+  }
 });
 
 router.get("/admin/overview", async (_req, res) => {

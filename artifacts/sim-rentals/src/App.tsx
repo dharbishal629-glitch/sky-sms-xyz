@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { ClerkProvider, Show, SignInButton, SignUpButton, useClerk } from "@clerk/react";
+import { useEffect, useRef, useState } from "react";
+import { AuthenticateWithRedirectCallback, ClerkProvider, Show, useClerk, useSignIn, useSignUp, useUser } from "@clerk/react";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -24,6 +24,49 @@ if (!clerkPubKey) {
 
 function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const isSignIn = mode === "sign-in";
+  const { isSignedIn } = useUser();
+  const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, isLoaded: signUpLoaded } = useSignUp();
+  const [, setLocation] = useLocation();
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      setLocation("/dashboard", { replace: true });
+    }
+  }, [isSignedIn, setLocation]);
+
+  const handleGoogle = async () => {
+    if (isSignedIn) {
+      setLocation("/dashboard", { replace: true });
+      return;
+    }
+
+    setAuthError(null);
+    const redirectUrl = new URL(`${basePath}/sso-callback`, window.location.origin).toString();
+    const redirectUrlComplete = new URL(`${basePath}/dashboard`, window.location.origin).toString();
+
+    try {
+      if (isSignIn) {
+        if (!signInLoaded || !signIn) return;
+        await signIn.authenticateWithRedirect({
+          strategy: "oauth_google",
+          redirectUrl,
+          redirectUrlComplete,
+        });
+      } else {
+        if (!signUpLoaded || !signUp) return;
+        await signUp.authenticateWithRedirect({
+          strategy: "oauth_google",
+          redirectUrl,
+          redirectUrlComplete,
+        });
+      }
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Google sign-in could not be started.");
+    }
+  };
+
   return (
     <div className="min-h-screen premium-shell flex items-center justify-center px-4">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
@@ -38,18 +81,17 @@ function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
           Continue with Google to manage credits, rent live SMS numbers, and track verification messages from one secure account.
         </p>
         <div className="mt-8">
-          {isSignIn ? (
-            <SignInButton mode="modal" forceRedirectUrl={`${basePath}/dashboard`}>
-              <button className="h-12 w-full rounded-full bg-sky-400 px-6 text-sm font-bold text-slate-950 shadow-[0_0_35px_rgba(56,189,248,0.35)] transition hover:bg-sky-300">
-                Continue with Google
-              </button>
-            </SignInButton>
-          ) : (
-            <SignUpButton mode="modal" forceRedirectUrl={`${basePath}/dashboard`}>
-              <button className="h-12 w-full rounded-full bg-sky-400 px-6 text-sm font-bold text-slate-950 shadow-[0_0_35px_rgba(56,189,248,0.35)] transition hover:bg-sky-300">
-                Continue with Google
-              </button>
-            </SignUpButton>
+          <button
+            className="h-12 w-full rounded-full bg-sky-400 px-6 text-sm font-bold text-slate-950 shadow-[0_0_35px_rgba(56,189,248,0.35)] transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleGoogle}
+            disabled={isSignIn ? !signInLoaded : !signUpLoaded}
+          >
+            Continue with Google
+          </button>
+          {authError && (
+            <p className="mt-4 rounded-2xl border border-red-300/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+              {authError}
+            </p>
           )}
         </div>
         <div className="mt-6 text-sm text-slate-400">
@@ -58,6 +100,19 @@ function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
             {isSignIn ? "Sign up" : "Log in"}
           </a>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SsoCallbackPage() {
+  return (
+    <div className="min-h-screen premium-shell flex items-center justify-center px-4 text-center">
+      <div className="glass-card blue-glow rounded-3xl p-8">
+        <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
+        <h1 className="text-2xl font-black text-white">Finishing sign in</h1>
+        <p className="mt-2 text-sm text-slate-400">Please wait while Google redirects you back.</p>
+        <AuthenticateWithRedirectCallback />
       </div>
     </div>
   );
@@ -124,6 +179,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route path="/sso-callback/*?" component={SsoCallbackPage} />
           
           <Route path="/dashboard" component={AppRoutes} />
           <Route path="/rent" component={AppRoutes} />
