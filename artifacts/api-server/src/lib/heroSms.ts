@@ -11,6 +11,10 @@ const countryMap: Record<string, number> = {
   IN: 22,
 };
 
+const reverseCountryMap: Record<number, string> = Object.fromEntries(
+  Object.entries(countryMap).map(([code, id]) => [id, code]),
+);
+
 export function getHeroCountryCode(code: string) {
   return countryMap[code.toUpperCase()];
 }
@@ -79,6 +83,24 @@ export async function getHeroAvailability(serviceCode: string, countryCode: stri
   };
 }
 
+export async function getHeroCountriesForService(serviceCode: string): Promise<{ countryCode: string; count: number; cost: number }[]> {
+  const text = await heroRequest({ action: "getPrices", service: serviceCode });
+  const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string }>>>(text);
+  if (!json) return [];
+
+  const results: { countryCode: string; count: number; cost: number }[] = [];
+  for (const [countryIdStr, serviceData] of Object.entries(json)) {
+    const countryCode = reverseCountryMap[Number(countryIdStr)];
+    if (!countryCode) continue;
+    const data = serviceData[serviceCode];
+    if (!data) continue;
+    const count = Number(data.count ?? 0);
+    if (count <= 0) continue;
+    results.push({ countryCode, count, cost: Number(data.cost ?? 0) });
+  }
+  return results;
+}
+
 const HERO_ERROR_MESSAGES: Record<string, string> = {
   NO_NUMBERS: "No numbers are available for this service and country right now. Please try a different country or try again shortly.",
   NO_BALANCE: "Provider balance is too low to fulfill this request. Please contact support.",
@@ -92,7 +114,7 @@ const HERO_ERROR_MESSAGES: Record<string, string> = {
   BANNED: "Provider account is banned. Please contact support.",
 };
 
-export async function rentHeroNumber(serviceCode: string, countryCode: string, maxPrice?: number) {
+export async function rentHeroNumber(serviceCode: string, countryCode: string) {
   const country = getHeroCountryCode(countryCode);
   if (country === undefined) {
     throw new Error(`Hero SMS does not have a mapped country code for ${countryCode}.`);
@@ -102,7 +124,6 @@ export async function rentHeroNumber(serviceCode: string, countryCode: string, m
     action: "getNumber",
     service: serviceCode,
     country,
-    maxPrice: maxPrice && maxPrice > 0 ? maxPrice : undefined,
   });
 
   if (text.startsWith("ACCESS_NUMBER:")) {

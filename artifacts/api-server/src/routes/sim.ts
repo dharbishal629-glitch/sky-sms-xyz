@@ -5,6 +5,7 @@ import { ensureSimSchema } from "../lib/simSchema";
 import {
   getHeroAvailability,
   getHeroBalance,
+  getHeroCountriesForService,
   getHeroStatus,
   rentHeroNumber,
   setHeroStatus,
@@ -360,6 +361,33 @@ router.get("/dashboard", async (req, res) => {
 
 router.get("/catalog/countries", async (_req, res) => {
   res.json(ListCountriesResponse.parse({ countries, provider: await heroProviderStatus() }));
+});
+
+router.get("/catalog/countries-for-service", async (req, res) => {
+  const serviceCode = String(req.query.serviceCode ?? "");
+  const service = services.find((item) => item.code === serviceCode);
+  if (!service) {
+    res.status(400).json({ error: "Unknown service code" });
+    return;
+  }
+  const providerSt = await heroProviderStatus();
+  const liveData = await getHeroCountriesForService(serviceCode).catch(() => []);
+
+  const result = countries
+    .map((country) => {
+      const live = liveData.find((d) => d.countryCode === country.code);
+      return {
+        code: country.code,
+        name: country.name,
+        flag: country.code,
+        available: live?.count ?? 0,
+        heroPrice: live?.cost ?? 0,
+      };
+    })
+    .filter((c) => c.available > 0)
+    .sort((a, b) => b.available - a.available);
+
+  res.json({ countries: result, provider: providerSt });
 });
 
 router.get("/catalog/services", async (req, res) => {
