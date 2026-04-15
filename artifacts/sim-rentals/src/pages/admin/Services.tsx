@@ -96,7 +96,8 @@ export default function AdminServices() {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold text-destructive">Failed to load services</h2>
-        <p className="text-muted-foreground mt-2">Make sure your account is admin.</p>
+        <p className="text-muted-foreground mt-2">Please refresh the page and try again.</p>
+        <button onClick={loadServices} className="mt-4 text-sm text-cyan-400 hover:underline">Retry</button>
       </div>
     );
   }

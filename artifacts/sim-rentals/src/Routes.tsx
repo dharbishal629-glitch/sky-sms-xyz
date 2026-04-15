@@ -9,22 +9,47 @@ import AdminUsers from "@/pages/admin/Users";
 import AdminTransactions from "@/pages/admin/Transactions";
 import AdminServices from "@/pages/admin/Services";
 import { useAuth } from "@/hooks/useAuth";
+import { useGetMe } from "@workspace/api-client-react";
 import { Switch, Route, Redirect } from "wouter";
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen premium-shell flex items-center justify-center">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
+    </div>
+  );
+}
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isLoading, isAuthenticated, login } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen premium-shell flex items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingScreen />;
 
   if (!isAuthenticated) {
     login();
     return null;
+  }
+
+  return (
+    <Layout>
+      <Component />
+    </Layout>
+  );
+}
+
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoading: authLoading, isAuthenticated, login } = useAuth();
+  const { data: user, isLoading: userLoading } = useGetMe();
+
+  if (authLoading || (isAuthenticated && userLoading)) return <LoadingScreen />;
+
+  if (!isAuthenticated) {
+    login();
+    return null;
+  }
+
+  if (user && user.role !== "admin") {
+    return <Redirect to="/dashboard" />;
   }
 
   return (
@@ -54,16 +79,16 @@ export function AppRoutes() {
       </Route>
 
       <Route path="/admin">
-        <ProtectedRoute component={AdminOverview} />
+        <AdminRoute component={AdminOverview} />
       </Route>
       <Route path="/admin/users">
-        <ProtectedRoute component={AdminUsers} />
+        <AdminRoute component={AdminUsers} />
       </Route>
       <Route path="/admin/services">
-        <ProtectedRoute component={AdminServices} />
+        <AdminRoute component={AdminServices} />
       </Route>
       <Route path="/admin/transactions">
-        <ProtectedRoute component={AdminTransactions} />
+        <AdminRoute component={AdminTransactions} />
       </Route>
     </Switch>
   );
