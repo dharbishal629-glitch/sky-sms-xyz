@@ -59,20 +59,18 @@ const services = [
 type Service = (typeof services)[number];
 type Country = (typeof countries)[number];
 
-function isAdmin(req: Request) {
-  return req.user?.role === "admin";
-}
-
-function requireAdmin(req: Request, res: Response) {
+async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
-  if (!isAdmin(req)) {
-    res.status(403).json({ error: "Admin access required" });
-    return false;
-  }
-  return true;
+  const userId = req.user.id;
+  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+  if (adminEmail && req.user.email?.toLowerCase() === adminEmail) return true;
+  const result = await pool.query("SELECT role FROM sim_users WHERE id = $1", [userId]);
+  if (result.rows[0]?.role === "admin") return true;
+  res.status(403).json({ error: "Admin access required" });
+  return false;
 }
 
 function providerStatus(name: "Hero SMS" | "OxaPay") {
@@ -510,7 +508,7 @@ router.post("/payments/checkout", async (req, res) => {
 });
 
 router.get("/admin/overview", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
   const users = await pool.query("SELECT COUNT(*)::int AS count FROM sim_users");
   const rentals = await pool.query("SELECT COUNT(*)::int AS count FROM sim_rentals WHERE status IN ('active', 'sms_received')");
   const revenue = await pool.query("SELECT COALESCE(SUM(amount), 0)::numeric AS total FROM sim_payments WHERE status = 'paid'");
@@ -528,7 +526,7 @@ router.get("/admin/overview", async (req, res) => {
 });
 
 router.get("/admin/users", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
   const result = await pool.query(`
     SELECT u.*, COUNT(r.id)::int AS rentals
     FROM sim_users u
@@ -552,7 +550,7 @@ router.get("/admin/users", async (req, res) => {
 });
 
 router.post("/admin/users/:id/credits", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
   const userId = String(req.params.id);
   const amount = Number(req.body?.amount);
   if (!Number.isFinite(amount)) {
@@ -579,7 +577,7 @@ router.post("/admin/users/:id/credits", async (req, res) => {
 });
 
 router.put("/admin/users/:id/role", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
   const userId = String(req.params.id);
   const role = String(req.body?.role ?? "");
   if (role !== "admin" && role !== "user") {
@@ -606,7 +604,7 @@ router.put("/admin/users/:id/role", async (req, res) => {
 });
 
 router.get("/admin/services", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
   const priceOverrides = await listServicePrices();
   res.json({
     services: services.map((service) => ({
@@ -619,7 +617,7 @@ router.get("/admin/services", async (req, res) => {
 });
 
 router.put("/admin/services/:code/price", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
   const code = String(req.params.code);
   const price = Number(req.body?.price);
   const service = services.find((item) => item.code === code);
@@ -649,7 +647,7 @@ router.put("/admin/services/:code/price", async (req, res) => {
 });
 
 router.get("/admin/transactions", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
   const result = await pool.query(`
     SELECT p.id, u.email AS user_email, p.amount, p.status, p.created_at
     FROM sim_payments p
