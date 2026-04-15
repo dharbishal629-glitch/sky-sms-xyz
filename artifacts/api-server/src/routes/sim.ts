@@ -398,15 +398,19 @@ router.get("/catalog/services", async (req, res) => {
 
 router.get("/catalog/availability", async (req, res) => {
   const params = GetAvailabilityQueryParams.parse(req.query);
-  const service = services.find((item) => item.code === params.serviceCode) ?? services[0];
-  const country = countries.find((item) => item.code === params.countryCode) ?? countries[0];
+  const service = services.find((item) => item.code === params.serviceCode);
+  const country = countries.find((item) => item.code === params.countryCode);
+  if (!service || !country) {
+    res.status(400).json({ error: "Unknown service or country code." });
+    return;
+  }
   const customPrice = await getServicePrice(service, country);
   const live = await getHeroAvailability(service.code, country.code).catch(() => null);
   res.json(
     GetAvailabilityResponse.parse({
       countryCode: country.code,
       serviceCode: service.code,
-      available: live?.count ?? Math.max(25, Math.floor((country.available + service.available) / 8)),
+      available: live?.count ?? 0,
       price: customPrice,
       estimatedWait: "20 minute activation window",
       provider: await heroProviderStatus(),

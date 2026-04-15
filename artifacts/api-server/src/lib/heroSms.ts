@@ -132,8 +132,9 @@ export async function rentHeroNumber(serviceCode: string, countryCode: string) {
     return { activationId, phoneNumber };
   }
 
-  const friendlyMessage = HERO_ERROR_MESSAGES[text.trim()];
-  throw new Error(friendlyMessage ?? `Could not allocate a number: ${text}`);
+  const errorCode = text.trim().toUpperCase();
+  const friendlyMessage = HERO_ERROR_MESSAGES[errorCode];
+  throw new Error(friendlyMessage ?? HERO_ERROR_MESSAGES[text.trim()] ?? `Could not allocate a number. Provider returned: ${text}`);
 }
 
 export async function getHeroStatus(activationId: string) {
