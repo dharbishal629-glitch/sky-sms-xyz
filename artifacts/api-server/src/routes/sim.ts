@@ -53,7 +53,7 @@ const services = [
   { code: "ig", name: "Instagram", category: "Social", available: 801, price: 1.35 },
   { code: "fb", name: "Facebook", category: "Social", available: 775, price: 1.25 },
   { code: "tw", name: "X / Twitter", category: "Social", available: 312, price: 1.55 },
-  { code: "dc", name: "Discord", category: "Community", available: 486, price: 1.1 },
+  { code: "ds", name: "Discord", category: "Community", available: 486, price: 1.1 },
   { code: "am", name: "Amazon", category: "Commerce", available: 236, price: 2.1 },
 ];
 
