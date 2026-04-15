@@ -23,23 +23,28 @@ function RentalCard({ rental }: { rental: any }) {
   
   // Timer logic for active rentals
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  
+
   useEffect(() => {
     if (!isActive) return;
-    
+
     const calculateTimeLeft = () => {
       const expiresAt = new Date(rental.expiresAt);
       const now = new Date();
       const diff = Math.max(0, differenceInSeconds(expiresAt, now));
       setTimeLeft(diff);
-      
-      // Auto-refresh logic could go here, but doing it manually or via query invalidation is safer
+
+      if (diff === 0) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: getListRentalsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        }, 1500);
+      }
     };
-    
+
     calculateTimeLeft();
     const interval = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(interval);
-  }, [isActive, rental.expiresAt]);
+  }, [isActive, rental.expiresAt, queryClient]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -131,17 +136,25 @@ function RentalCard({ rental }: { rental: any }) {
           )}
         </div>
 
+        {isActive && (
+          <div className={`rounded-lg border px-4 py-3 mb-4 flex items-center justify-between ${timeLeft < 120 ? 'border-red-300/30 bg-red-400/10' : timeLeft < 300 ? 'border-amber-300/30 bg-amber-400/10' : 'border-sky-300/20 bg-sky-400/10'}`}>
+            <div className="flex items-center gap-2">
+              <Clock className={`h-4 w-4 ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`} />
+              <span className={`text-sm font-semibold ${timeLeft < 120 ? 'text-red-200' : timeLeft < 300 ? 'text-amber-200' : 'text-sky-200'}`}>
+                {timeLeft === 0 ? "Window expired — refreshing..." : "Activation window"}
+              </span>
+            </div>
+            <span className={`font-mono text-xl font-bold tabular-nums ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`}>
+              {formatTime(timeLeft)}
+            </span>
+          </div>
+        )}
+
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm font-medium">
             <span className="flex items-center gap-2 text-muted-foreground">
               <MessageSquare className="h-4 w-4" /> Messages
             </span>
-            {isActive && (
-              <span className={`flex items-center gap-1.5 ${timeLeft < 300 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                <Clock className="h-3.5 w-3.5" />
-                <span className="font-mono">{formatTime(timeLeft)}</span>
-              </span>
-            )}
           </div>
           
           {hasMessages ? (

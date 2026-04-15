@@ -291,11 +291,14 @@ async function getAccount(userId: string, authUser?: AuthUser) {
     : "User";
   const email = authUser?.email || `user-${userId}@sms-rentals.app`;
 
+  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+  const isAdminEmail = adminEmail && email.toLowerCase() === adminEmail;
+
   await pool.query(
     `INSERT INTO sim_users (id, name, email, role, credits, status)
-     VALUES ($1, $2, $3, 'user', 0, 'active')
-     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email`,
-    [userId, name, email],
+     VALUES ($1, $2, $3, $4, 0, 'active')
+     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email${isAdminEmail ? ", role = 'admin'" : ""}`,
+    [userId, name, email, isAdminEmail ? "admin" : "user"],
   );
   const result = await pool.query("SELECT * FROM sim_users WHERE id = $1", [userId]);
   const user = result.rows[0];
@@ -559,6 +562,33 @@ router.post("/admin/users/:id/credits", async (req, res) => {
   const result = await pool.query(
     "UPDATE sim_users SET credits = GREATEST(credits + $1, 0) WHERE id = $2 RETURNING id, name, email, role, credits, status",
     [amount, userId],
+  );
+  if (!result.rows[0]) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
+  const row = result.rows[0];
+  res.json({
+    id: String(row.id),
+    name: String(row.name),
+    email: String(row.email),
+    role: String(row.role),
+    credits: Number(row.credits),
+    status: String(row.status),
+  });
+});
+
+router.put("/admin/users/:id/role", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const userId = String(req.params.id);
+  const role = String(req.body?.role ?? "");
+  if (role !== "admin" && role !== "user") {
+    res.status(400).json({ error: "Role must be 'admin' or 'user'." });
+    return;
+  }
+  const result = await pool.query(
+    "UPDATE sim_users SET role = $1 WHERE id = $2 RETURNING id, name, email, role, credits, status",
+    [role, userId],
   );
   if (!result.rows[0]) {
     res.status(404).json({ error: "User not found." });
