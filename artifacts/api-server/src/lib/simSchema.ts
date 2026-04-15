@@ -41,6 +41,9 @@ async function createSchema() {
       phone_number TEXT NOT NULL,
       price NUMERIC NOT NULL,
       status TEXT NOT NULL,
+      provider TEXT NOT NULL DEFAULT 'Hero SMS',
+      provider_activation_id TEXT,
+      refunded BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       expires_at TIMESTAMPTZ NOT NULL
     );
@@ -53,6 +56,16 @@ async function createSchema() {
       code TEXT,
       received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS sim_service_prices (
+      service_code TEXT PRIMARY KEY,
+      price NUMERIC NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'Hero SMS';
+    ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS provider_activation_id TEXT;
+    ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS refunded BOOLEAN NOT NULL DEFAULT FALSE;
   `);
 }
 

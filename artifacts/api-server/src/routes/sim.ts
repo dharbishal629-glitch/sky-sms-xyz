@@ -1,7 +1,14 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { pool } from "@workspace/db";
 import type { AuthUser } from "../lib/auth";
 import { ensureSimSchema } from "../lib/simSchema";
+import {
+  getHeroAvailability,
+  getHeroBalance,
+  getHeroStatus,
+  rentHeroNumber,
+  setHeroStatus,
+} from "../lib/heroSms";
 import {
   GetMeResponse,
   GetDashboardResponse,
@@ -49,6 +56,25 @@ const services = [
   { code: "am", name: "Amazon", category: "Commerce", available: 236, price: 2.1 },
 ];
 
+type Service = (typeof services)[number];
+type Country = (typeof countries)[number];
+
+function isAdmin(req: Request) {
+  return req.user?.role === "admin";
+}
+
+function requireAdmin(req: Request, res: Response) {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return false;
+  }
+  if (!isAdmin(req)) {
+    res.status(403).json({ error: "Admin access required" });
+    return false;
+  }
+  return true;
+}
+
 function providerStatus(name: "Hero SMS" | "OxaPay") {
   const configured = name === "Hero SMS" ? Boolean(process.env.HERO_SMS_API_KEY) : Boolean(process.env.OXAPAY_MERCHANT_API_KEY);
   return {
@@ -60,12 +86,52 @@ function providerStatus(name: "Hero SMS" | "OxaPay") {
   };
 }
 
+async function heroProviderStatus() {
+  if (!process.env.HERO_SMS_API_KEY) return providerStatus("Hero SMS");
+  try {
+    const balance = await getHeroBalance();
+    return {
+      name: "Hero SMS",
+      mode: "live" as const,
+      message: `Hero SMS is connected. Provider balance: $${balance.toFixed(2)}.`,
+    };
+  } catch (error) {
+    return {
+      name: "Hero SMS",
+      mode: "setup_required" as const,
+      message: error instanceof Error ? error.message : "Hero SMS connection failed.",
+    };
+  }
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
 
 function futureIso(minutes: number) {
   return new Date(Date.now() + minutes * 60_000).toISOString();
+}
+
+async function listServicePrices() {
+  const result = await pool.query("SELECT service_code, price FROM sim_service_prices");
+  return new Map(result.rows.map((row) => [String(row.service_code), Number(row.price)]));
+}
+
+async function getServicePrice(service: Service, country: Country) {
+  const result = await pool.query("SELECT price FROM sim_service_prices WHERE service_code = $1", [service.code]);
+  if (result.rows[0]) return Number(result.rows[0].price);
+  return Number((service.price + country.startingPrice * 0.25).toFixed(2));
+}
+
+async function servicesWithPrices(country?: Country) {
+  const prices = await listServicePrices();
+  const countryBase = country?.startingPrice ?? 0;
+  return services.map((service) => ({
+    ...service,
+    price: prices.has(service.code)
+      ? Number(prices.get(service.code))
+      : Number((service.price + countryBase * 0.25).toFixed(2)),
+  }));
 }
 
 function getUserId(req: Request): string {
@@ -113,6 +179,70 @@ async function createOxaPayInvoice(req: Request, paymentId: string, amount: numb
   return payload.payLink;
 }
 
+function extractCode(value: string) {
+  return value.match(/\b\d{4,8}\b/)?.[0] ?? value;
+}
+
+async function refundExpiredRental(row: Record<string, unknown>) {
+  if (Boolean(row.refunded)) return;
+  const messages = await pool.query("SELECT COUNT(*)::int AS count FROM sim_sms_messages WHERE rental_id = $1", [row.id]);
+  if (Number(messages.rows[0].count) > 0) return;
+  const price = Number(row.price);
+  if (price > 0) {
+    await pool.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [price, row.user_id]);
+  }
+  await pool.query("UPDATE sim_rentals SET refunded = TRUE WHERE id = $1", [row.id]);
+}
+
+async function syncExpiredRentals(userId?: string) {
+  const params: unknown[] = [];
+  const userFilter = userId ? "AND user_id = $1" : "";
+  if (userId) params.push(userId);
+  const result = await pool.query(
+    `SELECT * FROM sim_rentals WHERE status = 'active' AND expires_at <= NOW() ${userFilter}`,
+    params,
+  );
+  for (const row of result.rows) {
+    await pool.query("UPDATE sim_rentals SET status = 'expired' WHERE id = $1", [row.id]);
+    await refundExpiredRental(row);
+  }
+}
+
+async function syncHeroStatus(id: string) {
+  const rentalResult = await pool.query("SELECT * FROM sim_rentals WHERE id = $1", [id]);
+  const rental = rentalResult.rows[0];
+  if (!rental) return null;
+
+  if (String(rental.status) === "active" && new Date(String(rental.expires_at)) <= new Date()) {
+    await pool.query("UPDATE sim_rentals SET status = 'expired' WHERE id = $1", [id]);
+    await refundExpiredRental(rental);
+  }
+
+  if (String(rental.status) === "active" && rental.provider_activation_id) {
+    try {
+      const status = await getHeroStatus(String(rental.provider_activation_id));
+      if (status.status === "STATUS_OK" && status.code) {
+        const existing = await pool.query("SELECT COUNT(*)::int AS count FROM sim_sms_messages WHERE rental_id = $1 AND code = $2", [id, status.code]);
+        if (Number(existing.rows[0].count) === 0) {
+          await pool.query(
+            "INSERT INTO sim_sms_messages (id, rental_id, sender, message, code) VALUES ($1, $2, 'Hero SMS', $3, $4)",
+            [crypto.randomUUID(), id, `Your verification code is ${status.code}.`, extractCode(status.code)],
+          );
+        }
+        await setHeroStatus(String(rental.provider_activation_id), 6).catch(() => null);
+        await pool.query("UPDATE sim_rentals SET status = 'sms_received' WHERE id = $1", [id]);
+      } else if (["STATUS_CANCEL", "NO_ACTIVATION", "STATUS_FINISH"].includes(status.status)) {
+        await pool.query("UPDATE sim_rentals SET status = 'expired' WHERE id = $1", [id]);
+        await refundExpiredRental(rental);
+      }
+    } catch {
+    }
+  }
+
+  const updated = await pool.query("SELECT * FROM sim_rentals WHERE id = $1", [id]);
+  return updated.rows[0] ?? null;
+}
+
 function mapRental(row: Record<string, unknown>, messages: Array<Record<string, unknown>> = []) {
   return {
     id: String(row.id),
@@ -136,15 +266,23 @@ function mapRental(row: Record<string, unknown>, messages: Array<Record<string, 
 }
 
 async function listUserRentals(userId: string) {
+  await syncExpiredRentals(userId);
   const rentalsResult = await pool.query(
+    "SELECT * FROM sim_rentals WHERE user_id = $1 ORDER BY created_at DESC",
+    [userId],
+  );
+  for (const rental of rentalsResult.rows.filter((row) => row.status === "active")) {
+    await syncHeroStatus(String(rental.id));
+  }
+  const syncedRentalsResult = await pool.query(
     "SELECT * FROM sim_rentals WHERE user_id = $1 ORDER BY created_at DESC",
     [userId],
   );
   const messagesResult = await pool.query(
     "SELECT * FROM sim_sms_messages WHERE rental_id = ANY($1::text[]) ORDER BY received_at DESC",
-    [rentalsResult.rows.map((row) => row.id)],
+    [syncedRentalsResult.rows.map((row) => row.id)],
   );
-  return rentalsResult.rows.map((row) => mapRental(row, messagesResult.rows.filter((message) => message.rental_id === row.id)));
+  return syncedRentalsResult.rows.map((row) => mapRental(row, messagesResult.rows.filter((message) => message.rental_id === row.id)));
 }
 
 async function getAccount(userId: string, authUser?: AuthUser) {
@@ -198,6 +336,7 @@ router.get("/dashboard", async (req, res) => {
   const account = await getAccount(userId, req.user);
   const rentals = await listUserRentals(userId);
   const payments = await pool.query("SELECT * FROM sim_payments WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5", [userId]);
+  const heroStatus = await heroProviderStatus();
   const data = GetDashboardResponse.parse({
     account,
     activeRentals: rentals.filter((r) => r.status === "active" || r.status === "sms_received").length,
@@ -213,32 +352,35 @@ router.get("/dashboard", async (req, res) => {
       provider: String(row.provider),
       createdAt: new Date(String(row.created_at)).toISOString(),
     })),
-    providerStatuses: [providerStatus("Hero SMS"), providerStatus("OxaPay")],
+    providerStatuses: [heroStatus, providerStatus("OxaPay")],
   });
   res.json(data);
 });
 
-router.get("/catalog/countries", (_req, res) => {
-  res.json(ListCountriesResponse.parse({ countries, provider: providerStatus("Hero SMS") }));
+router.get("/catalog/countries", async (_req, res) => {
+  res.json(ListCountriesResponse.parse({ countries, provider: await heroProviderStatus() }));
 });
 
-router.get("/catalog/services", (req, res) => {
+router.get("/catalog/services", async (req, res) => {
   ListServicesQueryParams.parse(req.query);
-  res.json(ListServicesResponse.parse({ services, provider: providerStatus("Hero SMS") }));
+  const country = countries.find((item) => item.code === String(req.query.countryCode ?? ""));
+  res.json(ListServicesResponse.parse({ services: await servicesWithPrices(country), provider: await heroProviderStatus() }));
 });
 
-router.get("/catalog/availability", (req, res) => {
+router.get("/catalog/availability", async (req, res) => {
   const params = GetAvailabilityQueryParams.parse(req.query);
   const service = services.find((item) => item.code === params.serviceCode) ?? services[0];
   const country = countries.find((item) => item.code === params.countryCode) ?? countries[0];
+  const customPrice = await getServicePrice(service, country);
+  const live = await getHeroAvailability(service.code, country.code).catch(() => null);
   res.json(
     GetAvailabilityResponse.parse({
       countryCode: country.code,
       serviceCode: service.code,
-      available: Math.max(25, Math.floor((country.available + service.available) / 8)),
-      price: Number((service.price + country.startingPrice * 0.25).toFixed(2)),
-      estimatedWait: "Instant to 2 minutes",
-      provider: providerStatus("Hero SMS"),
+      available: live?.count ?? Math.max(25, Math.floor((country.available + service.available) / 8)),
+      price: customPrice,
+      estimatedWait: "20 minute activation window",
+      provider: await heroProviderStatus(),
     }),
   );
 });
@@ -257,7 +399,7 @@ router.post("/rentals", async (req, res) => {
   const account = await getAccount(userId, req.user);
   const country = countries.find((item) => item.code === body.countryCode) ?? countries[0];
   const service = services.find((item) => item.code === body.serviceCode) ?? services[0];
-  const price = Number((service.price + country.startingPrice * 0.25).toFixed(2));
+  const price = await getServicePrice(service, country);
 
   if (account.credits < price) {
     res.status(402).json({ error: "Insufficient credits" });
@@ -265,39 +407,54 @@ router.post("/rentals", async (req, res) => {
   }
 
   const id = crypto.randomUUID();
-  const phoneNumber = `+${Math.floor(10000000000 + Math.random() * 89999999999)}`;
-  await pool.query("UPDATE sim_users SET credits = credits - $1 WHERE id = $2", [price, userId]);
-  const result = await pool.query(
-    `INSERT INTO sim_rentals (id, user_id, country_code, country_name, service_code, service_name, phone_number, price, status, expires_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW() + INTERVAL '20 minutes')
-     RETURNING *`,
-    [id, userId, country.code, country.name, service.code, service.name, phoneNumber, price],
-  );
-  res.json(CreateRentalResponse.parse(mapRental(result.rows[0])));
+  try {
+    const providerRental = await rentHeroNumber(service.code, country.code, price || undefined);
+    if (price > 0) {
+      await pool.query("UPDATE sim_users SET credits = credits - $1 WHERE id = $2", [price, userId]);
+    }
+    const result = await pool.query(
+      `INSERT INTO sim_rentals (id, user_id, country_code, country_name, service_code, service_name, phone_number, price, status, provider, provider_activation_id, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'Hero SMS', $9, NOW() + INTERVAL '20 minutes')
+       RETURNING *`,
+      [id, userId, country.code, country.name, service.code, service.name, providerRental.phoneNumber, price, providerRental.activationId],
+    );
+    res.json(CreateRentalResponse.parse(mapRental(result.rows[0])));
+  } catch (error) {
+    res.status(502).json({ error: error instanceof Error ? error.message : "Hero SMS could not allocate a number." });
+  }
 });
 
 router.post("/rentals/:id/refresh", async (req, res) => {
   const params = RefreshRentalParams.parse(req.params);
-  const existing = await pool.query("SELECT * FROM sim_sms_messages WHERE rental_id = $1", [params.id]);
-  if (existing.rows.length === 0) {
-    const code = String(Math.floor(100000 + Math.random() * 899999));
-    await pool.query(
-      "INSERT INTO sim_sms_messages (id, rental_id, sender, message, code) VALUES ($1, $2, 'Verification', $3, $4)",
-      [crypto.randomUUID(), params.id, `Your verification code is ${code}.`, code],
-    );
-    await pool.query("UPDATE sim_rentals SET status = 'sms_received' WHERE id = $1", [params.id]);
+  const rental = await syncHeroStatus(params.id);
+  if (!rental) {
+    res.status(404).json({ error: "Rental not found" });
+    return;
   }
-  const rental = await pool.query("SELECT * FROM sim_rentals WHERE id = $1", [params.id]);
   const messages = await pool.query("SELECT * FROM sim_sms_messages WHERE rental_id = $1 ORDER BY received_at DESC", [params.id]);
-  res.json(RefreshRentalResponse.parse(mapRental(rental.rows[0], messages.rows)));
+  res.json(RefreshRentalResponse.parse(mapRental(rental, messages.rows)));
 });
 
 router.post("/rentals/:id/cancel", async (req, res) => {
   const params = CancelRentalParams.parse(req.params);
-  await pool.query("UPDATE sim_rentals SET status = 'cancelled' WHERE id = $1", [params.id]);
   const rental = await pool.query("SELECT * FROM sim_rentals WHERE id = $1", [params.id]);
+  const row = rental.rows[0];
+  if (!row) {
+    res.status(404).json({ error: "Rental not found" });
+    return;
+  }
+  if (row.provider_activation_id) {
+    const providerResponse = await setHeroStatus(String(row.provider_activation_id), 8);
+    if (providerResponse === "EARLY_CANCEL_DENIED") {
+      res.status(409).json({ error: "Hero SMS allows cancellation only after the provider's minimum waiting time. Try again shortly." });
+      return;
+    }
+  }
+  await pool.query("UPDATE sim_rentals SET status = 'cancelled' WHERE id = $1", [params.id]);
+  await refundExpiredRental(row);
+  const updatedRental = await pool.query("SELECT * FROM sim_rentals WHERE id = $1", [params.id]);
   const messages = await pool.query("SELECT * FROM sim_sms_messages WHERE rental_id = $1 ORDER BY received_at DESC", [params.id]);
-  res.json(CancelRentalResponse.parse(mapRental(rental.rows[0], messages.rows)));
+  res.json(CancelRentalResponse.parse(mapRental(updatedRental.rows[0], messages.rows)));
 });
 
 router.get("/payments", async (req, res) => {
@@ -349,23 +506,26 @@ router.post("/payments/checkout", async (req, res) => {
   }
 });
 
-router.get("/admin/overview", async (_req, res) => {
+router.get("/admin/overview", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const users = await pool.query("SELECT COUNT(*)::int AS count FROM sim_users");
   const rentals = await pool.query("SELECT COUNT(*)::int AS count FROM sim_rentals WHERE status IN ('active', 'sms_received')");
   const revenue = await pool.query("SELECT COALESCE(SUM(amount), 0)::numeric AS total FROM sim_payments WHERE status = 'paid'");
   const pending = await pool.query("SELECT COUNT(*)::int AS count FROM sim_payments WHERE status = 'pending'");
+  const heroStatus = await heroProviderStatus();
   res.json(
     GetAdminOverviewResponse.parse({
       totalUsers: users.rows[0].count,
       activeRentals: rentals.rows[0].count,
       revenue: Number(revenue.rows[0].total),
       pendingPayments: pending.rows[0].count,
-      providerStatuses: [providerStatus("Hero SMS"), providerStatus("OxaPay")],
+      providerStatuses: [heroStatus, providerStatus("OxaPay")],
     }),
   );
 });
 
-router.get("/admin/users", async (_req, res) => {
+router.get("/admin/users", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const result = await pool.query(`
     SELECT u.*, COUNT(r.id)::int AS rentals
     FROM sim_users u
@@ -388,7 +548,78 @@ router.get("/admin/users", async (_req, res) => {
   );
 });
 
-router.get("/admin/transactions", async (_req, res) => {
+router.post("/admin/users/:id/credits", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const userId = String(req.params.id);
+  const amount = Number(req.body?.amount);
+  if (!Number.isFinite(amount)) {
+    res.status(400).json({ error: "A valid credit amount is required." });
+    return;
+  }
+  const result = await pool.query(
+    "UPDATE sim_users SET credits = GREATEST(credits + $1, 0) WHERE id = $2 RETURNING id, name, email, role, credits, status",
+    [amount, userId],
+  );
+  if (!result.rows[0]) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
+  const row = result.rows[0];
+  res.json({
+    id: String(row.id),
+    name: String(row.name),
+    email: String(row.email),
+    role: String(row.role),
+    credits: Number(row.credits),
+    status: String(row.status),
+  });
+});
+
+router.get("/admin/services", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const priceOverrides = await listServicePrices();
+  res.json({
+    services: services.map((service) => ({
+      ...service,
+      basePrice: service.price,
+      price: priceOverrides.has(service.code) ? Number(priceOverrides.get(service.code)) : service.price,
+      customPrice: priceOverrides.has(service.code),
+    })),
+  });
+});
+
+router.put("/admin/services/:code/price", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const code = String(req.params.code);
+  const price = Number(req.body?.price);
+  const service = services.find((item) => item.code === code);
+  if (!service) {
+    res.status(404).json({ error: "Service not found." });
+    return;
+  }
+  if (!Number.isFinite(price) || price < 0) {
+    res.status(400).json({ error: "Price must be 0 or higher." });
+    return;
+  }
+  await pool.query(
+    `INSERT INTO sim_service_prices (service_code, price, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (service_code) DO UPDATE SET price = EXCLUDED.price, updated_at = NOW()`,
+    [code, price],
+  );
+  res.json({
+    code: service.code,
+    name: service.name,
+    category: service.category,
+    available: service.available,
+    basePrice: service.price,
+    price,
+    customPrice: true,
+  });
+});
+
+router.get("/admin/transactions", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const result = await pool.query(`
     SELECT p.id, u.email AS user_email, p.amount, p.status, p.created_at
     FROM sim_payments p

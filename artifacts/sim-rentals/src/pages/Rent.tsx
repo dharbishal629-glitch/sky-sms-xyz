@@ -149,6 +149,7 @@ export default function Rent() {
                         <div className="font-semibold text-emerald-100">Numbers available</div>
                         <div className="text-sm mt-1 text-emerald-100/80">
                           {availability.available} numbers ready. Estimated wait: {availability.estimatedWait}.
+                          Hero SMS activations stay open for 20 minutes after purchase.
                         </div>
                       </div>
                     </div>
@@ -166,7 +167,9 @@ export default function Rent() {
 
                   <div className="flex justify-between items-center py-2 px-1 border-t border-b border-white/10">
                     <span className="text-muted-foreground text-sm font-medium">Price per SMS</span>
-                    <span className="text-xl font-bold text-primary" data-testid="text-price-quote">${availability.price.toFixed(2)} credits</span>
+                    <span className="text-xl font-bold text-primary" data-testid="text-price-quote">
+                      {availability.price === 0 ? "Free" : `$${availability.price.toFixed(2)} credits`}
+                    </span>
                   </div>
                   
                   <div className="text-xs text-muted-foreground flex justify-between items-center px-1">
@@ -200,6 +203,8 @@ export default function Rent() {
                   </>
                 ) : availability?.provider.mode !== 'live' ? (
                   "Provider Unavailable"
+                ) : availability?.price === 0 ? (
+                  "Rent Free Number"
                 ) : (
                   "Rent Number"
                 )}

@@ -211,7 +211,11 @@ function RentalCard({ rental }: { rental: any }) {
 }
 
 export default function Rentals() {
-  const { data, isLoading, error } = useListRentals();
+  const { data, isLoading, error } = useListRentals({
+    query: {
+      refetchInterval: 15000,
+    },
+  });
 
   if (isLoading) {
     return (

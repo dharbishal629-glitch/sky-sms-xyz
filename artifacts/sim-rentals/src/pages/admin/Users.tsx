@@ -5,11 +5,45 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+
 export default function AdminUsers() {
-  const { data, isLoading, error } = useListAdminUsers();
+  const { data, isLoading, error, refetch } = useListAdminUsers();
   const [search, setSearch] = useState("");
+  const [creditDrafts, setCreditDrafts] = useState<Record<string, string>>({});
+  const [savingUser, setSavingUser] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const addCredits = async (userId: string) => {
+    const amount = Number(creditDrafts[userId]);
+    if (!Number.isFinite(amount) || amount === 0) {
+      toast({ title: "Enter a credit amount", description: "Use a positive amount to add credits or a negative amount to remove.", variant: "destructive" });
+      return;
+    }
+
+    setSavingUser(userId);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users/${userId}/credits`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || `HTTP ${response.status}`);
+      setCreditDrafts((current) => ({ ...current, [userId]: "" }));
+      await refetch();
+      toast({ title: "Credits updated", description: `${amount > 0 ? "Added" : "Removed"} ${Math.abs(amount)} credits.` });
+    } catch (err) {
+      toast({ title: "Failed to update credits", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setSavingUser(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -65,12 +99,13 @@ export default function AdminUsers() {
                   <TableHead className="text-right text-muted-foreground">Credits</TableHead>
                   <TableHead className="text-right text-muted-foreground">Rentals</TableHead>
                   <TableHead className="text-right text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-right text-muted-foreground">Credits Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                       No users found.
                     </TableCell>
                   </TableRow>
@@ -97,6 +132,25 @@ export default function AdminUsers() {
                         <Badge variant="outline" className={user.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200' : 'border-red-300/20 bg-red-400/10 text-red-200'}>
                           {user.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="+10"
+                            value={creditDrafts[user.id] ?? ""}
+                            onChange={(event) => setCreditDrafts((current) => ({ ...current, [user.id]: event.target.value }))}
+                            className="w-24 text-right"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => addCredits(user.id)}
+                            disabled={savingUser === user.id}
+                          >
+                            {savingUser === user.id ? "Saving..." : "Apply"}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

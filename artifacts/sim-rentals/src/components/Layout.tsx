@@ -11,6 +11,7 @@ import {
   Shield,
   Users,
   Activity,
+  SlidersHorizontal,
   LogOut,
   Menu
 } from "lucide-react";
@@ -38,6 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const adminItems = [
     { href: "/admin", label: "Overview", icon: Shield },
     { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/services", label: "Services", icon: SlidersHorizontal },
     { href: "/admin/transactions", label: "Transactions", icon: Activity },
   ];
 

@@ -88,6 +88,7 @@ function AppWithRoutes() {
       <Route path="/settings" component={AppRoutes} />
       <Route path="/admin" component={AppRoutes} />
       <Route path="/admin/users" component={AppRoutes} />
+      <Route path="/admin/services" component={AppRoutes} />
       <Route path="/admin/transactions" component={AppRoutes} />
 
       <Route component={NotFound} />

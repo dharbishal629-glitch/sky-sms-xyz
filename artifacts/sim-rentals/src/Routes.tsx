@@ -7,6 +7,7 @@ import Settings from "@/pages/Settings";
 import AdminOverview from "@/pages/admin/Overview";
 import AdminUsers from "@/pages/admin/Users";
 import AdminTransactions from "@/pages/admin/Transactions";
+import AdminServices from "@/pages/admin/Services";
 import { useAuth } from "@/hooks/useAuth";
 import { Switch, Route, Redirect } from "wouter";
 
@@ -57,6 +58,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/admin/users">
         <ProtectedRoute component={AdminUsers} />
+      </Route>
+      <Route path="/admin/services">
+        <ProtectedRoute component={AdminServices} />
       </Route>
       <Route path="/admin/transactions">
         <ProtectedRoute component={AdminTransactions} />
