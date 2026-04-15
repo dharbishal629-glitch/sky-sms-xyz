@@ -33,7 +33,6 @@ export default function AdminUsers() {
       toast({ title: "Enter a credit amount", description: "Use a positive amount to add credits or a negative amount to remove.", variant: "destructive" });
       return;
     }
-
     setSavingUser(userId);
     try {
       const response = await fetch(`${API_URL}/api/admin/users/${userId}/credits`, {
@@ -44,7 +43,7 @@ export default function AdminUsers() {
       });
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new Error(result?.error || `HTTP ${response.status}`);
-      setCreditDrafts((current) => ({ ...current, [userId]: "" }));
+      setCreditDrafts((c) => ({ ...c, [userId]: "" }));
       await refetch();
       toast({ title: "Credits updated", description: `${amount > 0 ? "Added" : "Removed"} ${Math.abs(amount)} credits.` });
     } catch (err) {
@@ -76,12 +75,10 @@ export default function AdminUsers() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <Skeleton className="h-96 w-full rounded-xl" />
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-64" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
@@ -102,22 +99,78 @@ export default function AdminUsers() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-white">Users</h1>
-          <p className="text-muted-foreground mt-1">Manage platform users, credits, and roles.</p>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Users</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Manage platform users, credits, and roles.</p>
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search users..."
-            className="pl-9"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <Input type="search" placeholder="Search users..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
-      <Card className="glass-card overflow-hidden">
+      {/* Mobile card list */}
+      <div className="space-y-3 md:hidden">
+        {filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-10 text-sm">No users found.</p>
+        ) : filtered.map((user) => (
+          <Card key={user.id} className="glass-card" data-testid={`admin-row-user-${user.id}`}>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-bold text-white">{user.name}</div>
+                  <div className="text-xs text-muted-foreground">{user.email}</div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Badge variant="outline" className={`text-xs ${user.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200' : 'border-red-300/20 bg-red-400/10 text-red-200'}`}>
+                    {user.status}
+                  </Badge>
+                  <Badge variant="outline" className={`text-xs ${user.role === 'admin' ? 'border-sky-300/20 bg-sky-400/10 text-sky-200' : 'border-white/10 bg-white/[0.05] text-slate-400'}`}>
+                    {user.role}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-slate-400 font-mono bg-white/[0.05] border border-white/10 rounded-lg px-2 py-1 truncate max-w-[200px]">{user.id}</span>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-slate-500 hover:text-white" onClick={() => copyId(user.id)}>
+                  {copiedId === user.id ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2">
+                  <div className="text-xs text-muted-foreground mb-0.5">Credits</div>
+                  <div className="font-mono font-bold text-white">{user.credits.toFixed(2)}</div>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2">
+                  <div className="text-xs text-muted-foreground mb-0.5">Rentals</div>
+                  <div className="font-bold text-white">{user.rentals}</div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="+10"
+                  value={creditDrafts[user.id] ?? ""}
+                  onChange={(e) => setCreditDrafts((c) => ({ ...c, [user.id]: e.target.value }))}
+                  className="flex-1 text-right"
+                />
+                <Button size="sm" onClick={() => addCredits(user.id)} disabled={savingUser === user.id} className="shrink-0">
+                  {savingUser === user.id ? "..." : "Apply"}
+                </Button>
+                <Button size="sm" variant="outline" className="shrink-0" disabled={savingRole === user.id} onClick={() => changeRole(user.id, user.role === "admin" ? "user" : "admin")}>
+                  {savingRole === user.id ? "..." : user.role === "admin" ? <User className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <Card className="glass-card overflow-hidden hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -134,81 +187,41 @@ export default function AdminUsers() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                      No users found.
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No users found.</TableCell>
+                  </TableRow>
+                ) : filtered.map((user) => (
+                  <TableRow key={user.id} className="border-white/10 hover:bg-white/[0.03]" data-testid={`admin-row-user-${user.id}`}>
+                    <TableCell>
+                      <div className="font-medium text-white">{user.name}</div>
+                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <Badge variant="outline" className={`mt-1 text-xs ${user.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200' : 'border-red-300/20 bg-red-400/10 text-red-200'}`}>{user.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400 font-mono bg-white/[0.05] border border-white/10 rounded px-1.5 py-0.5 max-w-[120px] truncate" title={user.id}>{user.id}</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-slate-500 hover:text-white" onClick={() => copyId(user.id)}>
+                          {copiedId === user.id ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={user.role === 'admin' ? 'border-sky-300/20 bg-sky-400/10 text-sky-200' : 'border-white/10 bg-white/[0.05] text-slate-400'}>{user.role}</Badge>
+                        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" disabled={savingRole === user.id} onClick={() => changeRole(user.id, user.role === "admin" ? "user" : "admin")}>
+                          {savingRole === user.id ? "..." : user.role === "admin" ? <User className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium text-white">{user.credits.toFixed(2)}</TableCell>
+                    <TableCell className="text-right text-white">{user.rentals}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Input type="number" step="0.01" placeholder="+10" value={creditDrafts[user.id] ?? ""} onChange={(e) => setCreditDrafts((c) => ({ ...c, [user.id]: e.target.value }))} className="w-24 text-right" />
+                        <Button size="sm" onClick={() => addCredits(user.id)} disabled={savingUser === user.id}>{savingUser === user.id ? "..." : "Apply"}</Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filtered.map((user) => (
-                    <TableRow key={user.id} className="border-white/10 hover:bg-white/[0.03]" data-testid={`admin-row-user-${user.id}`}>
-                      <TableCell>
-                        <div className="font-medium text-white">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                        <Badge variant="outline" className={`mt-1 text-xs ${user.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200' : 'border-red-300/20 bg-red-400/10 text-red-200'}`}>
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-slate-400 font-mono bg-white/[0.05] border border-white/10 rounded px-1.5 py-0.5 max-w-[120px] truncate" title={user.id}>
-                            {user.id}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 shrink-0 text-slate-500 hover:text-white"
-                            onClick={() => copyId(user.id)}
-                            title="Copy full ID"
-                          >
-                            {copiedId === user.id ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={user.role === 'admin' ? 'border-sky-300/20 bg-sky-400/10 text-sky-200' : 'border-white/10 bg-white/[0.05] text-slate-400'}>
-                            {user.role}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-xs"
-                            disabled={savingRole === user.id}
-                            onClick={() => changeRole(user.id, user.role === "admin" ? "user" : "admin")}
-                            title={user.role === "admin" ? "Demote to user" : "Promote to admin"}
-                          >
-                            {savingRole === user.id ? "..." : user.role === "admin" ? <User className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-medium text-white">
-                        {user.credits.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-white">
-                        {user.rentals}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="+10"
-                            value={creditDrafts[user.id] ?? ""}
-                            onChange={(event) => setCreditDrafts((current) => ({ ...current, [user.id]: event.target.value }))}
-                            className="w-24 text-right"
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => addCredits(user.id)}
-                            disabled={savingUser === user.id}
-                          >
-                            {savingUser === user.id ? "..." : "Apply"}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

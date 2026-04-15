@@ -79,6 +79,19 @@ export async function getHeroAvailability(serviceCode: string, countryCode: stri
   };
 }
 
+const HERO_ERROR_MESSAGES: Record<string, string> = {
+  NO_NUMBERS: "No numbers are available for this service and country right now. Please try a different country or try again shortly.",
+  NO_BALANCE: "Provider balance is too low to fulfill this request. Please contact support.",
+  SERVICE_NOT_AVAILABLE: "This service is not currently available in the selected country. Please choose a different country.",
+  BAD_KEY: "API configuration error. Please contact support.",
+  BAD_ACTION: "Invalid request. Please refresh and try again.",
+  BAD_SERVICE: "Unknown service. Please refresh and try again.",
+  BAD_COUNTRY: "Unknown country. Please refresh and try again.",
+  ERROR_SQL: "Provider database error. Please try again in a moment.",
+  ACCOUNT_INACTIVE: "Provider account is inactive. Please contact support.",
+  BANNED: "Provider account is banned. Please contact support.",
+};
+
 export async function rentHeroNumber(serviceCode: string, countryCode: string, maxPrice?: number) {
   const country = getHeroCountryCode(countryCode);
   if (country === undefined) {
@@ -98,7 +111,8 @@ export async function rentHeroNumber(serviceCode: string, countryCode: string, m
     return { activationId, phoneNumber };
   }
 
-  throw new Error(text || "Hero SMS did not return a phone number.");
+  const friendlyMessage = HERO_ERROR_MESSAGES[text.trim()];
+  throw new Error(friendlyMessage ?? `Could not allocate a number: ${text}`);
 }
 
 export async function getHeroStatus(activationId: string) {

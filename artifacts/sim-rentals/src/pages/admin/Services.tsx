@@ -35,7 +35,7 @@ export default function AdminServices() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json() as { services: AdminService[] };
       setServices(data.services);
-      setDrafts(Object.fromEntries(data.services.map((service) => [service.code, String(service.price)])));
+      setDrafts(Object.fromEntries(data.services.map((s) => [s.code, String(s.price)])));
     } catch {
       setError(true);
     } finally {
@@ -43,9 +43,7 @@ export default function AdminServices() {
     }
   };
 
-  useEffect(() => {
-    loadServices();
-  }, []);
+  useEffect(() => { loadServices(); }, []);
 
   const savePrice = async (service: AdminService) => {
     const price = Number(drafts[service.code]);
@@ -53,7 +51,6 @@ export default function AdminServices() {
       toast({ title: "Invalid price", description: "Use 0 for free or any positive number.", variant: "destructive" });
       return;
     }
-
     setSaving(service.code);
     try {
       const response = await fetch(`${API_URL}/api/admin/services/${service.code}/price`, {
@@ -64,17 +61,10 @@ export default function AdminServices() {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
-      setServices((current) => current.map((item) => item.code === service.code ? { ...item, price, customPrice: true } : item));
-      toast({
-        title: price === 0 ? "Service is now free" : "Service price updated",
-        description: `${service.name} is set to ${price === 0 ? "0 credits" : `${price.toFixed(2)} credits`}.`,
-      });
+      setServices((c) => c.map((item) => item.code === service.code ? { ...item, price, customPrice: true } : item));
+      toast({ title: price === 0 ? "Service is now free" : "Service price updated", description: `${service.name} set to ${price === 0 ? "0 credits" : `${price.toFixed(2)} credits`}.` });
     } catch (err) {
-      toast({
-        title: "Failed to update price",
-        description: err instanceof Error ? err.message : "Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Failed to update price", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
     } finally {
       setSaving(null);
     }
@@ -82,12 +72,10 @@ export default function AdminServices() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-        <Skeleton className="h-96 w-full rounded-xl" />
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-72" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
@@ -105,11 +93,56 @@ export default function AdminServices() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black tracking-tight text-white">Service Pricing</h1>
-        <p className="text-muted-foreground mt-1">Set prices for each service. Use 0 to let users rent without credits.</p>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Service Pricing</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Set prices for each service. Use 0 to let users rent without credits.</p>
       </div>
 
-      <Card className="glass-card overflow-hidden">
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {services.map((service) => (
+          <Card key={service.code} className="glass-card">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="font-bold text-white">{service.name}</div>
+                  <div className="text-xs text-muted-foreground font-mono">{service.code}</div>
+                </div>
+                <Badge variant="outline" className="border-white/10 bg-white/[0.05] text-slate-300 shrink-0">{service.category}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2">
+                  <div className="text-xs text-muted-foreground mb-0.5">Base price</div>
+                  <div className="font-mono font-bold text-muted-foreground">{service.basePrice.toFixed(2)}</div>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2">
+                  <div className="text-xs text-muted-foreground mb-0.5">Current price</div>
+                  <div className="font-mono font-bold text-white">{service.price === 0 ? "Free" : service.price.toFixed(2)}</div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={drafts[service.code] ?? ""}
+                  onChange={(e) => setDrafts((c) => ({ ...c, [service.code]: e.target.value }))}
+                  className="flex-1 text-right"
+                  placeholder="0.00"
+                />
+                {Number(drafts[service.code]) === 0 && (
+                  <Badge className="bg-emerald-400/10 text-emerald-200 border border-emerald-300/20 shrink-0">Free</Badge>
+                )}
+                <Button size="sm" onClick={() => savePrice(service)} disabled={saving === service.code} className="shrink-0">
+                  {saving === service.code ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <Card className="glass-card overflow-hidden hidden md:block">
         <CardHeader>
           <CardTitle>Services</CardTitle>
           <CardDescription>These prices control what users pay on the Rent Number page.</CardDescription>
@@ -134,13 +167,9 @@ export default function AdminServices() {
                       <div className="text-xs text-muted-foreground font-mono">{service.code}</div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="border-white/10 bg-white/[0.05] text-slate-300">
-                        {service.category}
-                      </Badge>
+                      <Badge variant="outline" className="border-white/10 bg-white/[0.05] text-slate-300">{service.category}</Badge>
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground font-mono">
-                      {service.basePrice.toFixed(2)}
-                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground font-mono">{service.basePrice.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Input
@@ -148,7 +177,7 @@ export default function AdminServices() {
                           min="0"
                           step="0.01"
                           value={drafts[service.code] ?? ""}
-                          onChange={(event) => setDrafts((current) => ({ ...current, [service.code]: event.target.value }))}
+                          onChange={(e) => setDrafts((c) => ({ ...c, [service.code]: e.target.value }))}
                           className="w-28 text-right"
                         />
                         {Number(drafts[service.code]) === 0 && (
@@ -157,11 +186,7 @@ export default function AdminServices() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        onClick={() => savePrice(service)}
-                        disabled={saving === service.code}
-                      >
+                      <Button size="sm" onClick={() => savePrice(service)} disabled={saving === service.code}>
                         {saving === service.code ? "Saving..." : "Save"}
                       </Button>
                     </TableCell>
