@@ -1,8 +1,12 @@
 import { useGetAdminOverview } from "@workspace/api-client-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Phone, CreditCard, Activity, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Reveal } from "@/components/Reveal";
+
+function maskProviderName(name: string): string {
+  return name === "Hero SMS" ? "SKY SMS" : name;
+}
 
 export default function AdminOverview() {
   const { data, isLoading, error } = useGetAdminOverview();
@@ -16,8 +20,11 @@ export default function AdminOverview() {
         </div>
         <div className="grid gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            <Skeleton key={i} className="h-36 w-full rounded-2xl" />
           ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-48 w-full rounded-2xl" />
         </div>
       </div>
     );
@@ -27,73 +34,93 @@ export default function AdminOverview() {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold text-destructive">Failed to load admin overview</h2>
+        <p className="text-muted-foreground mt-2">Please refresh the page.</p>
       </div>
     );
   }
 
+  const stats = [
+    {
+      label: "Total Revenue",
+      value: `$${data.revenue.toFixed(2)}`,
+      sub: "Lifetime payments",
+      icon: CreditCard,
+      color: "cyan",
+      testId: "admin-stat-revenue",
+    },
+    {
+      label: "Total Users",
+      value: String(data.totalUsers),
+      sub: "Registered accounts",
+      icon: Users,
+      color: "indigo",
+      testId: "admin-stat-users",
+    },
+    {
+      label: "Active Rentals",
+      value: String(data.activeRentals),
+      sub: "Currently processing",
+      icon: Phone,
+      color: "emerald",
+      testId: "admin-stat-rentals",
+    },
+    {
+      label: "Pending Payments",
+      value: String(data.pendingPayments),
+      sub: "Awaiting confirmation",
+      icon: Activity,
+      color: "amber",
+      testId: "admin-stat-pending",
+    },
+  ];
+
+  const colorMap: Record<string, { bg: string; border: string; icon: string; text: string }> = {
+    cyan: { bg: "bg-cyan-400/10", border: "border-cyan-300/20", icon: "text-cyan-400", text: "text-primary" },
+    indigo: { bg: "bg-indigo-400/10", border: "border-indigo-300/20", icon: "text-indigo-400", text: "text-white" },
+    emerald: { bg: "bg-emerald-400/10", border: "border-emerald-300/20", icon: "text-emerald-400", text: "text-white" },
+    amber: { bg: "bg-amber-400/10", border: "border-amber-300/20", icon: "text-amber-400", text: "text-white" },
+  };
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-white">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Platform overview and metrics.</p>
-      </div>
+      <Reveal variant="up">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-white">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Platform overview and metrics.</p>
+        </div>
+      </Reveal>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="glass-card" data-testid="admin-stat-revenue">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">${data.revenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Lifetime payments</p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card" data-testid="admin-stat-users">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{data.totalUsers}</div>
-            <p className="text-xs text-muted-foreground mt-1">Registered accounts</p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card" data-testid="admin-stat-rentals">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Rentals</CardTitle>
-            <Phone className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{data.activeRentals}</div>
-            <p className="text-xs text-muted-foreground mt-1">Currently processing</p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card" data-testid="admin-stat-pending">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Payments</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{data.pendingPayments}</div>
-            <p className="text-xs text-muted-foreground mt-1">Awaiting confirmation</p>
-          </CardContent>
-        </Card>
+        {stats.map((stat, i) => {
+          const c = colorMap[stat.color];
+          return (
+            <Reveal key={stat.label} variant="up" delay={i * 70}>
+              <div className="glass-card rounded-2xl p-6 relative overflow-hidden h-full" data-testid={stat.testId}>
+                <div className={`absolute inset-0 bg-gradient-to-br from-${stat.color}-400/[0.06] to-transparent pointer-events-none`} />
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-semibold text-muted-foreground">{stat.label}</span>
+                  <div className={`h-9 w-9 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center shrink-0`}>
+                    <stat.icon className={`h-4 w-4 ${c.icon}`} />
+                  </div>
+                </div>
+                <div className={`text-4xl font-black mb-1 ${c.text}`}>{stat.value}</div>
+                <p className="text-xs text-muted-foreground">{stat.sub}</p>
+              </div>
+            </Reveal>
+          );
+        })}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-white">Provider Status</CardTitle>
-            <CardDescription>Upstream SMS provider health and balance.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+        <Reveal variant="up" delay={80}>
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="px-6 py-5 border-b border-white/[0.06]">
+              <div className="font-bold text-white">Provider Status</div>
+              <div className="text-sm text-muted-foreground mt-0.5">Upstream SMS provider health and balance.</div>
+            </div>
+            <div className="p-6 space-y-3">
               {data.providerStatuses.map(provider => (
-                <div key={provider.name} className="flex items-start justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.03]" data-testid={`admin-provider-${provider.name}`}>
+                <div key={provider.name} className="flex items-start justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.03]" data-testid={`admin-provider-${provider.name}`}>
                   <div className="flex items-start gap-3">
                     {provider.mode === 'live' ? (
                       <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -101,7 +128,7 @@ export default function AdminOverview() {
                       <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
                     )}
                     <div>
-                      <div className="font-medium text-sm text-white">{provider.name}</div>
+                      <div className="font-semibold text-sm text-white">{maskProviderName(provider.name)}</div>
                       <p className="text-xs text-muted-foreground mt-1">{provider.message}</p>
                     </div>
                   </div>
@@ -111,8 +138,8 @@ export default function AdminOverview() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </Reveal>
       </div>
     </div>
   );

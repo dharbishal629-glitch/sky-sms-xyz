@@ -189,7 +189,7 @@ export default function Rent() {
                         <div className="font-semibold text-emerald-100">Numbers available</div>
                         <div className="text-sm mt-1 text-emerald-100/80">
                           {availability.available.toLocaleString()} numbers ready. Estimated wait: {availability.estimatedWait}.
-                          Hero SMS activations stay open for 20 minutes after purchase.
+                          Activations stay open for 20 minutes after purchase.
                         </div>
                       </div>
                     </div>
@@ -213,7 +213,7 @@ export default function Rent() {
                   </div>
 
                   <div className="text-xs text-muted-foreground flex justify-between items-center px-1">
-                    <span>Provider: {availability.provider.name}</span>
+                    <span>Network: {availability.provider.name === "Hero SMS" ? "SKY SMS" : availability.provider.name}</span>
                     {availability.provider.mode !== 'live' && (
                       <Badge variant="outline" className="text-amber-200 border-amber-300/20 bg-amber-400/10">
                         {availability.provider.mode}

@@ -19,7 +19,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ## Artifacts
 
 - **API Server** (`artifacts/api-server`) — shared Express API mounted at `/api`.
-- **SMS SIM Rentals** (`artifacts/sim-rentals`) — React + TypeScript web app at `/` for renting temporary SMS numbers, buying credits, viewing rentals/payments, and managing admin views.
+- **SKY SMS** (`artifacts/sim-rentals`) — React + TypeScript web app at `/` for renting temporary SMS numbers, buying credits, viewing rentals/payments, and managing admin views. Brand name is "SKY SMS" (not "SMS SIM Rentals" or "SMS Rentals").
 - **Canvas** (`artifacts/mockup-sandbox`) — design/mockup sandbox.
 
 ## SMS SIM Rentals Implementation

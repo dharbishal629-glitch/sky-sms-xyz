@@ -100,7 +100,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-5 border-b border-white/[0.06]">
           <Link href="/dashboard">
             <span className="flex items-center gap-2 text-lg font-black cursor-pointer tracking-tight">
-              <span className="gradient-text">✦ SMS Rentals</span>
+              <span className="gradient-text">✦ SKY SMS</span>
             </span>
           </Link>
         </div>
@@ -150,7 +150,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col md:pl-64 min-h-screen">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-white/[0.06] bg-black/85 backdrop-blur-2xl sticky top-0 z-20">
           <Link href="/dashboard">
-            <span className="text-lg font-black cursor-pointer tracking-tight gradient-text">✦ SMS Rentals</span>
+            <span className="text-lg font-black cursor-pointer tracking-tight gradient-text">✦ SKY SMS</span>
           </Link>
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -160,7 +160,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0 flex flex-col bg-black border-white/[0.06]">
               <div className="p-5 border-b border-white/[0.06]">
-                <span className="text-lg font-black tracking-tight gradient-text">✦ SMS Rentals</span>
+                <span className="text-lg font-black tracking-tight gradient-text">✦ SKY SMS</span>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 <NavLinks />

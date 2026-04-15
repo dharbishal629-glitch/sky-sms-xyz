@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { CreditCard, ArrowUpRight, Check, AlertCircle, Clock, Loader2 } from "lucide-react";
+import { CreditCard, ArrowUpRight, Check, AlertCircle, Clock, Loader2, Pencil } from "lucide-react";
+import { Reveal } from "@/components/Reveal";
 
 const PACKAGES = [
   { amount: 5, credits: 5, popular: false },
@@ -20,13 +22,13 @@ export default function Payments() {
   const createCheckout = useCreatePaymentCheckout();
   const { toast } = useToast();
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState<string>("");
+  const [customLoading, setCustomLoading] = useState(false);
 
   const handleCheckout = (amount: number) => {
     setSelectedPackage(amount);
     createCheckout.mutate({ data: { amount, currency: "USD" } }, {
       onSuccess: (response) => {
-        // In a real app, we'd redirect to response.checkoutUrl
-        // For this demo, we'll just show a toast or open in new tab if we had a real URL
         window.open(response.checkoutUrl, "_blank");
         toast({
           title: "Redirecting to checkout",
@@ -45,124 +47,200 @@ export default function Payments() {
     });
   };
 
+  const handleCustomCheckout = () => {
+    const amount = Number(customAmount);
+    if (!amount || amount < 1) return;
+    setCustomLoading(true);
+    createCheckout.mutate({ data: { amount, currency: "USD" } }, {
+      onSuccess: (response) => {
+        window.open(response.checkoutUrl, "_blank");
+        toast({
+          title: "Redirecting to checkout",
+          description: `Opening payment page for $${amount.toFixed(2)} custom amount.`,
+        });
+        setCustomLoading(false);
+        setCustomAmount("");
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Checkout failed",
+          description: err.message || "Failed to create checkout session.",
+          variant: "destructive"
+        });
+        setCustomLoading(false);
+      }
+    });
+  };
+
+  const customCredits = Math.round(Number(customAmount) || 0);
+  const customAmountNum = Number(customAmount);
+
   return (
     <div className="max-w-5xl mx-auto space-y-10">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-white">Payments & Credits</h1>
-        <p className="text-muted-foreground mt-1">Add credits to your account to rent numbers.</p>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Credit Packages</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {PACKAGES.map((pkg) => (
-            <Card 
-              key={pkg.amount} 
-              className={`glass-card relative overflow-hidden transition-all duration-200 hover:shadow-sky-950/40 ${pkg.popular ? 'blue-glow' : ''}`}
-              data-testid={`card-package-${pkg.amount}`}
-            >
-              {pkg.popular && (
-                <div className="absolute top-0 inset-x-0 h-1 bg-primary"></div>
-              )}
-              {pkg.popular && (
-                <Badge className="absolute top-3 right-3 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20 font-semibold border-0">
-                  Most Popular
-                </Badge>
-              )}
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl font-black text-white">${pkg.amount}</CardTitle>
-                <CardDescription>USD</CardDescription>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold tracking-tight text-primary">{pkg.credits}</span>
-                  <span className="text-muted-foreground font-medium">credits</span>
-                </div>
-                {pkg.bonus && (
-                  <p className="text-sm font-medium text-emerald-300 mt-2 flex items-center gap-1">
-                    <Check className="h-3 w-3" /> {pkg.bonus} extra credits
-                  </p>
-                )}
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full" 
-                  variant={pkg.popular ? "default" : "outline"}
-                  onClick={() => handleCheckout(pkg.amount)}
-                  disabled={createCheckout.isPending && selectedPackage === pkg.amount}
-                  data-testid={`button-buy-${pkg.amount}`}
-                >
-                  {createCheckout.isPending && selectedPackage === pkg.amount ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
-                  ) : (
-                    "Buy Package"
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+      <Reveal variant="up">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-white">Payments & Credits</h1>
+          <p className="text-muted-foreground mt-1">Add credits to your account to rent numbers.</p>
         </div>
-      </div>
+      </Reveal>
 
-      <div className="space-y-4 pt-6 border-t">
-        <h2 className="text-xl font-semibold">Payment History</h2>
-        
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+      <Reveal variant="up" delay={60}>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-white">Credit Packages</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {PACKAGES.map((pkg) => (
+              <Card
+                key={pkg.amount}
+                className={`glass-card relative overflow-hidden transition-all duration-200 hover:scale-[1.02] ${pkg.popular ? 'blue-glow' : ''}`}
+                data-testid={`card-package-${pkg.amount}`}
+              >
+                {pkg.popular && (
+                  <div className="absolute top-0 inset-x-0 h-0.5 bg-primary"></div>
+                )}
+                {pkg.popular && (
+                  <Badge className="absolute top-3 right-3 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20 font-semibold border-0 text-xs">
+                    Popular
+                  </Badge>
+                )}
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-2xl font-black text-white">${pkg.amount}</CardTitle>
+                  <CardDescription>USD</CardDescription>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-extrabold tracking-tight text-primary">{pkg.credits}</span>
+                    <span className="text-muted-foreground font-medium">credits</span>
+                  </div>
+                  {pkg.bonus && (
+                    <p className="text-sm font-medium text-emerald-300 mt-2 flex items-center gap-1">
+                      <Check className="h-3 w-3" /> {pkg.bonus} extra credits
+                    </p>
+                  )}
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    variant={pkg.popular ? "default" : "outline"}
+                    onClick={() => handleCheckout(pkg.amount)}
+                    disabled={createCheckout.isPending && selectedPackage === pkg.amount}
+                    data-testid={`button-buy-${pkg.amount}`}
+                  >
+                    {createCheckout.isPending && selectedPackage === pkg.amount ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
+                    ) : (
+                      "Buy Package"
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
             ))}
           </div>
-        ) : error || !data ? (
-          <div className="text-center py-8 bg-white/[0.03] rounded-xl border border-dashed border-white/10 text-muted-foreground">
-            Failed to load payment history.
+        </div>
+      </Reveal>
+
+      <Reveal variant="up" delay={120}>
+        <div className="glass-card rounded-2xl p-6 max-w-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Pencil className="h-4 w-4 text-cyan-400" />
+            <h2 className="text-base font-bold text-white">Custom Amount</h2>
           </div>
-        ) : data.payments.length === 0 ? (
-          <div className="text-center py-12 bg-white/[0.03] rounded-xl border border-dashed border-white/10">
-            <CreditCard className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="font-medium text-white mb-1">No payments yet</h3>
-            <p className="text-sm text-muted-foreground">When you purchase credits, they will appear here.</p>
+          <p className="text-sm text-muted-foreground mb-5">Enter any dollar amount. 1 credit per $1 — no bonus applies.</p>
+          <div className="space-y-3">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">$</span>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Enter amount..."
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value)}
+                className="pl-7"
+                data-testid="input-custom-amount"
+              />
+            </div>
+            {customAmountNum >= 1 && (
+              <p className="text-sm text-primary font-semibold">= {customCredits} credit{customCredits !== 1 ? "s" : ""}</p>
+            )}
+            <Button
+              className="w-full"
+              disabled={!customAmount || customAmountNum < 1 || customLoading}
+              onClick={handleCustomCheckout}
+              data-testid="button-buy-custom"
+            >
+              {customLoading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
+              ) : customAmountNum >= 1 ? (
+                `Buy $${customAmountNum.toFixed(0)} — ${customCredits} Credits`
+              ) : (
+                "Buy Credits"
+              )}
+            </Button>
           </div>
-        ) : (
-          <Card className="glass-card overflow-hidden">
-            <div className="divide-y divide-white/10">
-              {data.payments.map((payment) => (
-                <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/[0.03] transition-colors" data-testid={`row-payment-${payment.id}`}>
-                  <div className="flex items-center gap-4 mb-2 sm:mb-0">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
-                      payment.status === 'paid' ? 'bg-green-100 text-green-600' :
-                      payment.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                      'bg-red-100 text-red-600'
-                    }`}>
-                      {payment.status === 'paid' ? <ArrowUpRight className="h-5 w-5" /> : 
-                       payment.status === 'pending' ? <Clock className="h-5 w-5" /> : 
-                       <AlertCircle className="h-5 w-5" />}
-                    </div>
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {payment.credits} Credits
-                        <Badge variant="outline" className={
-                          payment.status === 'paid' ? 'text-green-700 bg-green-50 border-green-200' :
-                          payment.status === 'pending' ? 'text-amber-700 bg-amber-50 border-amber-200' :
-                          'text-red-700 bg-red-50 border-red-200'
-                        }>
-                          {payment.status}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {format(new Date(payment.createdAt), "MMM d, yyyy 'at' h:mm a")} &bull; {payment.provider}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right sm:text-right pl-14 sm:pl-0 font-semibold text-lg">
-                    ${payment.amount.toFixed(2)}
-                  </div>
-                </div>
+        </div>
+      </Reveal>
+
+      <Reveal variant="up" delay={80}>
+        <div className="space-y-4 pt-6 border-t border-white/[0.06]">
+          <h2 className="text-xl font-semibold text-white">Payment History</h2>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="h-16 w-full rounded-xl" />
               ))}
             </div>
-          </Card>
-        )}
-      </div>
+          ) : error || !data ? (
+            <div className="text-center py-8 bg-white/[0.03] rounded-xl border border-dashed border-white/10 text-muted-foreground">
+              Failed to load payment history.
+            </div>
+          ) : data.payments.length === 0 ? (
+            <div className="text-center py-12 bg-white/[0.03] rounded-xl border border-dashed border-white/10">
+              <CreditCard className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <h3 className="font-medium text-white mb-1">No payments yet</h3>
+              <p className="text-sm text-muted-foreground">When you purchase credits, they will appear here.</p>
+            </div>
+          ) : (
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="divide-y divide-white/[0.06]">
+                {data.payments.map((payment) => (
+                  <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/[0.03] transition-colors" data-testid={`row-payment-${payment.id}`}>
+                    <div className="flex items-center gap-4 mb-2 sm:mb-0">
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+                        payment.status === 'paid' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-300/20' :
+                        payment.status === 'pending' ? 'bg-amber-400/10 text-amber-400 border border-amber-300/20' :
+                        'bg-red-400/10 text-red-400 border border-red-300/20'
+                      }`}>
+                        {payment.status === 'paid' ? <ArrowUpRight className="h-5 w-5" /> :
+                         payment.status === 'pending' ? <Clock className="h-5 w-5" /> :
+                         <AlertCircle className="h-5 w-5" />}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-white flex items-center gap-2">
+                          {payment.credits} Credits
+                          <Badge variant="outline" className={
+                            payment.status === 'paid' ? 'text-emerald-200 border-emerald-300/20 bg-emerald-400/10' :
+                            payment.status === 'pending' ? 'text-amber-200 border-amber-300/20 bg-amber-400/10' :
+                            'text-red-200 border-red-300/20 bg-red-400/10'
+                          }>
+                            {payment.status}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {format(new Date(payment.createdAt), "MMM d, yyyy 'at' h:mm a")} &bull; {payment.provider}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right sm:text-right pl-14 sm:pl-0 font-bold text-lg text-white">
+                      ${payment.amount.toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Reveal>
     </div>
   );
 }

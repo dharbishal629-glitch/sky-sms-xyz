@@ -74,7 +74,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
         <div className="glass-card flex h-14 w-full items-center justify-between rounded-full px-5 neon-border">
           <div className="flex items-center gap-2 font-black text-base">
             <Phone className="h-4 w-4 text-cyan-400" />
-            <span className="gradient-text">SMS Rentals</span>
+            <span className="gradient-text">SKY SMS</span>
           </div>
           <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-400 md:flex">
             <a className="text-cyan-300 font-bold" href="#home">Home</a>
@@ -149,7 +149,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
         <div className="relative border-y border-white/5 bg-black/50 py-6 overflow-hidden marquee-fade">
           <div className="marquee-track flex w-[200%] gap-12 whitespace-nowrap text-[clamp(2.5rem,5vw,4.5rem)] font-black uppercase tracking-tight text-white/[0.06]">
             {Array.from({ length: 10 }).map((_, i) => (
-              <span key={i} className="shrink-0">SMS RENTALS &nbsp;<span className="text-cyan-400/20">✦</span>&nbsp;</span>
+              <span key={i} className="shrink-0">SKY SMS &nbsp;<span className="text-cyan-400/20">✦</span>&nbsp;</span>
             ))}
           </div>
           <div className="absolute inset-0 flex items-center pointer-events-none">
@@ -302,14 +302,14 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-4 sm:px-6 md:flex-row lg:px-8">
           <div className="flex items-center gap-2 font-black">
             <Phone className="h-4 w-4 text-cyan-400" />
-            <span className="gradient-text">SMS Rentals</span>
+            <span className="gradient-text">SKY SMS</span>
           </div>
           <nav className="flex gap-6 text-sm text-slate-600">
             <a href="#services" className="hover:text-white transition-colors">Services</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </nav>
-          <p className="text-xs text-slate-700">© {new Date().getFullYear()} SMS Rentals. All rights reserved.</p>
+          <p className="text-xs text-slate-700">© {new Date().getFullYear()} SKY SMS. All rights reserved.</p>
         </div>
       </footer>
     </div>
