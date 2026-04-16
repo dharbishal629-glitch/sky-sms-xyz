@@ -507,6 +507,57 @@ router.get("/payments", async (req, res) => {
   );
 });
 
+router.post("/payments/oxapay/webhook", async (req, res) => {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const status = String(body.status ?? "");
+    const orderId = String(body.orderId ?? "");
+
+    if (!orderId) {
+      res.status(400).json({ error: "Missing orderId" });
+      return;
+    }
+
+    const paymentResult = await pool.query(
+      "SELECT * FROM sim_payments WHERE id = $1",
+      [orderId],
+    );
+    const payment = paymentResult.rows[0];
+    if (!payment) {
+      res.status(404).json({ error: "Payment not found" });
+      return;
+    }
+
+    if (status === "Paid") {
+      if (String(payment.status) !== "paid") {
+        await pool.query(
+          "UPDATE sim_payments SET status = 'paid' WHERE id = $1",
+          [orderId],
+        );
+        const credits = Number(payment.credits);
+        if (credits > 0) {
+          await pool.query(
+            "UPDATE sim_users SET credits = credits + $1 WHERE id = $2",
+            [credits, payment.user_id],
+          );
+        }
+      }
+    } else if (status === "Expired" || status === "Error") {
+      if (String(payment.status) === "pending") {
+        await pool.query(
+          "UPDATE sim_payments SET status = 'failed' WHERE id = $1",
+          [orderId],
+        );
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("OxaPay webhook error:", error);
+    res.status(500).json({ error: "Webhook processing failed" });
+  }
+});
+
 router.post("/payments/checkout", async (req, res) => {
   const body = CreatePaymentCheckoutBody.parse(req.body);
   const id = crypto.randomUUID();

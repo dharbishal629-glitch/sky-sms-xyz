@@ -2,14 +2,13 @@ import { useState } from "react";
 import { useListPayments, useCreatePaymentCheckout, useGetMe } from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
   CreditCard, ArrowUpRight, Check, AlertCircle, Clock, Loader2, Pencil,
-  DollarSign, Zap, Shield, RefreshCw, ChevronRight, Bitcoin, Coins
+  DollarSign, Zap, Shield, RefreshCw, ChevronRight, Bitcoin, Coins, CheckCircle2, XCircle
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { Link } from "wouter";
@@ -36,6 +35,31 @@ const paymentFaqs = [
   { q: "Is my payment private?", a: "Yes. Crypto payments via OxaPay are private and borderless — no card info, no bank details, no chargebacks." },
 ];
 
+function StatusPill({ status }: { status: string }) {
+  if (status === "paid") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-400/10 text-emerald-300 border border-emerald-400/20">
+        <CheckCircle2 className="h-3 w-3" />
+        Completed
+      </span>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-400/10 text-sky-300 border border-sky-400/20">
+        <Clock className="h-3 w-3" />
+        Processing
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-400/10 text-red-300 border border-red-400/20">
+      <XCircle className="h-3 w-3" />
+      Failed
+    </span>
+  );
+}
+
 export default function Payments() {
   const { data: userData } = useGetMe();
   const { data, isLoading, error } = useListPayments();
@@ -45,6 +69,7 @@ export default function Payments() {
   const [customAmount, setCustomAmount] = useState<string>("");
   const [customLoading, setCustomLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [historyTab, setHistoryTab] = useState<"all" | "completed" | "processing" | "failed">("all");
 
   const handleCheckout = (amount: number) => {
     setSelectedPackage(amount);
@@ -81,10 +106,26 @@ export default function Payments() {
 
   const customAmountNum = parseFloat(customAmount) || 0;
 
+  const allPayments = data?.payments ?? [];
+  const filteredPayments = historyTab === "all" ? allPayments :
+    historyTab === "completed" ? allPayments.filter(p => p.status === "paid") :
+    historyTab === "processing" ? allPayments.filter(p => p.status === "pending") :
+    allPayments.filter(p => p.status !== "paid" && p.status !== "pending");
+
+  const completedCount = allPayments.filter(p => p.status === "paid").length;
+  const processingCount = allPayments.filter(p => p.status === "pending").length;
+  const failedCount = allPayments.filter(p => p.status !== "paid" && p.status !== "pending").length;
+
+  const tabs: { key: typeof historyTab; label: string; count: number }[] = [
+    { key: "all", label: "All", count: allPayments.length },
+    { key: "completed", label: "Completed", count: completedCount },
+    { key: "processing", label: "Processing", count: processingCount },
+    { key: "failed", label: "Failed", count: failedCount },
+  ];
+
   return (
     <div className="max-w-5xl mx-auto space-y-12">
 
-      {/* Header */}
       <Reveal variant="up">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
@@ -105,7 +146,6 @@ export default function Payments() {
         </div>
       </Reveal>
 
-      {/* Packages */}
       <Reveal variant="up" delay={40}>
         <div className="space-y-5">
           <div className="flex items-center justify-between">
@@ -123,9 +163,9 @@ export default function Payments() {
                   <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
                 )}
                 {pkg.popular && (
-                  <Badge className="absolute top-3 right-3 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/20 font-bold border border-cyan-300/20 text-xs">
+                  <span className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-400/10 text-cyan-200 border border-cyan-300/20">
                     Most Popular
-                  </Badge>
+                  </span>
                 )}
                 <CardHeader className="pb-2 pt-5">
                   <div className="text-3xl font-black text-white">${pkg.amount}</div>
@@ -161,7 +201,6 @@ export default function Payments() {
         </div>
       </Reveal>
 
-      {/* Custom Amount */}
       <Reveal variant="up" delay={80}>
         <div className="glass-card rounded-2xl p-6 max-w-md">
           <div className="flex items-center gap-3 mb-1">
@@ -210,7 +249,6 @@ export default function Payments() {
         </div>
       </Reveal>
 
-      {/* How it Works */}
       <Reveal variant="up" delay={100}>
         <div className="space-y-5">
           <h2 className="text-xl font-black text-white">How It Works</h2>
@@ -229,7 +267,6 @@ export default function Payments() {
         </div>
       </Reveal>
 
-      {/* Security badges */}
       <Reveal variant="up" delay={120}>
         <div className="grid gap-3 sm:grid-cols-3">
           {[
@@ -250,7 +287,6 @@ export default function Payments() {
         </div>
       </Reveal>
 
-      {/* FAQ */}
       <Reveal variant="up" delay={140}>
         <div className="space-y-4">
           <h2 className="text-xl font-black text-white">Payment FAQ</h2>
@@ -284,7 +320,33 @@ export default function Payments() {
       {/* Payment History */}
       <Reveal variant="up" delay={80}>
         <div className="space-y-5 pt-4 border-t border-white/[0.06]">
-          <h2 className="text-xl font-black text-white">Payment History</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="text-xl font-black text-white">Payment History</h2>
+            {allPayments.length > 0 && (
+              <div className="flex items-center gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/[0.06]">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setHistoryTab(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                      historyTab === tab.key
+                        ? "bg-white/[0.08] text-white"
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                        historyTab === tab.key ? "bg-cyan-400/20 text-cyan-300" : "bg-white/[0.06] text-slate-600"
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {isLoading ? (
             <div className="space-y-3">
@@ -294,21 +356,25 @@ export default function Payments() {
             <div className="text-center py-10 bg-white/[0.03] rounded-2xl border border-dashed border-white/10 text-muted-foreground">
               Unable to load payment history. Please refresh the page.
             </div>
-          ) : data.payments.length === 0 ? (
+          ) : allPayments.length === 0 ? (
             <div className="text-center py-14 bg-white/[0.03] rounded-2xl border border-dashed border-white/10">
               <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-30" />
               <h3 className="font-bold text-white mb-1">No payments yet</h3>
               <p className="text-sm text-muted-foreground">When you add funds, your payment history will appear here.</p>
             </div>
+          ) : filteredPayments.length === 0 ? (
+            <div className="text-center py-10 bg-white/[0.03] rounded-2xl border border-dashed border-white/10">
+              <p className="text-sm text-muted-foreground">No {historyTab} payments.</p>
+            </div>
           ) : (
             <div className="glass-card rounded-2xl overflow-hidden">
               <div className="divide-y divide-white/[0.06]">
-                {data.payments.map((payment) => (
+                {filteredPayments.map((payment) => (
                   <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 hover:bg-white/[0.02] transition-colors" data-testid={`row-payment-${payment.id}`}>
                     <div className="flex items-center gap-4">
                       <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
                         payment.status === 'paid' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-300/20' :
-                        payment.status === 'pending' ? 'bg-amber-400/10 text-amber-400 border border-amber-300/20' :
+                        payment.status === 'pending' ? 'bg-sky-400/10 text-sky-400 border border-sky-300/20' :
                         'bg-red-400/10 text-red-400 border border-red-300/20'
                       }`}>
                         {payment.status === 'paid' ? <ArrowUpRight className="h-5 w-5" /> :
@@ -318,20 +384,19 @@ export default function Payments() {
                       <div>
                         <div className="font-bold text-white flex items-center gap-2 flex-wrap">
                           Funds added
-                          <Badge variant="outline" className={
-                            payment.status === 'paid' ? 'text-emerald-300 border-emerald-300/20 bg-emerald-400/10 text-xs' :
-                            payment.status === 'pending' ? 'text-amber-300 border-amber-300/20 bg-amber-400/10 text-xs' :
-                            'text-red-300 border-red-300/20 bg-red-400/10 text-xs'
-                          }>
-                            {payment.status}
-                          </Badge>
+                          <StatusPill status={payment.status} />
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           {format(new Date(payment.createdAt), "MMM d, yyyy 'at' h:mm a")} &bull; {payment.provider}
                         </div>
+                        {payment.status === "pending" && (
+                          <div className="text-[11px] text-sky-400/70 mt-0.5">
+                            Waiting for blockchain confirmation. Page will update automatically.
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="pl-14 sm:pl-0 font-black text-xl text-white">
+                    <div className={`pl-14 sm:pl-0 font-black text-xl ${payment.status === 'paid' ? 'text-white' : 'text-slate-500'}`}>
                       +${payment.amount.toFixed(2)}
                     </div>
                   </div>
