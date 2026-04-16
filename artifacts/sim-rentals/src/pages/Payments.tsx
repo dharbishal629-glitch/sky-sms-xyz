@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
   CreditCard, ArrowUpRight, Check, AlertCircle, Clock, Loader2, Pencil,
-  DollarSign, Zap, Shield, RefreshCw, ChevronRight, Bitcoin, Coins, CheckCircle2, XCircle
+  DollarSign, Zap, Shield, RefreshCw, ChevronRight, Bitcoin, Coins, CheckCircle2, XCircle,
+  ChevronDown, Printer, X, Receipt
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { Link } from "wouter";
@@ -27,13 +28,70 @@ const howItWorks = [
   { step: "4", icon: RefreshCw, title: "Auto Refunds", desc: "Rentals with no SMS received are refunded automatically to your balance." },
 ];
 
-const paymentFaqs = [
-  { q: "Which cryptocurrencies are accepted?", a: "We accept BTC, ETH, USDT (TRC20 & ERC20), LTC, TRX, DOGE, and 30+ other coins via OxaPay." },
-  { q: "How fast does my balance update?", a: "Balance updates automatically after your crypto transaction is confirmed on-chain. Confirmation times vary by coin — usually 1–10 minutes." },
-  { q: "Can I add less than $1?", a: "Yes! Enter any amount in the custom field — even $0.10 or $0.50. There's no minimum top-up amount." },
-  { q: "Are payments refundable?", a: "No. Crypto payments are irreversible by nature. Once processed and credited, funds cannot be refunded. However, unused balance stays in your account forever." },
-  { q: "Is my payment private?", a: "Yes. Crypto payments via OxaPay are private and borderless — no card info, no bank details, no chargebacks." },
-];
+
+const HISTORY_PAGE_SIZE = 8;
+
+function ReceiptModal({ payment, onClose }: { payment: any; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-[#0d1526] border border-white/[0.1] rounded-3xl p-8 w-full max-w-sm shadow-2xl"
+        onClick={e => e.stopPropagation()}
+        id="receipt-print-area"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-cyan-400" />
+            <span className="font-black text-white text-lg">Receipt</span>
+          </div>
+          <button onClick={onClose} className="h-7 w-7 rounded-full bg-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="text-center py-4">
+            <div className="inline-flex h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-300/20 items-center justify-center mb-3">
+              <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+            </div>
+            <div className="text-3xl font-black text-white">+${payment.amount.toFixed(2)}</div>
+            <div className="text-sm text-emerald-400 font-semibold mt-1">Payment Completed</div>
+          </div>
+
+          <div className="space-y-2.5 border-t border-white/[0.06] pt-4">
+            {[
+              { label: "Transaction ID", value: payment.id.slice(0, 16) + "…" },
+              { label: "Provider", value: payment.provider },
+              { label: "Currency", value: payment.currency || "USD" },
+              { label: "Date", value: format(new Date(payment.createdAt), "MMM d, yyyy 'at' h:mm a") },
+              { label: "Status", value: "Completed" },
+            ].map(row => (
+              <div key={row.label} className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">{row.label}</span>
+                <span className="text-white font-semibold text-right max-w-[160px] truncate">{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 border-t border-white/[0.06] flex gap-2">
+            <button
+              onClick={() => window.print()}
+              className="flex-1 h-10 rounded-full bg-white/[0.06] border border-white/[0.1] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/[0.1] transition-colors"
+            >
+              <Printer className="h-4 w-4" /> Print
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 h-10 rounded-full bg-cyan-400 text-[#080c18] text-sm font-bold hover:bg-cyan-300 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StatusPill({ status }: { status: string }) {
   if (status === "paid") {
@@ -68,8 +126,10 @@ export default function Payments() {
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [customLoading, setCustomLoading] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [historyTab, setHistoryTab] = useState<"all" | "completed" | "processing" | "failed">("all");
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [receiptPayment, setReceiptPayment] = useState<any>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tabTrackRef = useRef<HTMLDivElement>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
@@ -269,20 +329,31 @@ export default function Payments() {
       </Reveal>
 
       <Reveal variant="up" delay={100}>
-        <div className="space-y-5">
-          <h2 className="text-xl font-black text-white">How It Works</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {howItWorks.map((step, i) => (
-              <div key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden group hover:scale-[1.01] transition-all duration-200">
-                <div className="absolute top-3 right-3 text-5xl font-black text-white/[0.03] select-none">{step.step}</div>
-                <div className="mb-4 h-10 w-10 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center">
-                  <step.icon className="h-5 w-5 text-cyan-400" />
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowHowItWorks(v => !v)}
+            className="w-full flex items-center justify-between group"
+          >
+            <h2 className="text-xl font-black text-white">How It Works</h2>
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 group-hover:text-slate-300 transition-colors">
+              {showHowItWorks ? "Hide" : "Show"}
+              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showHowItWorks ? "rotate-180" : ""}`} />
+            </span>
+          </button>
+          {showHowItWorks && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {howItWorks.map((step, i) => (
+                <div key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden group hover:scale-[1.01] transition-all duration-200">
+                  <div className="absolute top-3 right-3 text-5xl font-black text-white/[0.03] select-none">{step.step}</div>
+                  <div className="mb-4 h-10 w-10 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center">
+                    <step.icon className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <h3 className="font-bold text-white text-sm mb-1">{step.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
                 </div>
-                <h3 className="font-bold text-white text-sm mb-1">{step.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </Reveal>
 
@@ -307,32 +378,21 @@ export default function Payments() {
       </Reveal>
 
       <Reveal variant="up" delay={140}>
-        <div className="space-y-4">
-          <h2 className="text-xl font-black text-white">Payment FAQ</h2>
-          <div className="space-y-2">
-            {paymentFaqs.map((faq, i) => (
-              <div key={i} className="glass-card rounded-2xl overflow-hidden">
-                <button
-                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                >
-                  <span className="font-bold text-white text-sm">{faq.q}</span>
-                  <ChevronRight className={`h-4 w-4 shrink-0 text-cyan-400 transition-transform duration-200 ${openFaq === i ? "rotate-90" : ""}`} />
-                </button>
-                {openFaq === i && (
-                  <div className="px-5 pb-4 text-sm text-slate-400 leading-relaxed border-t border-white/5 pt-3">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
+        <div className="glass-card rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="h-10 w-10 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
+            <Shield className="h-5 w-5 text-cyan-400" />
           </div>
-          <div className="text-xs text-muted-foreground">
-            See also:{" "}
-            <Link href="/refund-policy">
-              <span className="text-cyan-400 hover:text-cyan-300 cursor-pointer underline underline-offset-2">Refund Policy</span>
-            </Link>
+          <div className="flex-1">
+            <div className="font-bold text-white text-sm mb-1">Questions about payments?</div>
+            <div className="text-xs text-slate-400 leading-relaxed">
+              Crypto payments are private and irreversible. Unused balance stays in your account forever. For full details on refunds, disputes, and policies, see our Refund Policy.
+            </div>
           </div>
+          <Link href="/refund-policy">
+            <span className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-semibold text-cyan-400 hover:bg-white/[0.09] transition-colors cursor-pointer whitespace-nowrap">
+              Refund Policy <ChevronRight className="h-3.5 w-3.5" />
+            </span>
+          </Link>
         </div>
       </Reveal>
 
@@ -358,7 +418,7 @@ export default function Payments() {
                   <button
                     key={tab.key}
                     ref={el => { tabRefs.current[i] = el; }}
-                    onClick={() => setHistoryTab(tab.key)}
+                    onClick={() => { setHistoryTab(tab.key); setHistoryPage(1); }}
                     className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-200 ${
                       historyTab === tab.key ? "text-white" : "text-slate-500 hover:text-slate-300"
                     }`}
@@ -395,46 +455,78 @@ export default function Payments() {
             <div className="text-center py-10 bg-white/[0.03] rounded-2xl border border-dashed border-white/10">
               <p className="text-sm text-muted-foreground">No {historyTab} payments.</p>
             </div>
-          ) : (
-            <div className="glass-card rounded-2xl overflow-hidden">
-              <div className="divide-y divide-white/[0.06]">
-                {filteredPayments.map((payment) => (
-                  <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 hover:bg-white/[0.02] transition-colors" data-testid={`row-payment-${payment.id}`}>
-                    <div className="flex items-center gap-4">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
-                        payment.status === 'paid' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-300/20' :
-                        payment.status === 'pending' ? 'bg-sky-400/10 text-sky-400 border border-sky-300/20' :
-                        'bg-red-400/10 text-red-400 border border-red-300/20'
-                      }`}>
-                        {payment.status === 'paid' ? <ArrowUpRight className="h-5 w-5" /> :
-                         payment.status === 'pending' ? <Clock className="h-5 w-5" /> :
-                         <AlertCircle className="h-5 w-5" />}
-                      </div>
-                      <div>
-                        <div className="font-bold text-white flex items-center gap-2 flex-wrap">
-                          Funds added
-                          <StatusPill status={payment.status} />
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {format(new Date(payment.createdAt), "MMM d, yyyy 'at' h:mm a")} &bull; {payment.provider}
-                        </div>
-                        {payment.status === "pending" && (
-                          <div className="text-[11px] text-sky-400/70 mt-0.5">
-                            Waiting for blockchain confirmation. Page will update automatically.
+          ) : (() => {
+            const visiblePayments = filteredPayments.slice(0, historyPage * HISTORY_PAGE_SIZE);
+            const hasMore = filteredPayments.length > visiblePayments.length;
+            return (
+              <>
+                <div className="glass-card rounded-2xl overflow-hidden">
+                  <div className="divide-y divide-white/[0.06]">
+                    {visiblePayments.map((payment) => (
+                      <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 hover:bg-white/[0.02] transition-colors" data-testid={`row-payment-${payment.id}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+                            payment.status === 'paid' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-300/20' :
+                            payment.status === 'pending' ? 'bg-sky-400/10 text-sky-400 border border-sky-300/20' :
+                            'bg-red-400/10 text-red-400 border border-red-300/20'
+                          }`}>
+                            {payment.status === 'paid' ? <ArrowUpRight className="h-5 w-5" /> :
+                             payment.status === 'pending' ? <Clock className="h-5 w-5" /> :
+                             <AlertCircle className="h-5 w-5" />}
                           </div>
-                        )}
+                          <div>
+                            <div className="font-bold text-white flex items-center gap-2 flex-wrap">
+                              Funds added
+                              <StatusPill status={payment.status} />
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {format(new Date(payment.createdAt), "MMM d, yyyy 'at' h:mm a")} &bull; {payment.provider}
+                            </div>
+                            {payment.status === "pending" && (
+                              <div className="text-[11px] text-sky-400/70 mt-0.5">
+                                Waiting for blockchain confirmation. Page will update automatically.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 pl-14 sm:pl-0">
+                          <div className={`font-black text-xl ${payment.status === 'paid' ? 'text-white' : 'text-slate-500'}`}>
+                            +${payment.amount.toFixed(2)}
+                          </div>
+                          {payment.status === 'paid' && (
+                            <button
+                              onClick={() => setReceiptPayment(payment)}
+                              className="h-7 w-7 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/20 transition-all duration-200"
+                              title="View receipt"
+                            >
+                              <Receipt className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className={`pl-14 sm:pl-0 font-black text-xl ${payment.status === 'paid' ? 'text-white' : 'text-slate-500'}`}>
-                      +${payment.amount.toFixed(2)}
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+                {hasMore && (
+                  <div className="text-center pt-2">
+                    <button
+                      onClick={() => setHistoryPage(p => p + 1)}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
+                    >
+                      Load more
+                      <span className="text-xs text-slate-600">({filteredPayments.length - visiblePayments.length} more)</span>
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </Reveal>
+
+      {receiptPayment && (
+        <ReceiptModal payment={receiptPayment} onClose={() => setReceiptPayment(null)} />
+      )}
     </div>
   );
 }

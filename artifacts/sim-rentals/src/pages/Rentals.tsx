@@ -91,26 +91,55 @@ function RentalCard({ rental }: { rental: any }) {
       </CardHeader>
 
       <CardContent className="pb-4 space-y-4">
-        {/* Phone Number */}
-        <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/10 flex items-center justify-between">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Phone Number</div>
-            <div className="text-xl font-mono tracking-tight font-bold text-white" data-testid={`text-rental-number-${rental.id}`}>
-              {rental.phoneNumber ? `+${rental.phoneNumber}` : "Allocating number..."}
-            </div>
-          </div>
-          {rental.phoneNumber && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => copyToClipboard(`+${rental.phoneNumber}`)}
-              className="shrink-0 rounded-full"
-              title="Copy number"
-              data-testid={`button-copy-number-${rental.id}`}
-            >
-              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
-            </Button>
+        {/* Phone Number — premium display */}
+        <div className={`relative rounded-2xl p-5 border overflow-hidden ${
+          isActive
+            ? 'bg-gradient-to-br from-sky-950/60 via-[#0a1628]/60 to-indigo-950/60 border-sky-400/25'
+            : 'bg-white/[0.03] border-white/10'
+        }`}>
+          {isActive && (
+            <div className="absolute inset-0 bg-gradient-to-r from-sky-400/[0.04] via-transparent to-indigo-400/[0.04] pointer-events-none" />
           )}
+          <div className="relative">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold">Your Number</span>
+            </div>
+
+            {rental.phoneNumber ? (
+              <div className="flex items-center justify-between gap-3">
+                <div
+                  className={`font-mono font-black tracking-widest select-all ${
+                    isActive ? 'text-white text-2xl sm:text-3xl' : 'text-slate-300 text-xl sm:text-2xl'
+                  }`}
+                  data-testid={`text-rental-number-${rental.id}`}
+                  style={{ letterSpacing: '0.08em' }}
+                >
+                  +{rental.phoneNumber}
+                </div>
+                <button
+                  onClick={() => copyToClipboard(`+${rental.phoneNumber}`)}
+                  data-testid={`button-copy-number-${rental.id}`}
+                  className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 ${
+                    copied
+                      ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-300/30'
+                      : 'bg-white/[0.08] text-white border border-white/[0.12] hover:bg-white/[0.14] hover:border-sky-400/30'
+                  }`}
+                >
+                  {copied ? (
+                    <><Check className="h-3.5 w-3.5" /> Copied</>
+                  ) : (
+                    <><Copy className="h-3.5 w-3.5" /> Copy</>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Allocating your number...
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Timer */}
@@ -183,7 +212,7 @@ function RentalCard({ rental }: { rental: any }) {
       </CardContent>
 
       {isActive && (
-        <CardFooter className="bg-white/[0.02] px-5 py-3 border-t border-white/[0.06] flex justify-between gap-2">
+        <CardFooter className="bg-white/[0.02] px-5 py-3 border-t border-white/[0.06] flex flex-col min-[360px]:flex-row justify-between gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -195,7 +224,7 @@ function RentalCard({ rental }: { rental: any }) {
               }
             })}
             disabled={cancelMutation.isPending}
-            className="text-muted-foreground hover:text-red-300 hover:bg-red-400/10 rounded-full"
+            className="text-muted-foreground hover:text-red-300 hover:bg-red-400/10 rounded-full w-full min-[360px]:w-auto"
             data-testid={`button-cancel-rental-${rental.id}`}
           >
             {cancelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
@@ -211,7 +240,7 @@ function RentalCard({ rental }: { rental: any }) {
               }
             })}
             disabled={refreshMutation.isPending}
-            className="rounded-full"
+            className="rounded-full w-full min-[360px]:w-auto"
             data-testid={`button-refresh-rental-${rental.id}`}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />

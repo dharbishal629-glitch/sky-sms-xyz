@@ -1,7 +1,7 @@
 import { Shield, Zap, Globe, Lock, ChevronRight, Sparkles, MessageSquare, RefreshCw, Clock, Phone, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const serviceIcons: Record<string, string> = {
   Telegram:     "https://www.google.com/s2/favicons?domain=telegram.org&sz=64",
@@ -51,6 +51,13 @@ const stats = [
 
 export default function Landing({ onLogin }: { onLogin?: () => void }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setShowStickyBar(window.scrollY > 500);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen premium-shell text-white" style={{ overflowX: "hidden" }}>
@@ -278,6 +285,22 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
           </div>
         </section>
       </main>
+
+      {/* Sticky mobile CTA bar */}
+      <div className={`fixed bottom-0 inset-x-0 z-50 sm:hidden transition-transform duration-300 ${showStickyBar ? "translate-y-0" : "translate-y-full"}`}>
+        <div className="bg-[#080c18]/95 backdrop-blur-xl border-t border-white/[0.08] px-5 py-3 pb-safe flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] font-semibold text-white leading-tight">Ready to verify?</div>
+            <div className="text-[10px] text-slate-500">Numbers from $0.10</div>
+          </div>
+          <Button
+            onClick={onLogin}
+            className="shrink-0 h-9 rounded-full bg-sky-400 px-5 text-[13px] font-bold text-[#080c18] hover:bg-sky-300 transition-all"
+          >
+            Get started
+          </Button>
+        </div>
+      </div>
 
       <footer className="relative z-10 border-t border-white/[0.05] py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 sm:flex-row">

@@ -191,11 +191,18 @@ export default function Rent() {
                 <SelectContent>
                   {liveCountries.map(country => (
                     <SelectItem key={country.code} value={country.code}>
-                      <div className="flex items-center justify-between w-full min-w-[220px]">
-                        <span>{countryFlags[country.code] ?? "🌍"} {country.name}</span>
-                        <span className="text-xs text-muted-foreground ml-4 font-medium">
-                          {country.available.toLocaleString()} pcs
-                        </span>
+                      <div className="flex items-center justify-between w-full min-w-[240px] gap-3">
+                        <span className="font-medium">{countryFlags[country.code] ?? "🌍"} {country.name}</span>
+                        <div className="flex items-center gap-2 ml-auto shrink-0">
+                          {country.heroPrice > 0 && (
+                            <span className="text-xs font-bold text-cyan-400">
+                              ${country.heroPrice.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {country.available.toLocaleString()} left
+                          </span>
+                        </div>
                       </div>
                     </SelectItem>
                   ))}
