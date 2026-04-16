@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +6,6 @@ import {
   LayoutDashboard, Phone, History, CreditCard, Settings, Shield, Users,
   Activity, SlidersHorizontal, LogOut, Menu, DollarSign, Zap, ChevronRight, X
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -16,15 +15,38 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useGetMe();
   const { logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const isAdmin = user?.role === "admin";
 
+  const openSidebar = () => {
+    setClosing(false);
+    setMobileOpen(true);
+  };
+
+  const closeSidebar = () => {
+    setClosing(true);
+    setTimeout(() => {
+      setMobileOpen(false);
+      setClosing(false);
+    }, 220);
+  };
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
   const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, desc: "Overview & stats" },
-    { href: "/rent", label: "Rent Number", icon: Phone, desc: "Get a new number" },
-    { href: "/rentals", label: "My Rentals", icon: History, desc: "Active & past rentals" },
-    { href: "/payments", label: "Payments", icon: CreditCard, desc: "Add funds" },
-    { href: "/settings", label: "Settings", icon: Settings, desc: "Account & preferences" },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/rent", label: "Rent Number", icon: Phone },
+    { href: "/rentals", label: "My Rentals", icon: History },
+    { href: "/payments", label: "Payments", icon: CreditCard },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const adminItems = [
@@ -34,12 +56,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/admin/transactions", label: "Transactions", icon: Activity },
   ];
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="px-5 pt-6 pb-4">
         <Link href="/dashboard">
-          <span className="flex items-center gap-2.5 cursor-pointer group">
+          <span className="flex items-center gap-2.5 cursor-pointer" onClick={onNav}>
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-cyan-400 to-sky-600 flex items-center justify-center shadow-[0_0_20px_rgba(0,220,255,0.3)]">
               <Phone className="h-4.5 w-4.5 text-white" />
             </div>
@@ -51,7 +72,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </Link>
       </div>
 
-      {/* Balance card */}
       {!isLoading && user && (
         <div className="mx-4 mb-4 rounded-2xl bg-gradient-to-br from-cyan-400/[0.12] to-sky-600/[0.08] border border-cyan-400/20 p-4 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-cyan-400/10 blur-xl" />
@@ -64,7 +84,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               ${user.credits.toFixed(2)}
             </div>
             <Link href="/payments">
-              <span className="mt-2 flex items-center gap-1 text-xs text-cyan-400 font-bold hover:text-cyan-300 transition-colors cursor-pointer" data-testid="link-buy-credits">
+              <span className="mt-2 flex items-center gap-1 text-xs text-cyan-400 font-bold hover:text-cyan-300 transition-colors cursor-pointer" data-testid="link-buy-credits" onClick={onNav}>
                 Add funds <ChevronRight className="h-3 w-3" />
               </span>
             </Link>
@@ -78,17 +98,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Rent Now CTA */}
       <div className="px-4 mb-4">
         <Link href="/rent">
-          <span className="shine-hover flex items-center justify-center gap-2 h-10 w-full rounded-full bg-cyan-400 text-sm font-black text-black hover:bg-cyan-300 transition-all duration-200 shadow-[0_0_24px_rgba(0,220,255,0.3)] hover:shadow-[0_0_32px_rgba(0,220,255,0.45)] cursor-pointer">
+          <span
+            onClick={onNav}
+            className="shine-hover flex items-center justify-center gap-2 h-10 w-full rounded-full bg-cyan-400 text-sm font-black text-black hover:bg-cyan-300 transition-all duration-200 shadow-[0_0_24px_rgba(0,220,255,0.3)] hover:shadow-[0_0_32px_rgba(0,220,255,0.45)] cursor-pointer"
+          >
             <Zap className="h-4 w-4" />
             Rent a Number
           </span>
         </Link>
       </div>
 
-      {/* Nav */}
       <div className="flex-1 overflow-y-auto px-3 pb-4">
         <div className="mb-2 px-2 text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">Navigation</div>
         <div className="flex flex-col gap-0.5">
@@ -98,8 +119,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link key={item.href} href={item.href}>
                 <span
                   data-testid={`link-nav-${item.label.toLowerCase().replace(" ", "-")}`}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer group ${
+                  onClick={onNav}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer group ${
                     active
                       ? "bg-cyan-400/12 text-white border border-cyan-300/20 shadow-[0_0_16px_rgba(0,220,255,0.08)]"
                       : "text-slate-500 hover:bg-white/[0.05] hover:text-slate-200"
@@ -124,8 +145,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <Link key={item.href} href={item.href}>
                     <span
                       data-testid={`link-nav-admin-${item.label.toLowerCase().replace(" ", "-")}`}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                      onClick={onNav}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
                         active
                           ? "bg-cyan-400/12 text-white border border-cyan-300/20"
                           : "text-slate-500 hover:bg-white/[0.05] hover:text-slate-200"
@@ -147,7 +168,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      {/* User */}
       <div className="p-3 border-t border-white/[0.06] mt-auto">
         {isLoading ? (
           <div className="flex items-center gap-3 px-2">
@@ -166,7 +186,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={logout}
-              className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-slate-700 hover:text-red-400 hover:bg-red-400/10 transition-all"
+              className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-slate-700 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200"
               data-testid="button-signout"
               title="Sign out"
             >
@@ -180,7 +200,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell min-h-screen flex">
-      {/* Fixed background glows */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-cyan-400/[0.04] blur-[120px]" />
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-600/[0.04] blur-[100px]" />
@@ -191,18 +210,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <SidebarContent />
       </aside>
 
-      {/* Mobile overlay */}
+      {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="relative z-50 w-72 flex flex-col h-full bg-[#060609] border-r border-white/[0.06]">
+          <div
+            className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-220 ${closing ? "opacity-0" : "opacity-100"}`}
+            onClick={closeSidebar}
+          />
+          <aside
+            className={`relative z-50 w-72 flex flex-col h-full bg-[#060609] border-r border-white/[0.06] ${closing ? "sidebar-slide-out" : "sidebar-slide-in"}`}
+          >
             <button
-              onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06]"
+              onClick={closeSidebar}
+              className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06] transition-all duration-200 z-10"
             >
               <X className="h-4 w-4" />
             </button>
-            <SidebarContent />
+            <SidebarContent onNav={closeSidebar} />
           </aside>
         </div>
       )}
@@ -219,15 +243,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span className="text-sm font-bold text-white">${user.credits.toFixed(2)}</span>
             )}
             <button
-              onClick={() => setMobileOpen(true)}
-              className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08] text-white"
+              onClick={openSidebar}
+              className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08] text-white hover:bg-white/[0.1] transition-all duration-200"
             >
               <Menu className="h-4 w-4" />
             </button>
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 p-4 md:p-6 xl:p-8 w-full max-w-screen-xl mx-auto">
           {children}
         </main>
