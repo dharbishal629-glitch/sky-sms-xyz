@@ -1,4 +1,4 @@
-import { Shield, Zap, Globe, Lock, ChevronRight, Sparkles, MessageSquare, RefreshCw, CreditCard, ChevronDown, Phone, Clock, Star } from "lucide-react";
+import { Shield, Zap, Globe, Lock, ChevronRight, Sparkles, MessageSquare, RefreshCw, Clock, Phone, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
 import { useState } from "react";
@@ -26,100 +26,71 @@ const services = [
 ];
 
 const features = [
-  { icon: Zap,          title: "Instant Delivery",   desc: "Numbers are allocated in seconds. Receive SMS codes as soon as they arrive — no queues, no waiting." },
-  { icon: Globe,        title: "Global Coverage",     desc: "Browse 8+ countries with live availability counts. See real stock before spending a single dollar." },
-  { icon: Lock,         title: "Crypto Payments",     desc: "Top up with BTC, ETH, USDT and 30+ coins via OxaPay. Fully private, borderless, no chargebacks." },
-  { icon: MessageSquare,title: "Live SMS Inbox",      desc: "Incoming verification codes appear instantly on your rental card. One tap to copy the code." },
-  { icon: RefreshCw,    title: "Cancel & Refund",     desc: "Cancel any rental before the 20-minute window ends. Your balance is returned instantly." },
-  { icon: Clock,        title: "20-Min Window",       desc: "A live countdown tracks your activation window. If no SMS arrives, you get a full automatic refund." },
+  { icon: Zap,           title: "Instant Delivery",   desc: "Numbers are allocated in seconds. SMS codes appear the moment they arrive — no queues, no delays." },
+  { icon: Globe,         title: "Global Coverage",     desc: "8+ countries with live availability counts. See real stock before you spend a single cent." },
+  { icon: Lock,          title: "Crypto Payments",     desc: "Top up with BTC, ETH, USDT, and 30+ coins via OxaPay. Private, borderless, zero chargebacks." },
+  { icon: MessageSquare, title: "Live SMS Inbox",      desc: "Verification codes appear instantly on your rental card. One tap to copy." },
+  { icon: RefreshCw,     title: "Auto Refunds",        desc: "Cancel before the 20-minute window ends and get your balance back immediately." },
+  { icon: Clock,         title: "20-Min Window",       desc: "A live countdown tracks your activation. No SMS? Full automatic refund, no questions asked." },
 ];
 
 const faqs = [
-  { q: "How does SMS number rental work?",    a: "Add funds, select a country and service, and get a temporary phone number instantly. Any incoming SMS is shown in your dashboard in real time. Numbers stay active for 20 minutes." },
-  { q: "Which countries are supported?",      a: "We support numbers from the US, UK, Germany, France, Netherlands, Canada, Brazil, India, and many more. New countries are added regularly based on provider availability." },
-  { q: "What payment methods are accepted?",  a: "We accept cryptocurrency payments via OxaPay, which supports BTC, ETH, USDT, and many other coins. Purchases are private and borderless." },
-  { q: "What if I don't receive an SMS?",     a: "You can cancel an active rental before the 20-minute window closes and receive a full refund to your balance instantly. If the window expires with no SMS, you're also refunded automatically." },
-  { q: "Are the numbers reused?",             a: "Numbers are recycled between sessions but each rental starts completely fresh — you only see messages received during your active window. No shared history." },
+  { q: "How does SMS number rental work?",    a: "Add funds, pick a country and service, and get a temporary phone number instantly. Incoming SMS codes appear on your dashboard in real time. Numbers stay active for 20 minutes." },
+  { q: "Which countries are supported?",      a: "We support numbers from the US, UK, Germany, France, Netherlands, Canada, Brazil, India, and more — with live availability shown before you purchase." },
+  { q: "What payment methods are accepted?",  a: "We accept crypto payments via OxaPay — BTC, ETH, USDT (TRC20 & ERC20), LTC, TRX, DOGE, and 30+ other coins. Purchases are private and borderless." },
+  { q: "What if I don't receive an SMS?",     a: "Cancel an active rental before the 20-minute window closes for an instant full refund. If the window expires with no SMS, your balance is also refunded automatically." },
+  { q: "Are the numbers reused?",             a: "Numbers are recycled between sessions, but each rental starts completely fresh — you only see messages that arrive during your active window. No shared history." },
 ];
 
 const stats = [
-  { value: "8+",    label: "Countries" },
-  { value: "50+",   label: "Services" },
-  { value: "20 min",label: "Activation window" },
-  { value: "100%",  label: "Refund if no SMS" },
+  { value: "8+",     label: "Countries" },
+  { value: "50+",    label: "Services" },
+  { value: "20 min", label: "Activation window" },
+  { value: "100%",   label: "Refund if no SMS" },
 ];
-
-/* 32 stars spread across the full page */
-const stars = Array.from({ length: 32 }, (_, i) => ({
-  top:      `${(i * 3.1 + Math.sin(i * 1.7) * 12 + 50) % 100}%`,
-  left:     `${(i * 3.7 + Math.cos(i * 2.3) * 18 + 50) % 100}%`,
-  duration: `${2.2 + (i % 7) * 0.45}s`,
-  opacity:  0.2 + (i % 5) * 0.07,
-  size:     i % 4 === 0 ? 3 : 2,
-  delay:    `${(i % 5) * 0.6}s`,
-}));
 
 export default function Landing({ onLogin }: { onLogin?: () => void }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [pressedService, setPressedService] = useState<string | null>(null);
-
-  const handleServiceClick = (name: string) => {
-    setPressedService(name);
-    setTimeout(() => setPressedService(null), 300);
-    onLogin?.();
-  };
 
   return (
     <div className="min-h-screen premium-shell text-white" style={{ overflowX: "hidden" }}>
 
-      {/* ── Full-page star field (absolute, covers entire scroll height) ── */}
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-        {stars.map((s, i) => (
-          <div
-            key={i}
-            className="star"
-            style={{
-              top: s.top,
-              left: s.left,
-              width: s.size,
-              height: s.size,
-              "--duration": s.duration,
-              "--opacity": s.opacity,
-              animationDelay: s.delay,
-            } as React.CSSProperties}
-          />
-        ))}
-      </div>
-
-      {/* ── Fixed ambient glow orbs (behind everything) ── */}
+      {/* Background orbs — subtle, not animated heavily */}
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
-        <div className="orb" style={{ width: 700, height: 700, top: "-20%",  left: "-12%", background: "radial-gradient(circle, rgba(0,200,255,0.10) 0%, transparent 68%)" }} />
-        <div className="orb" style={{ width: 580, height: 580, bottom:"-15%",right: "-10%", background: "radial-gradient(circle, rgba(56,100,255,0.08) 0%, transparent 68%)", animationDelay: "4s" }} />
-        <div className="orb" style={{ width: 350, height: 350, top: "42%",   right: "8%",  background: "radial-gradient(circle, rgba(0,220,255,0.06) 0%, transparent 68%)", animationDelay: "2s" }} />
-        <div className="orb" style={{ width: 280, height: 280, top: "68%",   left: "6%",   background: "radial-gradient(circle, rgba(120,80,255,0.05) 0%, transparent 68%)", animationDelay: "6s" }} />
+        <div className="orb" style={{ width: 600, height: 600, top: "-15%", left: "-10%", background: "radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 70%)" }} />
+        <div className="orb" style={{ width: 500, height: 500, bottom: "-12%", right: "-8%", background: "radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)", animationDelay: "5s" }} />
       </div>
 
-      {/* ── Sticky Nav ── */}
-      <header className="sticky top-4 z-50 mx-auto flex max-w-6xl justify-center px-4">
-        <div className="glass-card flex h-14 w-full items-center justify-between rounded-full px-5 neon-border">
-          <div className="flex items-center gap-2 font-black text-base">
-            <Phone className="h-4 w-4 text-cyan-400" />
-            <span className="gradient-text">SKY SMS</span>
+      {/* ── Nav ─────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#080c18]/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-sky-400/10 border border-sky-400/20 flex items-center justify-center">
+              <Phone className="h-4 w-4 text-sky-400" />
+            </div>
+            <span className="font-bold text-white tracking-tight text-[15px]">SKY SMS</span>
           </div>
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-400 md:flex">
-            <a className="text-cyan-300 font-bold" href="#home">Home</a>
-            <a className="hover:text-white transition-colors" href="#services">Services</a>
-            <a className="hover:text-white transition-colors" href="#features">Features</a>
-            <a className="hover:text-white transition-colors" href="#faq">FAQ</a>
+
+          <nav className="hidden items-center gap-7 text-[13px] font-medium text-slate-400 md:flex">
+            <a className="hover:text-white transition-colors duration-150" href="#services">Services</a>
+            <a className="hover:text-white transition-colors duration-150" href="#features">Features</a>
+            <a className="hover:text-white transition-colors duration-150" href="#faq">FAQ</a>
           </nav>
+
           <div className="flex items-center gap-3">
-            <button onClick={onLogin} className="hidden text-sm font-bold text-slate-400 transition hover:text-white sm:inline" data-testid="link-landing-login">Login</button>
+            <button
+              onClick={onLogin}
+              className="hidden text-[13px] font-medium text-slate-400 hover:text-white transition-colors sm:inline"
+              data-testid="link-landing-login"
+            >
+              Sign in
+            </button>
             <Button
               onClick={onLogin}
-              className="rounded-full bg-cyan-400 text-black hover:bg-cyan-300 font-bold shadow-[0_0_20px_rgba(0,220,255,0.35)] text-sm h-9 px-5"
+              className="rounded-full bg-sky-400 text-[#080c18] hover:bg-sky-300 font-semibold text-[13px] h-8 px-4 transition-all duration-200"
               data-testid="button-landing-signup"
             >
-              Get Started
+              Get started
             </Button>
           </div>
         </div>
@@ -127,127 +98,119 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
 
       <main className="relative z-10">
 
-        {/* ── Hero ── */}
-        <section id="home" className="relative mx-auto max-w-7xl px-4 pb-24 pt-28 text-center sm:px-6 lg:px-8 dot-grid">
+        {/* ── Hero ─────────────────────────────────────────────── */}
+        <section id="home" className="relative mx-auto max-w-5xl px-5 pb-24 pt-24 text-center sm:px-6">
+
           <Reveal variant="up" delay={0}>
-            <div className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/[0.08] px-5 py-2 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
-              <Star className="h-3.5 w-3.5 fill-cyan-400 text-cyan-400" />
-              Real SMS verification marketplace
+            <div className="mx-auto mb-7 inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-400/[0.06] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-sky-400">
+              <Sparkles className="h-3 w-3" />
+              Real SMS verification
             </div>
           </Reveal>
 
-          <Reveal variant="up" delay={80}>
-            <h1 className="mx-auto mb-6 max-w-5xl text-[clamp(3rem,9vw,6.5rem)] font-black leading-[1.02] tracking-tight text-white">
+          <Reveal variant="up" delay={70}>
+            <h1 className="mx-auto mb-5 max-w-3xl text-[clamp(2.6rem,7vw,5.5rem)] font-bold leading-[1.08] tracking-[-0.03em] text-white">
               Rent SMS numbers{" "}
-              <span className="gradient-text text-glow">instantly</span>
+              <span className="gradient-text">instantly</span>
             </h1>
           </Reveal>
 
-          <Reveal variant="up" delay={160}>
-            <p className="mx-auto mb-10 max-w-xl text-lg font-medium leading-relaxed text-slate-400">
-              Add funds, rent clean temporary numbers, and receive verification codes in a premium dashboard — built for speed.
+          <Reveal variant="up" delay={140}>
+            <p className="mx-auto mb-10 max-w-lg text-[15px] font-normal leading-relaxed text-slate-400">
+              Add funds, rent a temporary number, and receive verification codes — in a clean, fast dashboard built for speed.
             </p>
           </Reveal>
 
-          <Reveal variant="up" delay={240}>
-            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <Reveal variant="up" delay={210}>
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button
                 onClick={onLogin}
-                size="lg"
-                className="group h-14 w-full rounded-full bg-cyan-400 px-10 text-base font-black text-black shadow-[0_0_50px_rgba(0,220,255,0.4)] hover:bg-cyan-300 hover:shadow-[0_0_70px_rgba(0,220,255,0.55)] transition-all duration-300 sm:w-auto"
+                className="group h-11 w-full rounded-full bg-sky-400 px-8 text-[14px] font-semibold text-[#080c18] shadow-[0_0_40px_rgba(56,189,248,0.3)] hover:bg-sky-300 hover:shadow-[0_0_55px_rgba(56,189,248,0.4)] transition-all duration-250 sm:w-auto"
                 data-testid="button-hero-cta"
               >
-                Rent a Number Now
-                <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                Rent a number now
+                <ChevronRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Button>
               <a
                 href="#features"
-                className="rounded-full border border-white/15 px-8 py-4 text-sm font-bold text-white transition-all duration-200 hover:border-cyan-400/40 hover:bg-cyan-400/[0.08] hover:scale-[1.02] active:scale-[0.97]"
+                className="h-11 inline-flex items-center rounded-full border border-white/10 px-8 text-[14px] font-medium text-white/70 hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all duration-200"
               >
-                View Features
+                Learn more
               </a>
             </div>
           </Reveal>
 
-          {/* Stats bar */}
-          <Reveal variant="up" delay={320}>
-            <div className="mx-auto mt-16 grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
+          {/* Stats row */}
+          <Reveal variant="up" delay={280}>
+            <div className="mx-auto mt-16 grid grid-cols-2 sm:grid-cols-4 gap-px overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] max-w-xl">
               {stats.map((stat) => (
-                <div key={stat.label} className="glass-card rounded-2xl px-4 py-5 text-center">
-                  <div className="text-2xl font-black text-white">{stat.value}</div>
-                  <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-500">{stat.label}</div>
+                <div key={stat.label} className="px-4 py-4 text-center bg-white/[0.02]">
+                  <div className="text-xl font-bold text-white">{stat.value}</div>
+                  <div className="mt-0.5 text-[11px] font-medium text-slate-500 uppercase tracking-wide leading-tight">{stat.label}</div>
                 </div>
               ))}
             </div>
           </Reveal>
         </section>
 
-        {/* ── Services ── */}
-        <section id="services" className="py-24">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* ── Services ─────────────────────────────────────────── */}
+        <section id="services" className="py-20">
+          <div className="mx-auto max-w-6xl px-5 sm:px-6">
             <Reveal variant="up">
-              <div className="mb-14 text-center">
-                <div className="mx-auto mb-5 w-fit rounded-full border border-cyan-400/20 bg-cyan-400/[0.08] px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
-                  Platform coverage
-                </div>
-                <h2 className="mb-4 text-[clamp(2rem,4vw,3.5rem)] font-black tracking-tight text-white">Works with every service</h2>
-                <p className="text-slate-400">Receive verification codes from any platform.</p>
+              <div className="mb-12 text-center">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-sky-400">Platform coverage</p>
+                <h2 className="text-[clamp(1.8rem,4vw,3rem)] font-bold tracking-tight text-white">Works with every service</h2>
+                <p className="mt-3 text-[14px] text-slate-400">Get verification codes from any major platform.</p>
               </div>
             </Reveal>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {services.map((svc, i) => {
-                const pressed = pressedService === svc.name;
-                return (
-                  <Reveal key={svc.name} variant="up" delay={i * 55}>
-                    <button
-                      onClick={() => handleServiceClick(svc.name)}
-                      className={`shine-hover ripple-container w-full glass-card group flex cursor-pointer items-center gap-4 rounded-2xl p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-cyan-400/20 hover:shadow-[0_8px_32px_rgba(0,220,255,0.1)] active:scale-[0.97] ${pressed ? "scale-[0.97] border-cyan-400/30" : ""}`}
-                    >
-                      <div className="h-12 w-12 shrink-0 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center overflow-hidden group-hover:bg-white/[0.09] transition-colors">
-                        <img
-                          src={serviceIcons[svc.name]}
-                          alt={svc.name}
-                          className="h-7 w-7 object-contain rounded"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      </div>
-                      <div>
-                        <div className="font-bold text-white">{svc.name}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{svc.desc}</div>
-                      </div>
-                      <ChevronRight className="ml-auto h-4 w-4 text-slate-700 group-hover:text-cyan-400 transition-colors shrink-0" />
-                    </button>
-                  </Reveal>
-                );
-              })}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {services.map((svc, i) => (
+                <Reveal key={svc.name} variant="up" delay={i * 45}>
+                  <button
+                    onClick={onLogin}
+                    className="w-full glass-card group flex cursor-pointer items-center gap-3.5 rounded-xl p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-400/15 active:scale-[0.98]"
+                  >
+                    <div className="h-10 w-10 shrink-0 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center overflow-hidden group-hover:bg-white/[0.08] transition-colors">
+                      <img
+                        src={serviceIcons[svc.name]}
+                        alt={svc.name}
+                        className="h-6 w-6 object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-semibold text-white">{svc.name}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{svc.desc}</div>
+                    </div>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-sky-400 transition-colors shrink-0" />
+                  </button>
+                </Reveal>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* ── Features ── */}
-        <section id="features" className="py-24">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* ── Features ─────────────────────────────────────────── */}
+        <section id="features" className="py-20">
+          <div className="mx-auto max-w-6xl px-5 sm:px-6">
             <Reveal variant="up">
-              <div className="mb-14 text-center">
-                <div className="mx-auto mb-5 w-fit rounded-full border border-cyan-400/20 bg-cyan-400/[0.08] px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
-                  <Sparkles className="inline h-3.5 w-3.5 mr-1.5" />
-                  Premium features
-                </div>
-                <h2 className="mb-4 text-[clamp(2rem,4vw,3.5rem)] font-black tracking-tight text-white">Everything you need</h2>
-                <p className="text-slate-400">Built for speed, privacy, and reliability.</p>
+              <div className="mb-12 text-center">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-sky-400">Features</p>
+                <h2 className="text-[clamp(1.8rem,4vw,3rem)] font-bold tracking-tight text-white">Everything you need</h2>
+                <p className="mt-3 text-[14px] text-slate-400">Built for speed, privacy, and reliability.</p>
               </div>
             </Reveal>
 
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature, i) => (
-                <Reveal key={feature.title} variant="up" delay={i * 65}>
-                  <div className="shine-hover glass-card group cursor-default rounded-2xl p-6 hover:-translate-y-1 hover:border-cyan-400/15 transition-all duration-200 h-full">
-                    <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 border border-cyan-400/15 text-cyan-400 group-hover:bg-cyan-400/15 transition-colors">
-                      <feature.icon className="h-5 w-5" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {features.map((feat, i) => (
+                <Reveal key={feat.title} variant="up" delay={i * 55}>
+                  <div className="glass-card group rounded-xl p-5 hover:-translate-y-0.5 hover:border-sky-400/12 transition-all duration-200 h-full">
+                    <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-sky-400/8 border border-sky-400/12 text-sky-400">
+                      <feat.icon className="h-4 w-4" />
                     </div>
-                    <h3 className="mb-2 text-lg font-black text-white">{feature.title}</h3>
-                    <p className="text-sm leading-relaxed text-slate-500">{feature.desc}</p>
+                    <h3 className="mb-1.5 text-[14px] font-semibold text-white">{feat.title}</h3>
+                    <p className="text-[13px] leading-relaxed text-slate-500">{feat.desc}</p>
                   </div>
                 </Reveal>
               ))}
@@ -255,36 +218,29 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
           </div>
         </section>
 
-        {/* ── FAQ ── */}
-        <section id="faq" className="py-24">
-          <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+        {/* ── FAQ ──────────────────────────────────────────────── */}
+        <section id="faq" className="py-20">
+          <div className="mx-auto max-w-2xl px-5 sm:px-6">
             <Reveal variant="up">
-              <div className="mb-14 text-center">
-                <div className="mx-auto mb-5 w-fit rounded-full border border-cyan-400/20 bg-cyan-400/[0.08] px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
-                  Got questions?
-                </div>
-                <h2 className="mb-4 text-[clamp(2rem,4vw,3.5rem)] font-black tracking-tight text-white">FAQ</h2>
-                <p className="text-slate-400">Everything you need to know about renting numbers.</p>
+              <div className="mb-12 text-center">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-sky-400">FAQ</p>
+                <h2 className="text-[clamp(1.8rem,4vw,3rem)] font-bold tracking-tight text-white">Common questions</h2>
               </div>
             </Reveal>
 
             <div className="space-y-2">
               {faqs.map((faq, i) => (
-                <Reveal key={i} variant="up" delay={i * 55}>
-                  <div className="glass-card rounded-2xl overflow-hidden">
+                <Reveal key={i} variant="up" delay={i * 45}>
+                  <div className="glass-card rounded-xl overflow-hidden">
                     <button
-                      className="ripple-container w-full flex items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-white/[0.02] active:scale-[0.99]"
+                      className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
                       onClick={() => setOpenFaq(openFaq === i ? null : i)}
                     >
-                      <span className="font-bold text-white text-sm">{faq.q}</span>
-                      <ChevronDown
-                        className={`h-4 w-4 shrink-0 text-cyan-400 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${openFaq === i ? "rotate-180" : ""}`}
-                      />
+                      <span className="text-[13px] font-semibold text-white">{faq.q}</span>
+                      <ChevronDown className={`h-4 w-4 shrink-0 text-sky-400 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} />
                     </button>
-                    <div
-                      className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${openFaq === i ? "max-h-[280px] opacity-100" : "max-h-0 opacity-0"}`}
-                    >
-                      <div className="px-6 pb-5 text-sm text-slate-400 leading-relaxed border-t border-white/5 pt-4">
+                    <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${openFaq === i ? "max-h-[240px] opacity-100" : "max-h-0 opacity-0"}`}>
+                      <div className="px-5 pb-4 pt-3 text-[13px] text-slate-400 leading-relaxed border-t border-white/[0.05]">
                         {faq.a}
                       </div>
                     </div>
@@ -295,30 +251,26 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
           </div>
         </section>
 
-        {/* ── Final CTA ── */}
-        <section className="py-24 px-4">
-          <div className="mx-auto max-w-2xl">
+        {/* ── CTA ──────────────────────────────────────────────── */}
+        <section className="py-20 px-5">
+          <div className="mx-auto max-w-xl">
             <Reveal variant="scale">
-              <div className="glass-card blue-glow shimmer-border rounded-3xl p-12 text-center relative overflow-hidden">
-                <div className="orb" style={{ width: 300, height: 300, top: "-30%", left: "50%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(0,220,255,0.08) 0%, transparent 70%)" }} />
+              <div className="glass-card blue-glow rounded-2xl p-10 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-sky-400/[0.04] to-transparent pointer-events-none" />
                 <div className="relative z-10">
-                  <div className="mx-auto mb-6 w-fit rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
-                    <Sparkles className="inline h-3.5 w-3.5 mr-1.5" />
-                    Get started today
-                  </div>
-                  <h2 className="text-4xl font-black tracking-tight text-white mb-4">
-                    Ready to rent<br />your first number?
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-sky-400">Get started free</p>
+                  <h2 className="text-[clamp(1.6rem,4vw,2.5rem)] font-bold tracking-tight text-white mb-3">
+                    Rent your first number today
                   </h2>
-                  <p className="text-slate-400 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
-                    Join thousands of users renting SMS numbers for fast, private account verification.
+                  <p className="text-[14px] text-slate-400 mb-8 leading-relaxed">
+                    Fast, private, and globally available. No subscription required — just pay as you go.
                   </p>
                   <Button
                     onClick={onLogin}
-                    size="lg"
-                    className="group h-14 rounded-full bg-cyan-400 px-10 text-base font-black text-black shadow-[0_0_50px_rgba(0,220,255,0.4)] hover:bg-cyan-300 hover:shadow-[0_0_70px_rgba(0,220,255,0.55)] transition-all duration-300"
+                    className="group h-11 rounded-full bg-sky-400 px-8 text-[14px] font-semibold text-[#080c18] shadow-[0_0_40px_rgba(56,189,248,0.3)] hover:bg-sky-300 transition-all duration-250"
                   >
-                    Create Free Account
-                    <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    Create free account
+                    <ChevronRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </Button>
                 </div>
               </div>
@@ -327,20 +279,20 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/5 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-4 sm:px-6 md:flex-row lg:px-8">
-          <div className="flex items-center gap-2 font-black">
-            <Phone className="h-4 w-4 text-cyan-400" />
-            <span className="gradient-text">SKY SMS</span>
+      <footer className="relative z-10 border-t border-white/[0.05] py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 sm:flex-row">
+          <div className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5 text-sky-400" />
+            <span className="text-[13px] font-semibold text-white">SKY SMS</span>
           </div>
-          <nav className="flex flex-wrap justify-center gap-6 text-sm text-slate-600">
+          <nav className="flex flex-wrap justify-center gap-5 text-[12px] text-slate-500">
             <a href="#services"      className="hover:text-white transition-colors">Services</a>
             <a href="#features"      className="hover:text-white transition-colors">Features</a>
             <a href="#faq"           className="hover:text-white transition-colors">FAQ</a>
-            <a href="/terms"         className="hover:text-white transition-colors">Terms of Service</a>
+            <a href="/terms"         className="hover:text-white transition-colors">Terms</a>
             <a href="/refund-policy" className="hover:text-white transition-colors">Refund Policy</a>
           </nav>
-          <p className="text-xs text-slate-700">© {new Date().getFullYear()} SKY SMS. All rights reserved.</p>
+          <p className="text-[11px] text-slate-600">© {new Date().getFullYear()} SKY SMS</p>
         </div>
       </footer>
     </div>

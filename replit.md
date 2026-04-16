@@ -24,7 +24,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## SMS SIM Rentals Implementation
 
-- Frontend uses React, TypeScript, Tailwind CSS, shadcn/ui components, Wouter routing, React Query generated hooks, Inter typography, and a dark premium glassmorphism theme.
+- Frontend uses React, TypeScript, Tailwind CSS, shadcn/ui components, Wouter routing, React Query generated hooks, **Plus Jakarta Sans** typography, and a refined dark SaaS theme (navy `#080c18` background, `sky-400` accent, subtle mesh gradient orbs, clean glass cards).
 - Landing page includes a sticky pill navigation with Home/Services/Features/FAQ anchors, dark hero, gradient headline, search bar, marquee banner, services grid, features grid, FAQ accordion, and CTA footer.
 - **Auth uses Replit OIDC (openid-client)** — zero external setup required. Sessions stored in `sim_sessions` table (PostgreSQL). `req.user` is populated by `authMiddleware` from session cookies. Frontend uses a `useAuth()` hook that fetches `/api/auth/user`.
 - Auth routes: `GET /api/login` → PKCE OIDC flow, `GET /api/callback` → token exchange + session create, `GET /api/logout` → end session, `GET /api/auth/user` → current user JSON.

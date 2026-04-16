@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -51,173 +51,179 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .18);
-  --badge-outline: rgba(255,255,255, .12);
-  --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(0,0,0, .45);
+  --background: 226 30% 6%;
+  --foreground: 210 30% 95%;
+  --border: 220 20% 13%;
+  --card: 224 28% 7%;
+  --card-foreground: 210 30% 95%;
+  --card-border: 220 20% 12%;
+  --popover: 224 28% 7%;
+  --popover-foreground: 210 30% 95%;
+  --popover-border: 220 20% 12%;
 
-  --background: 0 0% 2%;
-  --foreground: 210 40% 98%;
-  --border: 215 20% 14%;
-  --card: 0 0% 4%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 215 20% 13%;
-  --popover: 0 0% 4%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 215 20% 13%;
-  
-  --primary: 191 100% 50%;
-  --primary-foreground: 0 0% 2%;
-  
-  --secondary: 0 0% 8%;
-  --secondary-foreground: 210 40% 98%;
-  
-  --muted: 0 0% 7%;
-  --muted-foreground: 218 15% 60%;
-  
-  --accent: 191 100% 10%;
-  --accent-foreground: 191 100% 86%;
-  
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  
-  --input: 215 20% 14%;
-  --ring: 191 100% 50%;
+  --primary: 197 90% 52%;
+  --primary-foreground: 226 30% 5%;
 
-  --app-font-sans: 'Inter', sans-serif;
+  --secondary: 224 25% 10%;
+  --secondary-foreground: 210 30% 90%;
+
+  --muted: 224 25% 9%;
+  --muted-foreground: 220 15% 52%;
+
+  --accent: 197 80% 12%;
+  --accent-foreground: 197 80% 82%;
+
+  --destructive: 0 72% 58%;
+  --destructive-foreground: 210 30% 98%;
+
+  --input: 220 20% 13%;
+  --ring: 197 90% 52%;
+
+  --app-font-sans: 'Plus Jakarta Sans', sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: Menlo, monospace;
-  --radius: 1rem;
+  --app-font-mono: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+  --radius: 0.875rem;
 }
 
 @layer base {
   * {
     @apply border-border;
-    /* Smooth scrolling for everything */
     scroll-behavior: smooth;
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    background: #050508;
-    /* High-refresh-rate smooth scrolling */
+    background: #080c18;
     -webkit-overflow-scrolling: touch;
-    text-rendering: optimizeSpeed;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.02em;
   }
 
   ::selection {
-    background: rgba(0, 220, 255, 0.3);
+    background: rgba(56, 189, 248, 0.25);
     color: white;
   }
 }
 
 @layer utilities {
 
-  /* ─── Background shells ──────────────────────────────── */
+  /* ─── Background shells ───────────────────────────── */
   .premium-shell {
-    background: #050508;
+    background: #080c18;
     position: relative;
     overflow-x: clip;
   }
 
-  /* App shell: no overflow clipping (allows native scroll) */
   .app-shell {
-    background: #050508;
+    background: #080c18;
     position: relative;
   }
 
-  /* ─── Aurora background orbs (GPU-accelerated) ─────────── */
+  /* ─── Mesh gradient background ────────────────────── */
   .premium-shell::before {
     content: '';
     position: fixed;
-    top: -30%;
-    left: -15%;
-    width: 75%;
-    height: 75%;
-    background: radial-gradient(ellipse, rgba(0,200,255,0.08) 0%, transparent 65%);
+    top: -20%;
+    left: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(ellipse, rgba(56,189,248,0.07) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
     will-change: transform;
     transform: translateZ(0);
-    animation: aurora-a 20s ease-in-out infinite alternate;
+    animation: mesh-a 22s ease-in-out infinite alternate;
     z-index: 0;
   }
 
   .premium-shell::after {
     content: '';
     position: fixed;
-    bottom: -25%;
-    right: -12%;
-    width: 65%;
-    height: 65%;
-    background: radial-gradient(ellipse, rgba(56,130,255,0.06) 0%, transparent 65%);
+    bottom: -15%;
+    right: -8%;
+    width: 55%;
+    height: 55%;
+    background: radial-gradient(ellipse, rgba(99,102,241,0.06) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
     will-change: transform;
     transform: translateZ(0);
-    animation: aurora-b 25s ease-in-out infinite alternate-reverse;
+    animation: mesh-b 28s ease-in-out infinite alternate-reverse;
     z-index: 0;
   }
 
-  @keyframes aurora-a {
+  @keyframes mesh-a {
     0%   { transform: translate3d(0,0,0) scale(1); }
-    50%  { transform: translate3d(6%,5%,0) scale(1.07); }
-    100% { transform: translate3d(-3%,9%,0) scale(0.96); }
+    50%  { transform: translate3d(5%,4%,0) scale(1.06); }
+    100% { transform: translate3d(-3%,8%,0) scale(0.97); }
   }
-  @keyframes aurora-b {
+  @keyframes mesh-b {
     0%   { transform: translate3d(0,0,0) scale(1); }
-    50%  { transform: translate3d(-5%,-4%,0) scale(1.05); }
-    100% { transform: translate3d(4%,-8%,0) scale(0.97); }
+    50%  { transform: translate3d(-4%,-3%,0) scale(1.05); }
+    100% { transform: translate3d(3%,-6%,0) scale(0.98); }
   }
 
-  /* ─── Dot grid ──────────────────────────────────────── */
-  .dot-grid {
-    background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
-    background-size: 36px 36px;
-  }
-
-  /* ─── Glass card (lighter blur = faster scrolling) ──── */
+  /* ─── Glass card — refined, less heavy ───────────── */
   .glass-card {
-    background: linear-gradient(145deg, rgba(12,14,22,0.92), rgba(5,6,10,0.96));
+    background: rgba(255,255,255,0.025);
     border: 1px solid rgba(255,255,255,0.07);
-    box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
-    /* 8px blur instead of 20px: ~3× faster on GPU */
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-    /* Force compositing layer so it doesn't repaint the whole page */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.2);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
     will-change: transform;
     transform: translateZ(0);
   }
 
   .glass-card:hover {
-    border-color: rgba(0,220,255,0.13);
-    box-shadow: 0 8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,220,255,0.07), inset 0 1px 0 rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.11);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35), 0 12px 32px rgba(0,0,0,0.25);
   }
 
-  /* ─── Glow / neon accents ───────────────────────────── */
+  /* ─── Accent glow (used sparingly) ───────────────── */
   .blue-glow {
-    box-shadow: 0 0 0 1px rgba(0,220,255,0.18), 0 0 40px rgba(0,200,255,0.12), 0 0 80px rgba(0,180,255,0.05);
+    box-shadow: 0 0 0 1px rgba(56,189,248,0.15), 0 0 32px rgba(56,189,248,0.08);
   }
 
-  .text-glow {
-    text-shadow: 0 0 30px rgba(0,220,255,0.6), 0 0 60px rgba(0,200,255,0.25);
-  }
-
-  .neon-border {
-    border: 1px solid rgba(0,220,255,0.28);
-    box-shadow: 0 0 12px rgba(0,220,255,0.1), inset 0 0 10px rgba(0,220,255,0.03);
-  }
-
-  /* ─── Gradient text ──────────────────────────────────── */
+  /* ─── Gradient text ──────────────────────────────── */
   .gradient-text {
-    background: linear-gradient(135deg, #00e5ff 0%, #ffffff 45%, #7dd3fc 100%);
+    background: linear-gradient(135deg, #38bdf8 0%, #ffffff 50%, #93c5fd 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* ─── Marquee ─────────────────────────────────────────── */
+  .text-glow {
+    filter: drop-shadow(0 0 20px rgba(56,189,248,0.4));
+  }
+
+  /* ─── Neon border — lighter version ─────────────── */
+  .neon-border {
+    border: 1px solid rgba(255,255,255,0.09);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.35);
+  }
+
+  /* ─── Orb float ──────────────────────────────────── */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    pointer-events: none;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    animation: orb-float 10s ease-in-out infinite alternate;
+  }
+  @keyframes orb-float {
+    0%   { transform: translate3d(0,0,0) scale(1); opacity: 0.8; }
+    100% { transform: translate3d(0,-20px,0) scale(1.05); opacity: 1; }
+  }
+
+  /* ─── Marquee ────────────────────────────────────── */
   .marquee-track {
     will-change: transform;
     animation: marquee 28s linear infinite;
@@ -231,7 +237,7 @@
     mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
   }
 
-  /* ─── Shimmer border ─────────────────────────────────── */
+  /* ─── Shimmer border ─────────────────────────────── */
   @keyframes shimmer {
     from { background-position: -200% center; }
     to   { background-position:  200% center; }
@@ -243,74 +249,23 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,220,255,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.25), transparent);
     background-size: 200% 100%;
-    animation: shimmer 3s linear infinite;
+    animation: shimmer 3.5s linear infinite;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
   }
 
-  /* ─── Floating orb ───────────────────────────────────── */
-  .orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    pointer-events: none;
-    will-change: transform, opacity;
-    transform: translateZ(0);
-    animation: orb-float 9s ease-in-out infinite alternate;
-  }
-  @keyframes orb-float {
-    0%   { transform: translate3d(0,0,0) scale(1); opacity: 0.7; }
-    100% { transform: translate3d(0,-28px,0) scale(1.07); opacity: 1; }
-  }
-
-  /* ─── Stat counter ──────────────────────────────────── */
-  @keyframes count-up {
-    from { opacity: 0; transform: translate3d(0,10px,0); }
-    to   { opacity: 1; transform: translate3d(0,0,0); }
-  }
-  .count-up { animation: count-up 0.5s ease forwards; }
-
-  /* ─── Button press (click feedback) ─────────────────── */
-  @keyframes btn-press {
-    0%   { transform: scale(1); }
-    40%  { transform: scale(0.95); }
-    100% { transform: scale(1); }
-  }
-  .btn-press { animation: btn-press 0.18s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-
-  /* ─── Ripple / reflection ────────────────────────────── */
-  .ripple-container {
-    position: relative;
-    overflow: hidden;
-  }
-  .ripple-wave {
-    position: absolute;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(0,220,255,0.38) 0%, rgba(0,220,255,0.1) 50%, transparent 70%);
-    transform: scale(0);
-    will-change: transform, opacity;
-    animation: ripple-expand 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
-    pointer-events: none;
-    z-index: 10;
-  }
-  @keyframes ripple-expand {
-    0%   { transform: scale(0); opacity: 1; }
-    60%  { transform: scale(1); opacity: 0.6; }
-    100% { transform: scale(2.8); opacity: 0; }
-  }
-
-  /* ─── Shine hover sweep ──────────────────────────────── */
+  /* ─── Shine hover ────────────────────────────────── */
   .shine-hover { position: relative; overflow: hidden; }
   .shine-hover::after {
     content: '';
     position: absolute;
     top: 0; left: -100%;
-    width: 55%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.09), transparent);
+    width: 45%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
     transform: skewX(-20deg);
     pointer-events: none;
   }
@@ -322,127 +277,101 @@
     to   { left: 150%; }
   }
 
-  /* ─── Dropdown slide-in (Radix Select/custom) ─────────── */
-  @keyframes dropdown-in {
-    from { opacity: 0; transform: translate3d(0,-8px,0) scaleY(0.94); }
-    to   { opacity: 1; transform: translate3d(0,0,0) scaleY(1); }
+  /* ─── Ripple container ───────────────────────────── */
+  .ripple-container {
+    position: relative;
+    overflow: hidden;
   }
-  @keyframes dropdown-out {
-    from { opacity: 1; transform: translate3d(0,0,0) scaleY(1); }
-    to   { opacity: 0; transform: translate3d(0,-6px,0) scaleY(0.96); }
+  .ripple-wave {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56,189,248,0.3) 0%, rgba(56,189,248,0.08) 50%, transparent 70%);
+    transform: scale(0);
+    will-change: transform, opacity;
+    animation: ripple-expand 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
+    pointer-events: none;
+    z-index: 10;
+  }
+  @keyframes ripple-expand {
+    0%   { transform: scale(0); opacity: 1; }
+    60%  { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(2.8); opacity: 0; }
   }
 
-  /* Applied to Radix popover/select content */
-  [data-state="open"][data-side="bottom"]  { animation: dropdown-in  0.18s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: top center; }
-  [data-state="closed"][data-side="bottom"]{ animation: dropdown-out 0.14s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: top center; }
-  [data-state="open"][data-side="top"]     { animation: dropdown-in  0.18s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: bottom center; }
-
-  /* FAQ accordion content slide */
-  @keyframes faq-open {
-    from { opacity: 0; max-height: 0; transform: translate3d(0,-6px,0); }
-    to   { opacity: 1; max-height: 300px; transform: translate3d(0,0,0); }
-  }
-  @keyframes faq-close {
-    from { opacity: 1; max-height: 300px; }
-    to   { opacity: 0; max-height: 0; }
-  }
-  .faq-content-open  { animation: faq-open  0.28s cubic-bezier(0.22,1,0.36,1) forwards; overflow: hidden; }
-  .faq-content-close { animation: faq-close 0.2s  ease forwards; overflow: hidden; }
-
-  /* ─── Scroll reveal ──────────────────────────────────── */
+  /* ─── Scroll reveal ──────────────────────────────── */
   .reveal {
     opacity: 0;
-    transform: translate3d(0,28px,0);
-    transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    transform: translate3d(0,20px,0);
+    transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1);
     will-change: opacity, transform;
   }
   .reveal.in-view { opacity: 1; transform: translate3d(0,0,0); }
 
   .reveal-left {
     opacity: 0;
-    transform: translate3d(-28px,0,0);
-    transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
-    will-change: opacity, transform;
+    transform: translate3d(-20px,0,0);
+    transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1);
   }
   .reveal-left.in-view { opacity: 1; transform: translate3d(0,0,0); }
 
   .reveal-right {
     opacity: 0;
-    transform: translate3d(28px,0,0);
-    transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
-    will-change: opacity, transform;
+    transform: translate3d(20px,0,0);
+    transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1);
   }
   .reveal-right.in-view { opacity: 1; transform: translate3d(0,0,0); }
 
   .reveal-scale {
     opacity: 0;
-    transform: scale(0.95) translateZ(0);
-    transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
-    will-change: opacity, transform;
+    transform: scale(0.96) translateZ(0);
+    transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1);
   }
   .reveal-scale.in-view { opacity: 1; transform: scale(1) translateZ(0); }
 
-  /* stagger helper */
   .stagger > *:nth-child(1) { transition-delay:   0ms; }
-  .stagger > *:nth-child(2) { transition-delay:  70ms; }
-  .stagger > *:nth-child(3) { transition-delay: 140ms; }
-  .stagger > *:nth-child(4) { transition-delay: 210ms; }
-  .stagger > *:nth-child(5) { transition-delay: 280ms; }
-  .stagger > *:nth-child(6) { transition-delay: 350ms; }
-  .stagger > *:nth-child(7) { transition-delay: 420ms; }
-  .stagger > *:nth-child(8) { transition-delay: 490ms; }
+  .stagger > *:nth-child(2) { transition-delay:  60ms; }
+  .stagger > *:nth-child(3) { transition-delay: 120ms; }
+  .stagger > *:nth-child(4) { transition-delay: 180ms; }
+  .stagger > *:nth-child(5) { transition-delay: 240ms; }
+  .stagger > *:nth-child(6) { transition-delay: 300ms; }
+  .stagger > *:nth-child(7) { transition-delay: 360ms; }
+  .stagger > *:nth-child(8) { transition-delay: 420ms; }
 
-  /* ─── Star particle ──────────────────────────────────── */
-  .star {
-    position: absolute;
-    width: 2px; height: 2px;
-    background: white;
-    border-radius: 50%;
-    will-change: opacity, transform;
-    animation: twinkle var(--duration,3s) ease-in-out infinite alternate;
-    opacity: var(--opacity,0.3);
+  /* ─── Dropdown animation ─────────────────────────── */
+  @keyframes dropdown-in {
+    from { opacity: 0; transform: translate3d(0,-6px,0) scale(0.97); }
+    to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
   }
-  @keyframes twinkle {
-    from { opacity: var(--opacity,0.3); transform: scale(1); }
-    to   { opacity: calc(var(--opacity,0.3) * 4); transform: scale(1.6); }
+  @keyframes dropdown-out {
+    from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+    to   { opacity: 0; transform: translate3d(0,-4px,0) scale(0.97); }
   }
+  [data-state="open"][data-side="bottom"]   { animation: dropdown-in  0.16s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: top center; }
+  [data-state="closed"][data-side="bottom"] { animation: dropdown-out 0.12s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: top center; }
+  [data-state="open"][data-side="top"]      { animation: dropdown-in  0.16s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: bottom center; }
 
-  /* ─── Scan line ──────────────────────────────────────── */
-  @keyframes scan {
-    from { transform: translateX(-100%); }
-    to   { transform: translateX(100%); }
-  }
-  .scan-line::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(0,220,255,0.15), transparent);
-    animation: scan 2s ease-in-out infinite;
-    border-radius: inherit;
-  }
-
-  /* ─── Mobile sidebar slide ───────────────────────────── */
+  /* ─── Mobile sidebar slide ───────────────────────── */
   @keyframes sidebar-in {
-    from { transform: translate3d(-100%, 0, 0); opacity: 0.6; }
-    to   { transform: translate3d(0, 0, 0); opacity: 1; }
+    from { transform: translate3d(-100%,0,0); opacity: 0.7; }
+    to   { transform: translate3d(0,0,0); opacity: 1; }
   }
   @keyframes sidebar-out {
-    from { transform: translate3d(0, 0, 0); opacity: 1; }
-    to   { transform: translate3d(-100%, 0, 0); opacity: 0.6; }
+    from { transform: translate3d(0,0,0); opacity: 1; }
+    to   { transform: translate3d(-100%,0,0); opacity: 0.7; }
   }
   .sidebar-slide-in {
-    animation: sidebar-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: sidebar-in 0.22s cubic-bezier(0.22,1,0.36,1) forwards;
     will-change: transform, opacity;
   }
   .sidebar-slide-out {
-    animation: sidebar-out 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: sidebar-out 0.22s cubic-bezier(0.22,1,0.36,1) forwards;
     will-change: transform, opacity;
   }
 
-  /* ─── Global smooth transitions ─────────────────────── */
-  a, button, [role="button"] {
-    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
-    transition-duration: 150ms;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  /* ─── Stat count-up ──────────────────────────────── */
+  @keyframes count-up {
+    from { opacity: 0; transform: translate3d(0,8px,0); }
+    to   { opacity: 1; transform: translate3d(0,0,0); }
   }
+  .count-up { animation: count-up 0.45s ease forwards; }
 }
