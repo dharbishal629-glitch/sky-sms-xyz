@@ -11,10 +11,10 @@ import { CreditCard, ArrowUpRight, Check, AlertCircle, Clock, Loader2, Pencil } 
 import { Reveal } from "@/components/Reveal";
 
 const PACKAGES = [
-  { amount: 5, credits: 5, popular: false },
-  { amount: 10, credits: 11, popular: true, bonus: "10%" },
-  { amount: 25, credits: 30, popular: false, bonus: "20%" },
-  { amount: 50, credits: 65, popular: false, bonus: "30%" },
+  { amount: 5, popular: false },
+  { amount: 10, popular: true, bonus: "10% extra" },
+  { amount: 25, popular: false, bonus: "20% extra" },
+  { amount: 50, popular: false, bonus: "30% extra" },
 ];
 
 export default function Payments() {
@@ -32,7 +32,7 @@ export default function Payments() {
         window.open(response.checkoutUrl, "_blank");
         toast({
           title: "Redirecting to checkout",
-          description: `Opening payment page for $${amount} package.`,
+          description: `Opening payment page for $${amount.toFixed(2)}.`,
         });
         setSelectedPackage(null);
       },
@@ -48,15 +48,15 @@ export default function Payments() {
   };
 
   const handleCustomCheckout = () => {
-    const amount = Number(customAmount);
-    if (!amount || amount < 1) return;
+    const amount = parseFloat(customAmount);
+    if (!amount || amount <= 0) return;
     setCustomLoading(true);
     createCheckout.mutate({ data: { amount, currency: "USD" } }, {
       onSuccess: (response) => {
         window.open(response.checkoutUrl, "_blank");
         toast({
           title: "Redirecting to checkout",
-          description: `Opening payment page for $${amount.toFixed(2)} custom amount.`,
+          description: `Opening payment page for $${amount.toFixed(2)}.`,
         });
         setCustomLoading(false);
         setCustomAmount("");
@@ -72,21 +72,20 @@ export default function Payments() {
     });
   };
 
-  const customCredits = Math.round(Number(customAmount) || 0);
-  const customAmountNum = Number(customAmount);
+  const customAmountNum = parseFloat(customAmount) || 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-10">
       <Reveal variant="up">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-white">Payments & Credits</h1>
-          <p className="text-muted-foreground mt-1">Add credits to your account to rent numbers.</p>
+          <h1 className="text-3xl font-black tracking-tight text-white">Payments</h1>
+          <p className="text-muted-foreground mt-1">Add funds to your account to rent numbers.</p>
         </div>
       </Reveal>
 
       <Reveal variant="up" delay={60}>
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-white">Credit Packages</h2>
+          <h2 className="text-xl font-semibold text-white">Top-Up Packages</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {PACKAGES.map((pkg) => (
               <Card
@@ -103,23 +102,21 @@ export default function Payments() {
                   </Badge>
                 )}
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-2xl font-black text-white">${pkg.amount}</CardTitle>
-                  <CardDescription>USD</CardDescription>
+                  <CardTitle className="text-3xl font-black text-primary">${pkg.amount}.00</CardTitle>
+                  <CardDescription>USD — added to your balance</CardDescription>
                 </CardHeader>
                 <CardContent className="pb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold tracking-tight text-primary">{pkg.credits}</span>
-                    <span className="text-muted-foreground font-medium">credits</span>
-                  </div>
-                  {pkg.bonus && (
-                    <p className="text-sm font-medium text-emerald-300 mt-2 flex items-center gap-1">
-                      <Check className="h-3 w-3" /> {pkg.bonus} extra credits
+                  {pkg.bonus ? (
+                    <p className="text-sm font-medium text-emerald-300 flex items-center gap-1">
+                      <Check className="h-3 w-3" /> {pkg.bonus} value
                     </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Standard rate</p>
                   )}
                 </CardContent>
                 <CardFooter>
                   <Button
-                    className="w-full"
+                    className="w-full rounded-full"
                     variant={pkg.popular ? "default" : "outline"}
                     onClick={() => handleCheckout(pkg.amount)}
                     disabled={createCheckout.isPending && selectedPackage === pkg.amount}
@@ -128,7 +125,7 @@ export default function Payments() {
                     {createCheckout.isPending && selectedPackage === pkg.amount ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
                     ) : (
-                      "Buy Package"
+                      `Add $${pkg.amount}.00`
                     )}
                   </Button>
                 </CardFooter>
@@ -144,36 +141,36 @@ export default function Payments() {
             <Pencil className="h-4 w-4 text-cyan-400" />
             <h2 className="text-base font-bold text-white">Custom Amount</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-5">Enter any dollar amount. 1 credit per $1 — no bonus applies.</p>
+          <p className="text-sm text-muted-foreground mb-5">Enter any dollar amount — even less than $1.</p>
           <div className="space-y-3">
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">$</span>
               <Input
                 type="number"
-                min="1"
-                step="1"
-                placeholder="Enter amount..."
+                min="0.01"
+                step="0.01"
+                placeholder="0.50"
                 value={customAmount}
                 onChange={(e) => setCustomAmount(e.target.value)}
                 className="pl-7"
                 data-testid="input-custom-amount"
               />
             </div>
-            {customAmountNum >= 1 && (
-              <p className="text-sm text-primary font-semibold">= {customCredits} credit{customCredits !== 1 ? "s" : ""}</p>
+            {customAmountNum > 0 && (
+              <p className="text-sm text-primary font-semibold">= ${customAmountNum.toFixed(2)} added to your balance</p>
             )}
             <Button
-              className="w-full"
-              disabled={!customAmount || customAmountNum < 1 || customLoading}
+              className="w-full rounded-full"
+              disabled={!customAmount || customAmountNum <= 0 || customLoading}
               onClick={handleCustomCheckout}
               data-testid="button-buy-custom"
             >
               {customLoading ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
-              ) : customAmountNum >= 1 ? (
-                `Buy $${customAmountNum.toFixed(0)} — ${customCredits} Credits`
+              ) : customAmountNum > 0 ? (
+                `Add $${customAmountNum.toFixed(2)}`
               ) : (
-                "Buy Credits"
+                "Add Funds"
               )}
             </Button>
           </div>
@@ -187,18 +184,18 @@ export default function Payments() {
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
               ))}
             </div>
           ) : error || !data ? (
-            <div className="text-center py-8 bg-white/[0.03] rounded-xl border border-dashed border-white/10 text-muted-foreground">
+            <div className="text-center py-8 bg-white/[0.03] rounded-2xl border border-dashed border-white/10 text-muted-foreground">
               Failed to load payment history.
             </div>
           ) : data.payments.length === 0 ? (
-            <div className="text-center py-12 bg-white/[0.03] rounded-xl border border-dashed border-white/10">
+            <div className="text-center py-12 bg-white/[0.03] rounded-2xl border border-dashed border-white/10">
               <CreditCard className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h3 className="font-medium text-white mb-1">No payments yet</h3>
-              <p className="text-sm text-muted-foreground">When you purchase credits, they will appear here.</p>
+              <p className="text-sm text-muted-foreground">When you add funds, they will appear here.</p>
             </div>
           ) : (
             <div className="glass-card rounded-2xl overflow-hidden">
@@ -217,7 +214,7 @@ export default function Payments() {
                       </div>
                       <div>
                         <div className="font-semibold text-white flex items-center gap-2">
-                          {payment.credits} Credits
+                          ${payment.amount.toFixed(2)} added
                           <Badge variant="outline" className={
                             payment.status === 'paid' ? 'text-emerald-200 border-emerald-300/20 bg-emerald-400/10' :
                             payment.status === 'pending' ? 'text-amber-200 border-amber-300/20 bg-amber-400/10' :
@@ -231,8 +228,8 @@ export default function Payments() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right sm:text-right pl-14 sm:pl-0 font-bold text-lg text-white">
-                      ${payment.amount.toFixed(2)}
+                    <div className="text-right sm:text-right pl-14 sm:pl-0 font-bold text-lg text-primary">
+                      +${payment.amount.toFixed(2)}
                     </div>
                   </div>
                 ))}

@@ -10,6 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 import { RefreshCw, X, MessageSquare, Clock, Copy, Check, Loader2, Phone, History } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+function maskSender(sender: string): string {
+  if (!sender) return sender;
+  const lower = sender.toLowerCase();
+  if (lower.includes("hero sms") || lower.includes("herosms")) return "SKY SMS";
+  return sender;
+}
+
 function RentalCard({ rental }: { rental: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -21,7 +28,6 @@ function RentalCard({ rental }: { rental: any }) {
   const isActive = rental.status === 'active';
   const hasMessages = rental.messages && rental.messages.length > 0;
   
-  // Timer logic for active rentals
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
   useEffect(() => {
@@ -108,14 +114,13 @@ function RentalCard({ rental }: { rental: any }) {
             </CardDescription>
           </div>
           <div className="text-right">
-            <div className="font-semibold text-lg" data-testid={`text-rental-price-${rental.id}`}>${rental.price.toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">credits</div>
+            <div className="font-semibold text-lg text-primary" data-testid={`text-rental-price-${rental.id}`}>${rental.price.toFixed(2)}</div>
           </div>
         </div>
       </CardHeader>
       
       <CardContent className="pb-4">
-        <div className="bg-white/[0.04] rounded-lg p-4 border border-white/10 flex items-center justify-between mb-4">
+        <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/10 flex items-center justify-between mb-4">
           <div>
             <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Phone Number</div>
             <div className="text-xl font-mono tracking-tight font-medium" data-testid={`text-rental-number-${rental.id}`}>
@@ -127,7 +132,7 @@ function RentalCard({ rental }: { rental: any }) {
               variant="outline" 
               size="icon" 
               onClick={() => copyToClipboard(`+${rental.phoneNumber}`)}
-              className="shrink-0"
+              className="shrink-0 rounded-full"
               title="Copy number"
               data-testid={`button-copy-number-${rental.id}`}
             >
@@ -137,7 +142,7 @@ function RentalCard({ rental }: { rental: any }) {
         </div>
 
         {isActive && (
-          <div className={`rounded-lg border px-4 py-3 mb-4 flex items-center justify-between ${timeLeft < 120 ? 'border-red-300/30 bg-red-400/10' : timeLeft < 300 ? 'border-amber-300/30 bg-amber-400/10' : 'border-sky-300/20 bg-sky-400/10'}`}>
+          <div className={`rounded-2xl border px-4 py-3 mb-4 flex items-center justify-between ${timeLeft < 120 ? 'border-red-300/30 bg-red-400/10' : timeLeft < 300 ? 'border-amber-300/30 bg-amber-400/10' : 'border-sky-300/20 bg-sky-400/10'}`}>
             <div className="flex items-center gap-2">
               <Clock className={`h-4 w-4 ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`} />
               <span className={`text-sm font-semibold ${timeLeft < 120 ? 'text-red-200' : timeLeft < 300 ? 'text-amber-200' : 'text-sky-200'}`}>
@@ -160,9 +165,9 @@ function RentalCard({ rental }: { rental: any }) {
           {hasMessages ? (
             <div className="space-y-3 mt-3">
               {rental.messages.map((msg: any) => (
-                <div key={msg.id} className="bg-sky-400/10 border border-sky-300/20 rounded-lg p-3" data-testid={`row-message-${msg.id}`}>
+                <div key={msg.id} className="bg-sky-400/10 border border-sky-300/20 rounded-2xl p-3" data-testid={`row-message-${msg.id}`}>
                   <div className="flex justify-between items-start mb-1">
-                    <span className="text-xs font-medium text-sky-200">{msg.sender}</span>
+                    <span className="text-xs font-medium text-sky-200">{maskSender(msg.sender)}</span>
                     <span className="text-xs text-sky-200/70">{format(new Date(msg.receivedAt), "HH:mm:ss")}</span>
                   </div>
                   <div className="text-sm text-slate-100">{msg.message}</div>
@@ -187,7 +192,7 @@ function RentalCard({ rental }: { rental: any }) {
               ))}
             </div>
           ) : (
-            <div className="text-center py-6 bg-white/[0.03] rounded-lg border border-dashed border-white/10 text-sm text-muted-foreground">
+            <div className="text-center py-6 bg-white/[0.03] rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">
               {isActive ? "Waiting for incoming SMS..." : "No messages received."}
             </div>
           )}
@@ -201,7 +206,7 @@ function RentalCard({ rental }: { rental: any }) {
             size="sm" 
             onClick={handleCancel}
             disabled={cancelMutation.isPending}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
             data-testid={`button-cancel-rental-${rental.id}`}
           >
             {cancelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
@@ -212,6 +217,7 @@ function RentalCard({ rental }: { rental: any }) {
             size="sm" 
             onClick={handleRefresh}
             disabled={refreshMutation.isPending}
+            className="rounded-full"
             data-testid={`button-refresh-rental-${rental.id}`}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
@@ -239,7 +245,7 @@ export default function Rentals() {
         </div>
         <div className="grid gap-4">
           {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-64 w-full rounded-xl" />
+            <Skeleton key={i} className="h-64 w-full rounded-2xl" />
           ))}
         </div>
       </div>
@@ -279,7 +285,7 @@ export default function Rentals() {
             <CardContent className="flex flex-col items-center justify-center py-10">
               <Phone className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
               <p className="text-muted-foreground mb-4">You don't have any active rentals right now.</p>
-              <Button asChild>
+              <Button asChild className="rounded-full">
                 <Link href="/rent">Rent a Number</Link>
               </Button>
             </CardContent>

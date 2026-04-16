@@ -13,7 +13,8 @@ import {
   Activity,
   SlidersHorizontal,
   LogOut,
-  Menu
+  Menu,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -128,8 +129,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <div className="flex flex-col truncate">
                   <span className="text-sm font-bold text-white truncate" data-testid="text-username">{user.name}</span>
                   <span className="text-xs text-slate-500 truncate flex items-center gap-1">
-                    <CreditCard className="h-3 w-3" />
-                    <span data-testid="text-user-credits">{user.credits} credits</span>
+                    <DollarSign className="h-3 w-3" />
+                    <span data-testid="text-user-credits">${user.credits.toFixed(2)}</span>
                   </span>
                 </div>
               </div>
@@ -183,7 +184,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       </Avatar>
                       <div className="flex flex-col truncate">
                         <span className="text-sm font-semibold text-white truncate">{user.name}</span>
-                        <span className="text-xs text-muted-foreground truncate">{user.credits} cr</span>
+                        <span className="text-xs text-muted-foreground truncate">${user.credits.toFixed(2)}</span>
                       </div>
                     </div>
                     <Button

@@ -88,7 +88,7 @@
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.5rem;
+  --radius: 1rem;
 }
 
 @layer base {
@@ -349,5 +349,55 @@
   @keyframes twinkle {
     from { opacity: var(--opacity, 0.3); transform: scale(1); }
     to   { opacity: calc(var(--opacity, 0.3) * 3); transform: scale(1.5); }
+  }
+
+  /* ─── Ripple / reflection animation ────────────────────── */
+  .ripple-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ripple-wave {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,220,255,0.35) 0%, rgba(0,220,255,0.08) 50%, transparent 70%);
+    transform: scale(0);
+    animation: ripple-expand 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  @keyframes ripple-expand {
+    0%   { transform: scale(0); opacity: 1; }
+    60%  { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  /* ─── Light sweep / shine on hover ─────────────────────── */
+  .shine-hover {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    transform: skewX(-20deg);
+    transition: none;
+    pointer-events: none;
+  }
+
+  .shine-hover:hover::after {
+    animation: shine-sweep 0.6s ease forwards;
+  }
+
+  @keyframes shine-sweep {
+    from { left: -100%; }
+    to   { left: 150%; }
   }
 }

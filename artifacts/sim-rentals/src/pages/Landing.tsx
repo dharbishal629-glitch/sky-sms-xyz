@@ -1,33 +1,44 @@
 import { Shield, Zap, Globe, Lock, ChevronRight, Sparkles, MessageSquare, RefreshCw, CreditCard, ChevronDown, Phone, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
-import { useState } from "react";
+import { useState, useRef } from "react";
+
+const serviceIcons: Record<string, string> = {
+  Telegram: "https://www.google.com/s2/favicons?domain=telegram.org&sz=64",
+  WhatsApp: "https://www.google.com/s2/favicons?domain=whatsapp.com&sz=64",
+  Google: "https://www.google.com/s2/favicons?domain=google.com&sz=64",
+  Instagram: "https://www.google.com/s2/favicons?domain=instagram.com&sz=64",
+  Facebook: "https://www.google.com/s2/favicons?domain=facebook.com&sz=64",
+  "X / Twitter": "https://www.google.com/s2/favicons?domain=x.com&sz=64",
+  Discord: "https://www.google.com/s2/favicons?domain=discord.com&sz=64",
+  Amazon: "https://www.google.com/s2/favicons?domain=amazon.com&sz=64",
+};
 
 const services = [
-  { name: "Telegram", icon: "✈️", desc: "Instant account verification" },
-  { name: "WhatsApp", icon: "💬", desc: "Business & personal accounts" },
-  { name: "Google", icon: "🔍", desc: "Gmail & workspace accounts" },
-  { name: "Instagram", icon: "📸", desc: "Creator & business profiles" },
-  { name: "Facebook", icon: "👤", desc: "Personal & page verification" },
-  { name: "X / Twitter", icon: "𝕏", desc: "Account registration & recovery" },
-  { name: "Discord", icon: "🎮", desc: "Community account setup" },
-  { name: "Amazon", icon: "📦", desc: "Seller & buyer verification" },
+  { name: "Telegram", desc: "Instant account verification" },
+  { name: "WhatsApp", desc: "Business & personal accounts" },
+  { name: "Google", desc: "Gmail & workspace accounts" },
+  { name: "Instagram", desc: "Creator & business profiles" },
+  { name: "Facebook", desc: "Personal & page verification" },
+  { name: "X / Twitter", desc: "Account registration & recovery" },
+  { name: "Discord", desc: "Community account setup" },
+  { name: "Amazon", desc: "Seller & buyer verification" },
 ];
 
 const features = [
   { icon: Zap, title: "Instant Delivery", desc: "Numbers are allocated in seconds. Receive SMS codes as soon as they arrive — no queues, no waiting." },
-  { icon: Globe, title: "Global Coverage", desc: "Browse 8+ countries with live availability counts. See real stock before spending a single credit." },
+  { icon: Globe, title: "Global Coverage", desc: "Browse 8+ countries with live availability counts. See real stock before spending a single dollar." },
   { icon: Lock, title: "Crypto Payments", desc: "Top up with BTC, ETH, USDT and 30+ coins via OxaPay. Fully private, borderless, no chargebacks." },
   { icon: MessageSquare, title: "Live SMS Inbox", desc: "Incoming verification codes appear instantly on your rental card. One tap to copy the code." },
-  { icon: RefreshCw, title: "Cancel & Refund", desc: "Cancel any rental before the 20-minute window ends. Credits return to your balance instantly." },
+  { icon: RefreshCw, title: "Cancel & Refund", desc: "Cancel any rental before the 20-minute window ends. Your balance is returned instantly." },
   { icon: Clock, title: "20-Min Window", desc: "A live countdown tracks your activation window. If no SMS arrives, you get a full automatic refund." },
 ];
 
 const faqs = [
-  { q: "How does SMS number rental work?", a: "Buy credits, select a country and service, and get a temporary phone number instantly. Any incoming SMS is shown in your dashboard in real time. Numbers stay active for 20 minutes." },
+  { q: "How does SMS number rental work?", a: "Add funds, select a country and service, and get a temporary phone number instantly. Any incoming SMS is shown in your dashboard in real time. Numbers stay active for 20 minutes." },
   { q: "Which countries are supported?", a: "We support numbers from the US, UK, Germany, France, Netherlands, Canada, Brazil, India, and many more. New countries are added regularly based on provider availability." },
   { q: "What payment methods are accepted?", a: "We accept cryptocurrency payments via OxaPay, which supports BTC, ETH, USDT, and many other coins. Purchases are private and borderless." },
-  { q: "What if I don't receive an SMS?", a: "You can cancel an active rental before the 20-minute window closes and receive a full credit refund instantly. If the window expires with no SMS, you're also refunded automatically." },
+  { q: "What if I don't receive an SMS?", a: "You can cancel an active rental before the 20-minute window closes and receive a full refund to your balance instantly. If the window expires with no SMS, you're also refunded automatically." },
   { q: "Are the numbers reused?", a: "Numbers are recycled between sessions but each rental starts completely fresh — you only see messages received during your active window. No shared history." },
 ];
 
@@ -49,8 +60,29 @@ const starPositions = [
   { top: "48%", left: "48%", duration: "3.1s", opacity: 0.2 },
 ];
 
+function useRipple() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const triggerRipple = (e: React.MouseEvent<HTMLElement>) => {
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+
+    const ripple = document.createElement("span");
+    ripple.className = "ripple-wave";
+    ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;`;
+    container.appendChild(ripple);
+    ripple.addEventListener("animationend", () => ripple.remove());
+  };
+
+  return { containerRef, triggerRipple };
+}
+
 export default function Landing({ onLogin }: { onLogin?: () => void }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { triggerRipple } = useRipple();
 
   return (
     <div className="min-h-screen premium-shell overflow-x-hidden text-white">
@@ -111,7 +143,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
 
           <Reveal variant="up" delay={160}>
             <p className="mx-auto mb-10 max-w-xl text-lg font-medium leading-relaxed text-slate-400">
-              Buy credits, rent clean temporary numbers, and receive verification codes in a premium dashboard — built for speed.
+              Add funds, rent clean temporary numbers, and receive verification codes in a premium dashboard — built for speed.
             </p>
           </Reveal>
 
@@ -178,8 +210,13 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
               {services.map((service, i) => (
                 <Reveal key={service.name} variant="up" delay={i * 60}>
                   <div className="glass-card rounded-2xl p-5 flex items-center gap-4 cursor-default hover:scale-[1.02] transition-all duration-200 h-full">
-                    <div className="text-2xl shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                      {service.icon}
+                    <div className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+                      <img
+                        src={serviceIcons[service.name]}
+                        alt={service.name}
+                        className="w-6 h-6 object-contain"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
                     </div>
                     <div>
                       <div className="font-bold text-white text-sm">{service.name}</div>
@@ -210,14 +247,18 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                   Why choose us
                 </div>
                 <h2 className="mb-4 text-[clamp(2rem,4vw,3.5rem)] font-black tracking-tight text-white">Premium Features</h2>
-                <p className="mx-auto max-w-xl text-slate-400">Everything you need to rent numbers, receive codes, and manage credits — without clutter.</p>
+                <p className="mx-auto max-w-xl text-slate-400">Everything you need to rent numbers, receive codes, and manage your balance — without clutter.</p>
               </div>
             </Reveal>
 
             <div className="grid gap-5 md:grid-cols-3">
               {features.map((feature, i) => (
                 <Reveal key={feature.title} variant="up" delay={i * 80}>
-                  <div className="glass-card rounded-3xl p-7 group hover:scale-[1.01] transition-all duration-200 h-full" data-testid={`card-feature-${feature.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                  <div
+                    className="glass-card rounded-3xl p-7 group hover:scale-[1.01] transition-all duration-200 h-full ripple-container cursor-pointer"
+                    data-testid={`card-feature-${feature.title.toLowerCase().replace(/\s+/g, "-")}`}
+                    onClick={triggerRipple}
+                  >
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 border border-cyan-400/15 text-cyan-400 group-hover:bg-cyan-400/15 transition-colors">
                       <feature.icon className="h-5 w-5" />
                     </div>
@@ -248,8 +289,11 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                 <Reveal key={i} variant="up" delay={i * 60}>
                   <div className="glass-card rounded-2xl overflow-hidden">
                     <button
-                      className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
-                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                      className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left ripple-container"
+                      onClick={(e) => {
+                        triggerRipple(e);
+                        setOpenFaq(openFaq === i ? null : i);
+                      }}
                     >
                       <span className="font-bold text-white text-sm">{faq.q}</span>
                       <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-400 transition-transform duration-200 ${openFaq === i ? "rotate-180" : ""}`} />

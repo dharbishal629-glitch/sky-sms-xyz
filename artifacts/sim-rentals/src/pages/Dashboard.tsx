@@ -1,6 +1,6 @@
 import { useGetDashboard } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, History, CreditCard, AlertCircle, CheckCircle2, Zap } from "lucide-react";
+import { Phone, History, DollarSign, AlertCircle, CheckCircle2, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -65,17 +65,17 @@ export default function Dashboard() {
           <div className="glass-card rounded-2xl p-6 relative overflow-hidden h-full" data-testid="card-stat-credits">
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/[0.07] to-transparent pointer-events-none" />
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-semibold text-muted-foreground">Available Credits</span>
+              <span className="text-sm font-semibold text-muted-foreground">Account Balance</span>
               <div className="h-9 w-9 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
-                <CreditCard className="h-4 w-4 text-cyan-400" />
+                <DollarSign className="h-4 w-4 text-cyan-400" />
               </div>
             </div>
             <div className="text-4xl font-black text-primary mb-2" data-testid="text-stat-credits-value">
-              {data.account.credits.toFixed(2)}
+              ${data.account.credits.toFixed(2)}
             </div>
             <Link href="/payments">
               <span className="text-xs font-semibold text-cyan-400/70 hover:text-cyan-300 transition-colors cursor-pointer" data-testid="link-buy-credits">
-                Buy more credits →
+                Add funds →
               </span>
             </Link>
           </div>
@@ -144,7 +144,7 @@ export default function Dashboard() {
                   {data.recentRentals.map(rental => {
                     const statusClass = statusStyles[rental.status] ?? statusStyles.cancelled;
                     return (
-                      <div key={rental.id} className="flex items-center justify-between p-3 rounded-xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05] transition-colors" data-testid={`row-recent-rental-${rental.id}`}>
+                      <div key={rental.id} className="flex items-center justify-between p-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05] transition-colors" data-testid={`row-recent-rental-${rental.id}`}>
                         <div className="min-w-0">
                           <div className="font-semibold text-white text-sm truncate">{rental.serviceName}</div>
                           <div className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -174,7 +174,7 @@ export default function Dashboard() {
             </div>
             <div className="p-6 space-y-3">
               {data.providerStatuses.map(provider => (
-                <div key={provider.name} className="flex items-start gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.03]" data-testid={`row-provider-status-${provider.name}`}>
+                <div key={provider.name} className="flex items-start gap-3 p-4 rounded-2xl border border-white/[0.06] bg-white/[0.03]" data-testid={`row-provider-status-${provider.name}`}>
                   {provider.mode === 'live' ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                   ) : (

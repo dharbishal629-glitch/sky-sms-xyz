@@ -35,7 +35,41 @@ function useCountriesForService(serviceCode: string) {
 const countryFlags: Record<string, string> = {
   US: "🇺🇸", GB: "🇬🇧", DE: "🇩🇪", FR: "🇫🇷",
   NL: "🇳🇱", CA: "🇨🇦", BR: "🇧🇷", IN: "🇮🇳",
+  RU: "🇷🇺", UA: "🇺🇦", PL: "🇵🇱", SE: "🇸🇪",
+  AU: "🇦🇺", JP: "🇯🇵", KR: "🇰🇷", CN: "🇨🇳",
+  MX: "🇲🇽", ES: "🇪🇸", IT: "🇮🇹", PT: "🇵🇹",
 };
+
+const serviceIconDomains: Record<string, string> = {
+  telegram: "telegram.org",
+  whatsapp: "whatsapp.com",
+  google: "google.com",
+  instagram: "instagram.com",
+  facebook: "facebook.com",
+  twitter: "x.com",
+  "x / twitter": "x.com",
+  discord: "discord.com",
+  amazon: "amazon.com",
+  tiktok: "tiktok.com",
+  snapchat: "snapchat.com",
+  linkedin: "linkedin.com",
+  netflix: "netflix.com",
+  spotify: "spotify.com",
+  uber: "uber.com",
+  airbnb: "airbnb.com",
+  paypal: "paypal.com",
+};
+
+function getServiceIcon(name: string): string | null {
+  const key = name.toLowerCase();
+  const domain = serviceIconDomains[key];
+  if (!domain) return null;
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+}
+
+function maskProviderName(name: string): string {
+  return name === "Hero SMS" ? "SKY SMS" : name;
+}
 
 export default function Rent() {
   const [serviceCode, setServiceCode] = useState<string>("");
@@ -81,7 +115,7 @@ export default function Rent() {
         const description =
           apiErr?.data?.error ||
           apiErr?.message ||
-          "An unexpected error occurred. You might need more credits.";
+          "An unexpected error occurred. You might need more funds.";
         toast({
           title: "Failed to rent number",
           description,
@@ -113,18 +147,26 @@ export default function Rent() {
                 Service
               </Label>
               <Select value={serviceCode} onValueChange={(val) => { setServiceCode(val); setCountryCode(""); }}>
-                <SelectTrigger id="service" className="w-full h-12" data-testid="select-service">
+                <SelectTrigger id="service" className="w-full h-12 rounded-xl" data-testid="select-service">
                   <SelectValue placeholder={loadingServices ? "Loading services..." : "Select a service (e.g. WhatsApp, Discord)"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {servicesData?.services.map(service => (
-                    <SelectItem key={service.code} value={service.code}>
-                      <div className="flex items-center justify-between w-full min-w-[200px]">
-                        <span>{service.name}</span>
-                        <span className="text-xs font-medium text-primary ml-4">${service.price.toFixed(2)}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {servicesData?.services.map(service => {
+                    const iconUrl = getServiceIcon(service.name);
+                    return (
+                      <SelectItem key={service.code} value={service.code}>
+                        <div className="flex items-center gap-2 min-w-[200px]">
+                          {iconUrl ? (
+                            <img src={iconUrl} alt={service.name} className="w-4 h-4 object-contain shrink-0" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-sm bg-white/10 shrink-0" />
+                          )}
+                          <span>{service.name}</span>
+                          <span className="text-xs font-medium text-primary ml-auto">${service.price.toFixed(2)}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -138,7 +180,7 @@ export default function Rent() {
                 )}
               </Label>
               <Select value={countryCode} onValueChange={setCountryCode} disabled={!serviceCode || loadingCountries}>
-                <SelectTrigger id="country" className="w-full h-12" data-testid="select-country">
+                <SelectTrigger id="country" className="w-full h-12 rounded-xl" data-testid="select-country">
                   <SelectValue placeholder={
                     !serviceCode ? "Select a service first" :
                     loadingCountries ? "Loading available countries..." :
@@ -183,7 +225,7 @@ export default function Rent() {
               ) : availability ? (
                 <div className="space-y-4">
                   {availability.available > 0 ? (
-                    <div className="flex items-start gap-3 text-emerald-200 bg-emerald-400/10 p-4 rounded-lg border border-emerald-300/20">
+                    <div className="flex items-start gap-3 text-emerald-200 bg-emerald-400/10 p-4 rounded-2xl border border-emerald-300/20">
                       <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" />
                       <div>
                         <div className="font-semibold text-emerald-100">Numbers available</div>
@@ -194,7 +236,7 @@ export default function Rent() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start gap-3 text-amber-200 bg-amber-400/10 p-4 rounded-lg border border-amber-300/20">
+                    <div className="flex items-start gap-3 text-amber-200 bg-amber-400/10 p-4 rounded-2xl border border-amber-300/20">
                       <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
                       <div>
                         <div className="font-semibold text-amber-100">No numbers currently available</div>
@@ -208,12 +250,12 @@ export default function Rent() {
                   <div className="flex justify-between items-center py-2 px-1 border-t border-b border-white/10">
                     <span className="text-muted-foreground text-sm font-medium">Price per SMS</span>
                     <span className="text-xl font-bold text-primary" data-testid="text-price-quote">
-                      {availability.price === 0 ? "Free" : `$${availability.price.toFixed(2)} credits`}
+                      {availability.price === 0 ? "Free" : `$${availability.price.toFixed(2)}`}
                     </span>
                   </div>
 
                   <div className="text-xs text-muted-foreground flex justify-between items-center px-1">
-                    <span>Network: {availability.provider.name === "Hero SMS" ? "SKY SMS" : availability.provider.name}</span>
+                    <span>Network: {maskProviderName(availability.provider.name)}</span>
                     {availability.provider.mode !== 'live' && (
                       <Badge variant="outline" className="text-amber-200 border-amber-300/20 bg-amber-400/10">
                         {availability.provider.mode}
@@ -223,7 +265,7 @@ export default function Rent() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-2xl" />
                   <Skeleton className="h-10 w-full" />
                 </div>
               )}
@@ -231,7 +273,7 @@ export default function Rent() {
             <CardFooter className="pt-0">
               <Button
                 size="lg"
-                className="w-full h-12 text-base font-medium"
+                className="w-full h-12 text-base font-medium rounded-full"
                 disabled={!availability || availability.available === 0 || createRental.isPending || availability.provider.mode !== 'live'}
                 onClick={handleRent}
                 data-testid="button-confirm-rent"
