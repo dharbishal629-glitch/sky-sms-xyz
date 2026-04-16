@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  User, LogOut, HelpCircle, FileText, RefreshCw, Phone, Shield, ExternalLink,
-  ChevronRight, DollarSign, History, Zap, Lock, MessageSquare, Globe
+  User, LogOut, HelpCircle, FileText, RefreshCw, Shield,
+  ExternalLink, ChevronRight, DollarSign, Zap, Globe, Clock, MessageSquare, Lock
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "wouter";
@@ -16,7 +16,7 @@ const tips = [
   {
     icon: Globe,
     title: "Select service first",
-    desc: "Always pick the service you need before choosing a country. Country list updates based on real-time availability."
+    desc: "Always pick the service before choosing a country. The country list updates based on real-time availability."
   },
   {
     icon: Zap,
@@ -26,22 +26,22 @@ const tips = [
   {
     icon: RefreshCw,
     title: "Cancel to get refunded",
-    desc: "If you change your mind or the number isn't working, cancel the rental before the window closes and your balance is instantly restored."
+    desc: "If you change your mind or the number isn't working, cancel the rental and your balance is instantly restored."
   },
   {
     icon: MessageSquare,
     title: "Copy codes instantly",
-    desc: "Verification codes are extracted and shown in a large format on your rental card — tap once to copy to clipboard."
+    desc: "Verification codes appear large on your rental card. Tap once to copy to clipboard."
   },
   {
     icon: DollarSign,
     title: "Add any amount",
-    desc: "You can top up with any dollar amount — even less than $1. Go to Payments and use the custom amount field."
+    desc: "Top up with any dollar amount — even less than $1. Go to Payments and use the custom amount field."
   },
   {
     icon: Lock,
     title: "Private by design",
-    desc: "All payments go through OxaPay crypto processing. No card details stored, no chargebacks, fully private."
+    desc: "All payments go through OxaPay crypto processing. No card details stored, fully private."
   },
 ];
 
@@ -111,43 +111,8 @@ export default function Settings() {
         </Card>
       </Reveal>
 
-      {/* Quick Links */}
-      <Reveal variant="up" delay={80}>
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Zap className="h-5 w-5 text-cyan-400" /> Quick Actions
-            </CardTitle>
-            <CardDescription>Everything you need, one click away.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                { href: "/rent", icon: Phone, label: "Rent a Number", desc: "Get a new temporary number", color: "cyan" },
-                { href: "/rentals", icon: History, label: "View Rentals", desc: "Check active & past rentals", color: "indigo" },
-                { href: "/payments", icon: DollarSign, label: "Add Funds", desc: "Top up your account balance", color: "emerald" },
-                { href: "/dashboard", icon: Zap, label: "Dashboard", desc: "Overview & recent activity", color: "sky" },
-              ].map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] hover:border-cyan-400/20 transition-all duration-200 cursor-pointer group">
-                    <div className="h-9 w-9 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
-                      <item.icon className="h-4 w-4 text-cyan-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-white text-sm">{item.label}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{item.desc}</div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-cyan-400 transition-colors shrink-0" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </Reveal>
-
       {/* How to Use Tips */}
-      <Reveal variant="up" delay={120}>
+      <Reveal variant="up" delay={80}>
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -158,7 +123,7 @@ export default function Settings() {
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {tips.map((tip, i) => (
-                <div key={i} className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] space-y-2">
+                <div key={i} className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] space-y-2 hover:border-cyan-400/15 hover:bg-white/[0.05] transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-lg bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
                       <tip.icon className="h-4 w-4 text-cyan-400" />
@@ -174,7 +139,7 @@ export default function Settings() {
       </Reveal>
 
       {/* Support & Legal */}
-      <Reveal variant="up" delay={160}>
+      <Reveal variant="up" delay={120}>
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -185,8 +150,8 @@ export default function Settings() {
           <CardContent>
             <div className="space-y-2">
               {[
-                { href: "/terms", icon: FileText, label: "Terms of Service", desc: "Read the rules for using SKY SMS" },
-                { href: "/refund-policy", icon: RefreshCw, label: "Refund Policy", desc: "Learn when refunds are issued" },
+                { href: "/terms",         icon: FileText,   label: "Terms of Service", desc: "Read the rules for using SKY SMS" },
+                { href: "/refund-policy", icon: RefreshCw,  label: "Refund Policy",    desc: "Learn when refunds are issued" },
               ].map((item) => (
                 <Link key={item.href} href={item.href}>
                   <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-200 cursor-pointer group">
@@ -207,7 +172,7 @@ export default function Settings() {
       </Reveal>
 
       {/* Sign Out */}
-      <Reveal variant="up" delay={200}>
+      <Reveal variant="up" delay={160}>
         <Card className="glass-card border-red-400/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">

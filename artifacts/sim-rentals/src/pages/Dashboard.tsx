@@ -23,11 +23,6 @@ const serviceIcons: Record<string, string> = {
   Microsoft: "https://www.google.com/s2/favicons?domain=microsoft.com&sz=64",
 };
 
-function maskProvider(name: string) {
-  const lower = name.toLowerCase();
-  if (lower.includes("hero sms") || lower.includes("herosms")) return "SKY SMS";
-  return name;
-}
 
 function ActiveTimer({ expiresAt }: { expiresAt: string }) {
   const [timeLeft, setTimeLeft] = useState(0);
@@ -374,56 +369,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── Provider status + Tips side by side ─────────────── */}
-      <div className="grid gap-5 lg:grid-cols-2">
-
-        {/* Network Status */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/[0.06]">
-            <div className="font-black text-white">Network Status</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Live provider availability</div>
-          </div>
-          <div className="p-4 space-y-2">
-            {data.providerStatuses.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">No status data available.</div>
-            ) : data.providerStatuses.map((provider: any) => (
-              <div key={provider.name} className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors" data-testid={`row-provider-status-${provider.name}`}>
-                <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${provider.mode === "live" ? "bg-emerald-400/10 border border-emerald-300/20" : "bg-amber-400/10 border border-amber-300/20"}`}>
-                  {provider.mode === "live"
-                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                    : <AlertCircle className="h-3.5 w-3.5 text-amber-400" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-white">{maskProvider(provider.name)}</div>
-                  <div className="text-xs text-muted-foreground truncate">{provider.message}</div>
-                </div>
-                <Badge variant="outline" className={`text-[11px] shrink-0 ${provider.mode === "live" ? "text-emerald-200 border-emerald-300/20 bg-emerald-400/10" : "text-amber-200 border-amber-300/20 bg-amber-400/10"}`}>
-                  {provider.mode}
-                </Badge>
-              </div>
-            ))}
-          </div>
+      {/* ─── Tips full-width ─────────────────────────────── */}
+      <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/[0.06]">
+          <div className="font-black text-white">How It Works</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Get the most out of SKY SMS</div>
         </div>
-
-        {/* Tips */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/[0.06]">
-            <div className="font-black text-white">How It Works</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Get the most out of SKY SMS</div>
-          </div>
-          <div className="p-4 space-y-3">
-            {tips.map((tip, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
-                <div className="h-7 w-7 rounded-lg bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <tip.icon className="h-3.5 w-3.5 text-cyan-400" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-white">{tip.title}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{tip.desc}</div>
-                </div>
+        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          {tips.map((tip, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] hover:border-cyan-400/10 transition-all duration-200">
+              <div className="h-7 w-7 rounded-lg bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0 mt-0.5">
+                <tip.icon className="h-3.5 w-3.5 text-cyan-400" />
               </div>
-            ))}
-          </div>
+              <div>
+                <div className="text-sm font-bold text-white">{tip.title}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{tip.desc}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
