@@ -8,6 +8,7 @@ import Terms from "@/pages/Terms";
 import RefundPolicy from "@/pages/RefundPolicy";
 import { AppRoutes } from "./Routes";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -114,11 +115,22 @@ function AppWithRoutes() {
   );
 }
 
+function ScrollToTop() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location]);
+
+  return null;
+}
+
 function App() {
   return (
     <TooltipProvider>
       <WouterRouter base={basePath}>
         <QueryClientProvider client={queryClient}>
+          <ScrollToTop />
           <AppWithRoutes />
         </QueryClientProvider>
       </WouterRouter>

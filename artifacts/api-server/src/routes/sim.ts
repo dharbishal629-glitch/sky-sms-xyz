@@ -7,6 +7,7 @@ import {
   getHeroAvailability,
   getHeroBalance,
   getHeroCountriesForService,
+  getHeroPriceCatalog,
   getHeroStatus,
   rentHeroNumber,
   setHeroStatus,
@@ -36,7 +37,7 @@ import {
 
 const router: IRouter = Router();
 
-const countries = [
+const fallbackCountries = [
   { code: "US", name: "United States", flag: "US", available: 1842, startingPrice: 1.2 },
   { code: "GB", name: "United Kingdom", flag: "GB", available: 911, startingPrice: 1.1 },
   { code: "DE", name: "Germany", flag: "DE", available: 644, startingPrice: 1.35 },
@@ -47,7 +48,7 @@ const countries = [
   { code: "IN", name: "India", flag: "IN", available: 1294, startingPrice: 0.65 },
 ];
 
-const services = [
+const fallbackServices = [
   { code: "tg", name: "Telegram", category: "Messaging", available: 1244, price: 1.45 },
   { code: "wa", name: "WhatsApp", category: "Messaging", available: 923, price: 1.65 },
   { code: "go", name: "Google", category: "Accounts", available: 682, price: 1.95 },
@@ -58,8 +59,80 @@ const services = [
   { code: "am", name: "Amazon", category: "Commerce", available: 236, price: 2.1 },
 ];
 
-type Service = (typeof services)[number];
-type Country = (typeof countries)[number];
+const serviceNames: Record<string, { name: string; category: string }> = {
+  tg: { name: "Telegram", category: "Messaging" },
+  wa: { name: "WhatsApp", category: "Messaging" },
+  go: { name: "Google", category: "Accounts" },
+  ig: { name: "Instagram", category: "Social" },
+  fb: { name: "Facebook", category: "Social" },
+  tw: { name: "X / Twitter", category: "Social" },
+  ds: { name: "Discord", category: "Community" },
+  am: { name: "Amazon", category: "Commerce" },
+  mm: { name: "Microsoft", category: "Accounts" },
+  tk: { name: "TikTok", category: "Social" },
+  sn: { name: "Snapchat", category: "Social" },
+  nf: { name: "Netflix", category: "Entertainment" },
+  ot: { name: "Other", category: "General" },
+};
+
+type Service = { code: string; name: string; category: string; available: number; price: number };
+type Country = { code: string; name: string; flag: string; available: number; startingPrice: number };
+
+function countryFromCode(code: string, live?: { count?: number; cost?: number }): Country {
+  const fallback = fallbackCountries.find((item) => item.code === code);
+  if (fallback) return { ...fallback, available: live?.count ?? fallback.available, startingPrice: live?.cost ?? fallback.startingPrice };
+  return {
+    code,
+    name: code.startsWith("H") ? `Hero country ${code.slice(1)}` : code,
+    flag: code,
+    available: live?.count ?? 0,
+    startingPrice: live?.cost ?? 0,
+  };
+}
+
+function serviceFromCode(code: string, live?: { count?: number; cost?: number }): Service {
+  const fallback = fallbackServices.find((item) => item.code === code);
+  const meta = serviceNames[code];
+  if (fallback) return { ...fallback, available: live?.count ?? fallback.available, price: live?.cost ?? fallback.price };
+  return {
+    code,
+    name: meta?.name ?? code.toUpperCase(),
+    category: meta?.category ?? "Live Provider",
+    available: live?.count ?? 0,
+    price: live?.cost ?? 0,
+  };
+}
+
+async function liveServices(countryCode?: string): Promise<Service[]> {
+  const catalog = await getHeroPriceCatalog().catch(() => []);
+  if (catalog.length === 0) return fallbackServices;
+  const totals = new Map<string, { count: number; cost: number }>();
+  for (const item of catalog) {
+    if (countryCode && item.countryCode !== countryCode) continue;
+    const current = totals.get(item.serviceCode) ?? { count: 0, cost: item.cost };
+    current.count += item.count;
+    current.cost = current.cost || item.cost;
+    totals.set(item.serviceCode, current);
+  }
+  return Array.from(totals.entries())
+    .map(([code, live]) => serviceFromCode(code, live))
+    .sort((a, b) => b.available - a.available || a.name.localeCompare(b.name));
+}
+
+async function liveCountries(): Promise<Country[]> {
+  const catalog = await getHeroPriceCatalog().catch(() => []);
+  if (catalog.length === 0) return fallbackCountries;
+  const totals = new Map<string, { count: number; cost: number }>();
+  for (const item of catalog) {
+    const current = totals.get(item.countryCode) ?? { count: 0, cost: item.cost };
+    current.count += item.count;
+    current.cost = current.cost || item.cost;
+    totals.set(item.countryCode, current);
+  }
+  return Array.from(totals.entries())
+    .map(([code, live]) => countryFromCode(code, live))
+    .sort((a, b) => b.available - a.available || a.name.localeCompare(b.name));
+}
 
 async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   if (!req.isAuthenticated()) {
@@ -117,7 +190,14 @@ async function listServicePrices() {
   return new Map(result.rows.map((row) => [String(row.service_code), Number(row.price)]));
 }
 
+async function listCountryServicePrices(countryCode: string) {
+  const result = await pool.query("SELECT service_code, price FROM sim_service_country_prices WHERE country_code = $1", [countryCode]);
+  return new Map(result.rows.map((row) => [String(row.service_code), Number(row.price)]));
+}
+
 async function getServicePrice(service: Service, country: Country) {
+  const countryResult = await pool.query("SELECT price FROM sim_service_country_prices WHERE service_code = $1 AND country_code = $2", [service.code, country.code]);
+  if (countryResult.rows[0]) return Number(countryResult.rows[0].price);
   const result = await pool.query("SELECT price FROM sim_service_prices WHERE service_code = $1", [service.code]);
   if (result.rows[0]) return Number(result.rows[0].price);
   return Number((service.price + country.startingPrice * 0.25).toFixed(2));
@@ -125,10 +205,14 @@ async function getServicePrice(service: Service, country: Country) {
 
 async function servicesWithPrices(country?: Country) {
   const prices = await listServicePrices();
+  const countryPrices = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
   const countryBase = country?.startingPrice ?? 0;
+  const services = await liveServices(country?.code);
   return services.map((service) => ({
     ...service,
-    price: prices.has(service.code)
+    price: countryPrices.has(service.code)
+      ? Number(countryPrices.get(service.code))
+      : prices.has(service.code)
       ? Number(prices.get(service.code))
       : Number((service.price + countryBase * 0.25).toFixed(2)),
   }));
@@ -359,12 +443,12 @@ router.get("/dashboard", async (req, res) => {
 });
 
 router.get("/catalog/countries", async (_req, res) => {
-  res.json(ListCountriesResponse.parse({ countries, provider: await heroProviderStatus() }));
+  res.json(ListCountriesResponse.parse({ countries: await liveCountries(), provider: await heroProviderStatus() }));
 });
 
 router.get("/catalog/countries-for-service", async (req, res) => {
   const serviceCode = String(req.query.serviceCode ?? "");
-  const service = services.find((item) => item.code === serviceCode);
+  const service = (await liveServices()).find((item) => item.code === serviceCode);
   if (!service) {
     res.status(400).json({ error: "Unknown service code" });
     return;
@@ -372,15 +456,15 @@ router.get("/catalog/countries-for-service", async (req, res) => {
 
   const liveData = await getHeroCountriesForService(serviceCode).catch(() => []);
 
-  const result = countries
-    .map((country) => {
-      const live = liveData.find((d) => d.countryCode === country.code);
+  const result = liveData
+    .map((live) => {
+      const country = countryFromCode(live.countryCode, live);
       return {
         code: country.code,
         name: country.name,
-        flag: country.code,
-        available: live?.count ?? 0,
-        heroPrice: live?.cost ?? 0,
+        flag: country.flag,
+        available: live.count,
+        heroPrice: live.cost,
       };
     })
     .filter((c) => c.available > 0)
@@ -391,20 +475,21 @@ router.get("/catalog/countries-for-service", async (req, res) => {
 
 router.get("/catalog/services", async (req, res) => {
   ListServicesQueryParams.parse(req.query);
-  const country = countries.find((item) => item.code === String(req.query.countryCode ?? ""));
+  const countryCode = String(req.query.countryCode ?? "");
+  const country = countryCode ? countryFromCode(countryCode) : undefined;
   res.json(ListServicesResponse.parse({ services: await servicesWithPrices(country), provider: await heroProviderStatus() }));
 });
 
 router.get("/catalog/availability", async (req, res) => {
   const params = GetAvailabilityQueryParams.parse(req.query);
-  const service = services.find((item) => item.code === params.serviceCode);
-  const country = countries.find((item) => item.code === params.countryCode);
+  const live = await getHeroAvailability(params.serviceCode, params.countryCode).catch(() => null);
+  const service = serviceFromCode(params.serviceCode, live ?? undefined);
+  const country = countryFromCode(params.countryCode, live ?? undefined);
   if (!service || !country) {
     res.status(400).json({ error: "Unknown service or country code." });
     return;
   }
   const customPrice = await getServicePrice(service, country);
-  const live = await getHeroAvailability(service.code, country.code).catch(() => null);
   res.json(
     GetAvailabilityResponse.parse({
       countryCode: country.code,
@@ -429,8 +514,9 @@ router.post("/rentals", async (req, res) => {
   const body = CreateRentalBody.parse(req.body);
   const userId = getUserId(req);
   const account = await getAccount(userId, req.user);
-  const country = countries.find((item) => item.code === body.countryCode) ?? countries[0];
-  const service = services.find((item) => item.code === body.serviceCode) ?? services[0];
+  const live = await getHeroAvailability(body.serviceCode, body.countryCode).catch(() => null);
+  const country = countryFromCode(body.countryCode, live ?? undefined);
+  const service = serviceFromCode(body.serviceCode, live ?? undefined);
   const price = await getServicePrice(service, country);
 
   if (account.credits < price) {
@@ -688,12 +774,24 @@ router.put("/admin/users/:id/role", async (req, res) => {
 router.get("/admin/services", async (req, res) => {
   if (!await requireAdmin(req, res)) return;
   const priceOverrides = await listServicePrices();
+  const countryCode = String(req.query.countryCode ?? "");
+  const country = countryCode ? countryFromCode(countryCode) : undefined;
+  const countryOverrides = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
+  const activeServices = await liveServices(country?.code);
   res.json({
-    services: services.map((service) => ({
+    selectedCountry: country ?? null,
+    countries: await liveCountries(),
+    services: activeServices.map((service) => ({
       ...service,
       basePrice: service.price,
-      price: priceOverrides.has(service.code) ? Number(priceOverrides.get(service.code)) : service.price,
-      customPrice: priceOverrides.has(service.code),
+      price: countryOverrides.has(service.code)
+        ? Number(countryOverrides.get(service.code))
+        : priceOverrides.has(service.code)
+        ? Number(priceOverrides.get(service.code))
+        : service.price,
+      customPrice: countryOverrides.has(service.code) || priceOverrides.has(service.code),
+      countryPrice: countryOverrides.has(service.code) ? Number(countryOverrides.get(service.code)) : null,
+      globalPrice: priceOverrides.has(service.code) ? Number(priceOverrides.get(service.code)) : null,
     })),
   });
 });
@@ -702,7 +800,8 @@ router.put("/admin/services/:code/price", async (req, res) => {
   if (!await requireAdmin(req, res)) return;
   const code = String(req.params.code);
   const price = Number(req.body?.price);
-  const service = services.find((item) => item.code === code);
+  const countryCode = typeof req.body?.countryCode === "string" ? String(req.body.countryCode) : "";
+  const service = (await liveServices(countryCode || undefined)).find((item) => item.code === code) ?? serviceFromCode(code);
   if (!service) {
     res.status(404).json({ error: "Service not found." });
     return;
@@ -711,12 +810,21 @@ router.put("/admin/services/:code/price", async (req, res) => {
     res.status(400).json({ error: "Price must be 0 or higher." });
     return;
   }
-  await pool.query(
-    `INSERT INTO sim_service_prices (service_code, price, updated_at)
-     VALUES ($1, $2, NOW())
-     ON CONFLICT (service_code) DO UPDATE SET price = EXCLUDED.price, updated_at = NOW()`,
-    [code, price],
-  );
+  if (countryCode) {
+    await pool.query(
+      `INSERT INTO sim_service_country_prices (service_code, country_code, price, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (service_code, country_code) DO UPDATE SET price = EXCLUDED.price, updated_at = NOW()`,
+      [code, countryCode, price],
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO sim_service_prices (service_code, price, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (service_code) DO UPDATE SET price = EXCLUDED.price, updated_at = NOW()`,
+      [code, price],
+    );
+  }
   res.json({
     code: service.code,
     name: service.name,
@@ -725,8 +833,58 @@ router.put("/admin/services/:code/price", async (req, res) => {
     basePrice: service.price,
     price,
     customPrice: true,
+    countryCode: countryCode || null,
   });
 });
+
+async function ticketMessages(ticketId: string, ticketRow: Record<string, unknown>) {
+  const result = await pool.query("SELECT * FROM sim_support_messages WHERE ticket_id = $1 ORDER BY created_at ASC", [ticketId]);
+  const messages = result.rows.map((row) => ({
+    id: String(row.id),
+    senderRole: String(row.sender_role),
+    senderName: String(row.sender_name),
+    message: String(row.message),
+    createdAt: new Date(String(row.created_at)).toISOString(),
+  }));
+  if (messages.length > 0) return messages;
+  const legacy = [{
+    id: `${ticketId}-initial`,
+    senderRole: "user",
+    senderName: "You",
+    message: String(ticketRow.message),
+    createdAt: new Date(String(ticketRow.created_at)).toISOString(),
+  }];
+  if (ticketRow.admin_reply) {
+    legacy.push({
+      id: `${ticketId}-admin-reply`,
+      senderRole: "admin",
+      senderName: "SKY SMS Support",
+      message: String(ticketRow.admin_reply),
+      createdAt: new Date(String(ticketRow.updated_at)).toISOString(),
+    });
+  }
+  return legacy;
+}
+
+async function mapSupportTicket(row: Record<string, unknown>, viewer: "user" | "admin") {
+  return {
+    id: String(row.id),
+    ...(viewer === "admin" ? {
+      userId: String(row.user_id),
+      userEmail: String(row.user_email),
+      userName: String(row.user_name),
+    } : {}),
+    subject: String(row.subject),
+    category: String(row.category),
+    priority: String(row.priority),
+    message: String(row.message),
+    status: String(row.status),
+    adminReply: row.admin_reply ? String(row.admin_reply) : null,
+    messages: await ticketMessages(String(row.id), row),
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    updatedAt: new Date(String(row.updated_at)).toISOString(),
+  };
+}
 
 router.get("/support/tickets", async (req, res) => {
   if (!req.isAuthenticated()) {
@@ -737,19 +895,7 @@ router.get("/support/tickets", async (req, res) => {
     "SELECT * FROM sim_support_tickets WHERE user_id = $1 ORDER BY created_at DESC",
     [getUserId(req)],
   );
-  res.json({
-    tickets: result.rows.map((row) => ({
-      id: String(row.id),
-      subject: String(row.subject),
-      category: String(row.category),
-      priority: String(row.priority),
-      message: String(row.message),
-      status: String(row.status),
-      adminReply: row.admin_reply ? String(row.admin_reply) : null,
-      createdAt: new Date(String(row.created_at)).toISOString(),
-      updatedAt: new Date(String(row.updated_at)).toISOString(),
-    })),
-  });
+  res.json({ tickets: await Promise.all(result.rows.map((row) => mapSupportTicket(row, "user"))) });
 });
 
 router.post("/support/tickets", async (req, res) => {
@@ -776,19 +922,43 @@ router.post("/support/tickets", async (req, res) => {
     [id, getUserId(req), subject.trim().slice(0, 200), category, safePriority, message.trim().slice(0, 2000)],
   );
   const row = result.rows[0];
+  await pool.query(
+    "INSERT INTO sim_support_messages (id, ticket_id, sender_role, sender_name, message) VALUES ($1, $2, 'user', $3, $4)",
+    [crypto.randomUUID(), id, req.user.firstName || req.user.email || "User", String(row.message)],
+  );
   res.json({
-    ticket: {
-      id: String(row.id),
-      subject: String(row.subject),
-      category: String(row.category),
-      priority: String(row.priority),
-      message: String(row.message),
-      status: String(row.status),
-      adminReply: null,
-      createdAt: new Date(String(row.created_at)).toISOString(),
-      updatedAt: new Date(String(row.updated_at)).toISOString(),
-    },
+    ticket: await mapSupportTicket(row, "user"),
   });
+});
+
+router.post("/support/tickets/:id/messages", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { id } = req.params;
+  const message = String(req.body?.message ?? "").trim().slice(0, 3000);
+  if (!message) {
+    res.status(400).json({ error: "Message is required." });
+    return;
+  }
+  const existing = await pool.query("SELECT * FROM sim_support_tickets WHERE id = $1 AND user_id = $2", [id, getUserId(req)]);
+  const ticket = existing.rows[0];
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found." });
+    return;
+  }
+  if (["resolved", "closed"].includes(String(ticket.status))) {
+    res.status(409).json({ error: "This ticket is resolved or closed. Please open a new ticket if you still need help." });
+    return;
+  }
+  await pool.query(
+    "INSERT INTO sim_support_messages (id, ticket_id, sender_role, sender_name, message) VALUES ($1, $2, 'user', $3, $4)",
+    [crypto.randomUUID(), id, req.user.firstName || req.user.email || "User", message],
+  );
+  await pool.query("UPDATE sim_support_tickets SET status = 'open', updated_at = NOW() WHERE id = $1", [id]);
+  const updated = await pool.query("SELECT * FROM sim_support_tickets WHERE id = $1", [id]);
+  res.json({ ticket: await mapSupportTicket(updated.rows[0], "user") });
 });
 
 router.get("/admin/support", async (req, res) => {
@@ -799,22 +969,7 @@ router.get("/admin/support", async (req, res) => {
     JOIN sim_users u ON u.id = t.user_id
     ORDER BY t.created_at DESC
   `);
-  res.json({
-    tickets: result.rows.map((row) => ({
-      id: String(row.id),
-      userId: String(row.user_id),
-      userEmail: String(row.user_email),
-      userName: String(row.user_name),
-      subject: String(row.subject),
-      category: String(row.category),
-      priority: String(row.priority),
-      message: String(row.message),
-      status: String(row.status),
-      adminReply: row.admin_reply ? String(row.admin_reply) : null,
-      createdAt: new Date(String(row.created_at)).toISOString(),
-      updatedAt: new Date(String(row.updated_at)).toISOString(),
-    })),
-  });
+  res.json({ tickets: await Promise.all(result.rows.map((row) => mapSupportTicket(row, "admin"))) });
 });
 
 router.patch("/admin/support/:id", async (req, res) => {
@@ -833,25 +988,19 @@ router.patch("/admin/support/:id", async (req, res) => {
   }
   const newStatus = status ?? existing.rows[0].status;
   const newReply = adminReply !== undefined ? adminReply.trim().slice(0, 3000) : existing.rows[0].admin_reply;
+  if (newReply && newReply !== existing.rows[0].admin_reply) {
+    await pool.query(
+      "INSERT INTO sim_support_messages (id, ticket_id, sender_role, sender_name, message) VALUES ($1, $2, 'admin', 'SKY SMS Support', $3)",
+      [crypto.randomUUID(), id, newReply],
+    );
+  }
   await pool.query(
     "UPDATE sim_support_tickets SET status = $1, admin_reply = $2, updated_at = NOW() WHERE id = $3",
     [newStatus, newReply || null, id],
   );
   const updated = await pool.query("SELECT * FROM sim_support_tickets WHERE id = $1", [id]);
   const row = updated.rows[0];
-  res.json({
-    ticket: {
-      id: String(row.id),
-      subject: String(row.subject),
-      category: String(row.category),
-      priority: String(row.priority),
-      message: String(row.message),
-      status: String(row.status),
-      adminReply: row.admin_reply ? String(row.admin_reply) : null,
-      createdAt: new Date(String(row.created_at)).toISOString(),
-      updatedAt: new Date(String(row.updated_at)).toISOString(),
-    },
-  });
+  res.json({ ticket: await mapSupportTicket(row, "user") });
 });
 
 router.get("/admin/transactions", async (req, res) => {

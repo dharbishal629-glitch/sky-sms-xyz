@@ -28,7 +28,8 @@ function useCountriesForService(serviceCode: string) {
       return res.json();
     },
     enabled: !!serviceCode,
-    staleTime: 30_000,
+    refetchInterval: 20_000,
+    staleTime: 20_000,
   });
 }
 
@@ -79,7 +80,7 @@ export default function Rent() {
   const queryClient = useQueryClient();
 
   const { data: servicesData, isLoading: loadingServices } = useListServices({}, {
-    query: { queryKey: ["/api/catalog/services"] }
+    query: { queryKey: ["/api/catalog/services"], refetchInterval: 20_000, staleTime: 20_000 }
   });
 
   const { data: countriesData, isLoading: loadingCountries } = useCountriesForService(serviceCode);
@@ -131,7 +132,7 @@ export default function Rent() {
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-black tracking-tight text-white">Rent a Number</h1>
-        <p className="text-muted-foreground mt-1">Select a service first, then choose a country to get a temporary verification number.</p>
+        <p className="text-muted-foreground mt-1">Select a service first, then choose a live country. Stock and prices refresh automatically every 20 seconds.</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

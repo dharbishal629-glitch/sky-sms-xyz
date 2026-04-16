@@ -34,6 +34,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - New accounts start with zero credits, no rental history, and no payment history.
 - Hero SMS and OxaPay provider status checks read secure secrets named `HERO_SMS_API_KEY` and `OXAPAY_MERCHANT_API_KEY`.
 - When provider secrets are configured, provider statuses return `live`; otherwise, live provider actions are disabled with explicit setup messages.
+- Catalog service/country stock is pulled from Hero SMS live price data with a 20-second backend cache and the Rent page refetches service/country availability every 20 seconds without a page refresh.
+- Admin service pricing supports global defaults plus country-specific overrides through `sim_service_country_prices`; country overrides take priority over global service prices.
+- Support tickets use `sim_support_messages` for threaded user/admin replies. Users can reply while tickets are open or in progress; resolved/closed tickets are read-only.
 
 ## Key Commands
 
