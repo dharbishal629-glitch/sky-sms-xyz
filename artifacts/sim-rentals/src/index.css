@@ -113,7 +113,13 @@
   .premium-shell {
     background: #050508;
     position: relative;
-    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  /* ─── App shell (dashboard layout — NO overflow block) ── */
+  .app-shell {
+    background: #050508;
+    position: relative;
   }
 
   .premium-shell::before {
