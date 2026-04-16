@@ -60,6 +60,32 @@ const fallbackServices = [
 ];
 
 const serviceNames: Record<string, { name: string; category: string }> = {
+  aex: { name: "AliExpress", category: "Commerce" },
+  ap: { name: "Apple", category: "Accounts" },
+  aw: { name: "Amazon Web Services", category: "Cloud" },
+  be: { name: "Line", category: "Messaging" },
+  bbl: { name: "Bumble", category: "Dating" },
+  boh: { name: "Wise", category: "Finance" },
+  dp: { name: "Proton", category: "Email" },
+  ew: { name: "Nike", category: "Shopping" },
+  fh: { name: "Bolt", category: "Travel" },
+  fu: { name: "Snapchat", category: "Social" },
+  kt: { name: "KakaoTalk", category: "Messaging" },
+  lf: { name: "TikTok", category: "Social" },
+  mb: { name: "Yahoo", category: "Email" },
+  mt: { name: "Steam", category: "Gaming" },
+  nv: { name: "Naver", category: "Accounts" },
+  oi: { name: "Tinder", category: "Dating" },
+  ok: { name: "OK.ru", category: "Social" },
+  pc: { name: "Casino Plus", category: "Gaming" },
+  pf: { name: "pof.com", category: "Dating" },
+  pm: { name: "AOL", category: "Email" },
+  re: { name: "Coinbase", category: "Finance" },
+  uu: { name: "Wildberries", category: "Shopping" },
+  vg: { name: "ShellBox", category: "Shopping" },
+  vs: { name: "WinzoGame", category: "Gaming" },
+  wx: { name: "Apple", category: "Accounts" },
+  ya: { name: "Yandex", category: "Accounts" },
   tg: { name: "Telegram", category: "Messaging" },
   wa: { name: "WhatsApp", category: "Messaging" },
   go: { name: "Google", category: "Accounts" },
@@ -72,19 +98,40 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   tk: { name: "TikTok", category: "Social" },
   sn: { name: "Snapchat", category: "Social" },
   nf: { name: "Netflix", category: "Entertainment" },
+  nt: { name: "Netflix", category: "Entertainment" },
+  qq: { name: "QQ", category: "Messaging" },
+  wb: { name: "WeChat", category: "Messaging" },
+  vi: { name: "Viber", category: "Messaging" },
+  vk: { name: "VK", category: "Social" },
+  av: { name: "Avito", category: "Commerce" },
+  ub: { name: "Uber", category: "Travel" },
+  ly: { name: "Olacabs", category: "Travel" },
+  mbt: { name: "Microsoft Bing", category: "Accounts" },
   ot: { name: "Other", category: "General" },
 };
 
 type Service = { code: string; name: string; category: string; available: number; price: number };
 type Country = { code: string; name: string; flag: string; available: number; startingPrice: number };
 
+const countryDisplayNames = new Intl.DisplayNames(["en"], { type: "region" });
+
+function countryFlag(code: string) {
+  if (!/^[A-Z]{2}$/.test(code)) return "🌍";
+  return code
+    .split("")
+    .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join("");
+}
+
 function countryFromCode(code: string, live?: { count?: number; cost?: number }): Country {
   const fallback = fallbackCountries.find((item) => item.code === code);
   if (fallback) return { ...fallback, available: live?.count ?? fallback.available, startingPrice: live?.cost ?? fallback.startingPrice };
+  const normalized = code.toUpperCase();
+  const countryName = /^[A-Z]{2}$/.test(normalized) ? countryDisplayNames.of(normalized) : null;
   return {
-    code,
-    name: code.startsWith("H") ? `Hero country ${code.slice(1)}` : code,
-    flag: code,
+    code: normalized,
+    name: countryName ?? (normalized.startsWith("H") ? `Hero country ${normalized.slice(1)}` : normalized),
+    flag: countryFlag(normalized),
     available: live?.count ?? 0,
     startingPrice: live?.cost ?? 0,
   };
@@ -92,11 +139,12 @@ function countryFromCode(code: string, live?: { count?: number; cost?: number })
 
 function serviceFromCode(code: string, live?: { count?: number; cost?: number }): Service {
   const fallback = fallbackServices.find((item) => item.code === code);
-  const meta = serviceNames[code];
+  const normalizedCode = code.toLowerCase();
+  const meta = serviceNames[normalizedCode] ?? serviceNames[code];
   if (fallback) return { ...fallback, available: live?.count ?? fallback.available, price: live?.cost ?? fallback.price };
   return {
     code,
-    name: meta?.name ?? code.toUpperCase(),
+    name: meta?.name ?? `Service ${code.toUpperCase()}`,
     category: meta?.category ?? "Live Provider",
     available: live?.count ?? 0,
     price: live?.cost ?? 0,
@@ -111,7 +159,7 @@ async function withFastFallback<T>(promise: Promise<T>, fallback: T, timeoutMs =
 }
 
 async function liveServices(countryCode?: string): Promise<Service[]> {
-  const catalog = await withFastFallback(getHeroPriceCatalog(), []);
+  const catalog = await withFastFallback(getHeroPriceCatalog(), [], 2500);
   if (catalog.length === 0) return fallbackServices;
   const totals = new Map<string, { count: number; cost: number }>();
   for (const item of catalog) {
@@ -127,7 +175,7 @@ async function liveServices(countryCode?: string): Promise<Service[]> {
 }
 
 async function liveCountries(): Promise<Country[]> {
-  const catalog = await withFastFallback(getHeroPriceCatalog(), []);
+  const catalog = await withFastFallback(getHeroPriceCatalog(), [], 2500);
   if (catalog.length === 0) return fallbackCountries;
   const totals = new Map<string, { count: number; cost: number }>();
   for (const item of catalog) {
@@ -202,6 +250,17 @@ async function listCountryServicePrices(countryCode: string) {
   return new Map(result.rows.map((row) => [String(row.service_code), Number(row.price)]));
 }
 
+async function listEnabledServiceCodes() {
+  const result = await pool.query("SELECT service_code FROM sim_enabled_services WHERE enabled = TRUE");
+  if (result.rows.length === 0) return null;
+  return new Set(result.rows.map((row) => String(row.service_code)));
+}
+
+async function isServiceEnabled(serviceCode: string) {
+  const enabled = await listEnabledServiceCodes();
+  return !enabled || enabled.has(serviceCode);
+}
+
 async function getServicePrice(service: Service, country: Country) {
   const countryResult = await pool.query("SELECT price FROM sim_service_country_prices WHERE service_code = $1 AND country_code = $2", [service.code, country.code]);
   if (countryResult.rows[0]) return Number(countryResult.rows[0].price);
@@ -210,12 +269,13 @@ async function getServicePrice(service: Service, country: Country) {
   return Number((service.price + country.startingPrice * 0.25).toFixed(2));
 }
 
-async function servicesWithPrices(country?: Country) {
+async function servicesWithPrices(country?: Country, enabledOnly = true) {
   const prices = await listServicePrices();
   const countryPrices = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
   const countryBase = country?.startingPrice ?? 0;
+  const enabledCodes = enabledOnly ? await listEnabledServiceCodes() : null;
   const services = await liveServices(country?.code);
-  return services.map((service) => ({
+  return services.filter((service) => !enabledCodes || enabledCodes.has(service.code)).map((service) => ({
     ...service,
     price: countryPrices.has(service.code)
       ? Number(countryPrices.get(service.code))
@@ -459,6 +519,10 @@ router.get("/catalog/countries-for-service", async (req, res) => {
     res.status(400).json({ error: "Service code is required" });
     return;
   }
+  if (!await isServiceEnabled(serviceCode)) {
+    res.json({ countries: [], provider: providerStatus("Hero SMS") });
+    return;
+  }
 
   const liveData = await withFastFallback(getHeroCountriesForService(serviceCode), []);
 
@@ -488,6 +552,10 @@ router.get("/catalog/services", async (req, res) => {
 
 router.get("/catalog/availability", async (req, res) => {
   const params = GetAvailabilityQueryParams.parse(req.query);
+  if (!await isServiceEnabled(params.serviceCode)) {
+    res.status(400).json({ error: "This service is not enabled." });
+    return;
+  }
   const live = await withFastFallback(getHeroAvailability(params.serviceCode, params.countryCode), null);
   const service = serviceFromCode(params.serviceCode, live ?? undefined);
   const country = countryFromCode(params.countryCode, live ?? undefined);
@@ -520,6 +588,10 @@ router.post("/rentals", async (req, res) => {
   const body = CreateRentalBody.parse(req.body);
   const userId = getUserId(req);
   const account = await getAccount(userId, req.user);
+  if (!await isServiceEnabled(body.serviceCode)) {
+    res.status(400).json({ error: "This service is not currently available." });
+    return;
+  }
   const live = await getHeroAvailability(body.serviceCode, body.countryCode).catch(() => null);
   const country = countryFromCode(body.countryCode, live ?? undefined);
   const service = serviceFromCode(body.serviceCode, live ?? undefined);
@@ -784,9 +856,11 @@ router.get("/admin/services", async (req, res) => {
   const country = countryCode ? countryFromCode(countryCode) : undefined;
   const countryOverrides = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
   const activeServices = await liveServices(country?.code);
+  const enabledServiceCodes = await listEnabledServiceCodes();
   res.json({
     selectedCountry: country ?? null,
     countries: await liveCountries(),
+    enabledServiceCodes: Array.from(enabledServiceCodes ?? new Set(activeServices.map((service) => service.code))),
     services: activeServices.map((service) => ({
       ...service,
       basePrice: service.price,
@@ -800,6 +874,40 @@ router.get("/admin/services", async (req, res) => {
       globalPrice: priceOverrides.has(service.code) ? Number(priceOverrides.get(service.code)) : null,
     })),
   });
+});
+
+router.put("/admin/services/enabled", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const serviceCodes = Array.isArray(req.body?.serviceCodes)
+    ? req.body.serviceCodes.map((code: unknown) => String(code).trim()).filter(Boolean)
+    : null;
+  if (!serviceCodes) {
+    res.status(400).json({ error: "serviceCodes must be an array." });
+    return;
+  }
+
+  const uniqueCodes = Array.from(new Set(serviceCodes));
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM sim_enabled_services");
+    for (const code of uniqueCodes) {
+      await client.query(
+        `INSERT INTO sim_enabled_services (service_code, enabled, updated_at)
+         VALUES ($1, TRUE, NOW())
+         ON CONFLICT (service_code) DO UPDATE SET enabled = TRUE, updated_at = NOW()`,
+        [code],
+      );
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  res.json({ enabledServiceCodes: uniqueCodes });
 });
 
 router.put("/admin/services/:code/price", async (req, res) => {

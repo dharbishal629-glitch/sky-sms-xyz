@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useListServices, useGetAvailability, useCreateRental, getGetDashboardQueryKey } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +9,7 @@ import { Loader2, Globe, Server, CheckCircle2, AlertCircle } from "lucide-react"
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 interface LiveCountry {
   code: string;
@@ -33,15 +33,9 @@ function useCountriesForService(serviceCode: string) {
   });
 }
 
-const countryFlags: Record<string, string> = {
-  US: "🇺🇸", GB: "🇬🇧", DE: "🇩🇪", FR: "🇫🇷",
-  NL: "🇳🇱", CA: "🇨🇦", BR: "🇧🇷", IN: "🇮🇳",
-  RU: "🇷🇺", UA: "🇺🇦", PL: "🇵🇱", SE: "🇸🇪",
-  AU: "🇦🇺", JP: "🇯🇵", KR: "🇰🇷", CN: "🇨🇳",
-  MX: "🇲🇽", ES: "🇪🇸", IT: "🇮🇹", PT: "🇵🇹",
-};
-
 const serviceIconDomains: Record<string, string> = {
+  aol: "aol.com",
+  aliexpress: "aliexpress.com",
   telegram: "telegram.org",
   whatsapp: "whatsapp.com",
   google: "google.com",
@@ -59,11 +53,29 @@ const serviceIconDomains: Record<string, string> = {
   uber: "uber.com",
   airbnb: "airbnb.com",
   paypal: "paypal.com",
+  apple: "apple.com",
+  yandex: "yandex.com",
+  yahoo: "yahoo.com",
+  proton: "proton.me",
+  "ok.ru": "ok.ru",
+  qq: "qq.com",
+  wechat: "wechat.com",
+  viber: "viber.com",
+  vk: "vk.com",
+  tinder: "tinder.com",
+  bumble: "bumble.com",
+  "pof.com": "pof.com",
+  coinbase: "coinbase.com",
+  steam: "steampowered.com",
+  naver: "naver.com",
+  bolt: "bolt.eu",
+  wise: "wise.com",
+  nike: "nike.com",
 };
 
 function getServiceIcon(name: string): string | null {
   const key = name.toLowerCase();
-  const domain = serviceIconDomains[key];
+  const domain = serviceIconDomains[key] ?? Object.entries(serviceIconDomains).find(([label]) => key.includes(label))?.[1];
   if (!domain) return null;
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
 }
@@ -127,6 +139,20 @@ export default function Rent() {
   };
 
   const liveCountries = countriesData?.countries ?? [];
+  const serviceOptions = (servicesData?.services ?? []).map((service) => ({
+    value: service.code,
+    label: service.name,
+    searchText: `${service.name} ${service.code} ${service.category}`,
+    meta: `$${service.price.toFixed(2)}`,
+    icon: getServiceIcon(service.name),
+  }));
+  const countryOptions = liveCountries.map((country) => ({
+    value: country.code,
+    label: country.name,
+    searchText: `${country.name} ${country.code}`,
+    meta: `${country.heroPrice > 0 ? `$${country.heroPrice.toFixed(2)} · ` : ""}${country.available.toLocaleString()} left`,
+    icon: country.flag || "🌍",
+  }));
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -147,29 +173,15 @@ export default function Rent() {
                 <Server className="h-4 w-4 text-muted-foreground" />
                 Service
               </Label>
-              <Select value={serviceCode} onValueChange={(val) => { setServiceCode(val); setCountryCode(""); }}>
-                <SelectTrigger id="service" className="w-full h-12 rounded-xl" data-testid="select-service">
-                  <SelectValue placeholder={loadingServices ? "Loading services..." : servicesError ? "Could not load services" : "Select a service (e.g. WhatsApp, Discord)"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {servicesData?.services.map(service => {
-                    const iconUrl = getServiceIcon(service.name);
-                    return (
-                      <SelectItem key={service.code} value={service.code}>
-                        <div className="flex items-center gap-2 min-w-[200px]">
-                          {iconUrl ? (
-                            <img src={iconUrl} alt={service.name} className="w-4 h-4 object-contain shrink-0" />
-                          ) : (
-                            <div className="w-4 h-4 rounded-sm bg-white/10 shrink-0" />
-                          )}
-                          <span>{service.name}</span>
-                          <span className="text-xs font-medium text-primary ml-auto">${service.price.toFixed(2)}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={serviceCode}
+                options={serviceOptions}
+                placeholder={loadingServices ? "Loading services..." : servicesError ? "Could not load services" : "Search and select a service"}
+                searchPlaceholder="Type service name..."
+                emptyText="No service found."
+                disabled={loadingServices || servicesError}
+                onChange={(val) => { setServiceCode(val); setCountryCode(""); }}
+              />
               {servicesError && (
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
                   <span>Services did not load. Please retry.</span>
@@ -188,35 +200,20 @@ export default function Rent() {
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                 )}
               </Label>
-              <Select value={countryCode} onValueChange={setCountryCode} disabled={!serviceCode || loadingCountries}>
-                <SelectTrigger id="country" className="w-full h-12 rounded-xl" data-testid="select-country">
-                  <SelectValue placeholder={
-                    !serviceCode ? "Select a service first" :
-                    loadingCountries ? "Loading available countries..." :
-                    liveCountries.length === 0 ? "No countries available for this service" :
-                    "Select a country"
-                  } />
-                </SelectTrigger>
-                <SelectContent>
-                  {liveCountries.map(country => (
-                    <SelectItem key={country.code} value={country.code}>
-                      <div className="flex items-center justify-between w-full min-w-[240px] gap-3">
-                        <span className="font-medium">{countryFlags[country.code] ?? "🌍"} {country.name}</span>
-                        <div className="flex items-center gap-2 ml-auto shrink-0">
-                          {country.heroPrice > 0 && (
-                            <span className="text-xs font-bold text-cyan-400">
-                              ${country.heroPrice.toFixed(2)}
-                            </span>
-                          )}
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {country.available.toLocaleString()} left
-                          </span>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={countryCode}
+                options={countryOptions}
+                placeholder={
+                  !serviceCode ? "Select a service first" :
+                  loadingCountries ? "Loading available countries..." :
+                  liveCountries.length === 0 ? "No countries available for this service" :
+                  "Search and select a country"
+                }
+                searchPlaceholder="Type country name..."
+                emptyText="No country found."
+                disabled={!serviceCode || loadingCountries || liveCountries.length === 0}
+                onChange={setCountryCode}
+              />
               {serviceCode && !loadingCountries && liveCountries.length === 0 && (
                 <p className="text-xs text-amber-400">No countries currently have stock for this service. Try a different service or check back later.</p>
               )}

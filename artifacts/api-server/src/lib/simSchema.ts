@@ -71,6 +71,12 @@ async function createSchema() {
       PRIMARY KEY (service_code, country_code)
     );
 
+    CREATE TABLE IF NOT EXISTS sim_enabled_services (
+      service_code TEXT PRIMARY KEY,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'Hero SMS';
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS provider_activation_id TEXT;
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS refunded BOOLEAN NOT NULL DEFAULT FALSE;
