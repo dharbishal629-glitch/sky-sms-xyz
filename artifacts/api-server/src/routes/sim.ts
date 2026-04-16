@@ -369,7 +369,7 @@ router.get("/catalog/countries-for-service", async (req, res) => {
     res.status(400).json({ error: "Unknown service code" });
     return;
   }
-  const providerSt = await heroProviderStatus();
+
   const liveData = await getHeroCountriesForService(serviceCode).catch(() => []);
 
   const result = countries
@@ -386,7 +386,7 @@ router.get("/catalog/countries-for-service", async (req, res) => {
     .filter((c) => c.available > 0)
     .sort((a, b) => b.available - a.available);
 
-  res.json({ countries: result, provider: providerSt });
+  res.json({ countries: result, provider: providerStatus("Hero SMS") });
 });
 
 router.get("/catalog/services", async (req, res) => {

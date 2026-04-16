@@ -1,4 +1,5 @@
 const HERO_BASE_URL = "https://hero-sms.com/stubs/handler_api.php";
+const REQUEST_TIMEOUT_MS = 12_000;
 
 const countryMap: Record<string, number> = {
   GB: 16,
@@ -34,7 +35,9 @@ async function heroRequest(params: Record<string, string | number | undefined>) 
     if (value !== undefined) url.searchParams.set(key, String(value));
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   const text = await response.text();
 
   if (!response.ok) {
@@ -52,19 +55,56 @@ function parseJson<T>(value: string): T | null {
   }
 }
 
-export async function getHeroBalance() {
-  const text = await heroRequest({ action: "getBalance" });
-  if (text.startsWith("ACCESS_BALANCE:")) {
-    return Number(text.split(":")[1]);
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+const cache = new Map<string, CacheEntry<unknown>>();
+
+function getCached<T>(key: string): T | null {
+  const entry = cache.get(key) as CacheEntry<T> | undefined;
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    cache.delete(key);
+    return null;
   }
-  const json = parseJson<{ balance?: number | string }>(text);
-  if (json?.balance !== undefined) return Number(json.balance);
-  throw new Error(text || "Unable to read Hero SMS balance.");
+  return entry.value;
+}
+
+function setCached<T>(key: string, value: T, ttlMs: number) {
+  cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
+
+export async function getHeroBalance() {
+  const cacheKey = "balance";
+  const cached = getCached<number>(cacheKey);
+  if (cached !== null) return cached;
+
+  const text = await heroRequest({ action: "getBalance" });
+  let balance: number;
+  if (text.startsWith("ACCESS_BALANCE:")) {
+    balance = Number(text.split(":")[1]);
+  } else {
+    const json = parseJson<{ balance?: number | string }>(text);
+    if (json?.balance !== undefined) {
+      balance = Number(json.balance);
+    } else {
+      throw new Error(text || "Unable to read Hero SMS balance.");
+    }
+  }
+
+  setCached(cacheKey, balance, 30_000);
+  return balance;
 }
 
 export async function getHeroAvailability(serviceCode: string, countryCode: string) {
   const country = getHeroCountryCode(countryCode);
   if (country === undefined) return null;
+
+  const cacheKey = `availability:${serviceCode}:${countryCode}`;
+  const cached = getCached<{ count: number; cost: number }>(cacheKey);
+  if (cached !== null) return cached;
 
   const text = await heroRequest({
     action: "getPrices",
@@ -77,13 +117,20 @@ export async function getHeroAvailability(serviceCode: string, countryCode: stri
 
   if (!serviceData) return null;
 
-  return {
+  const result = {
     count: Number(serviceData.count ?? 0),
     cost: Number(serviceData.cost ?? 0),
   };
+
+  setCached(cacheKey, result, 60_000);
+  return result;
 }
 
 export async function getHeroCountriesForService(serviceCode: string): Promise<{ countryCode: string; count: number; cost: number }[]> {
+  const cacheKey = `countries:${serviceCode}`;
+  const cached = getCached<{ countryCode: string; count: number; cost: number }[]>(cacheKey);
+  if (cached !== null) return cached;
+
   const text = await heroRequest({ action: "getPrices", service: serviceCode });
   const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string }>>>(text);
   if (!json) return [];
@@ -98,6 +145,8 @@ export async function getHeroCountriesForService(serviceCode: string): Promise<{
     if (count <= 0) continue;
     results.push({ countryCode, count, cost: Number(data.cost ?? 0) });
   }
+
+  setCached(cacheKey, results, 60_000);
   return results;
 }
 
@@ -114,7 +163,7 @@ const HERO_ERROR_MESSAGES: Record<string, string> = {
   BANNED: "Provider account is banned. Please contact support.",
 };
 
-export async function rentHeroNumber(serviceCode: string, countryCode: string) {
+export async function rentHeroNumber(serviceCode: string, countryCode: string, _price?: number) {
   const country = getHeroCountryCode(countryCode);
   if (country === undefined) {
     throw new Error(`Hero SMS does not have a mapped country code for ${countryCode}.`);
