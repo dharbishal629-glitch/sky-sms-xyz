@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { useListPayments, useCreatePaymentCheckout, useGetMe } from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,25 @@ export default function Payments() {
   const [customLoading, setCustomLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [historyTab, setHistoryTab] = useState<"all" | "completed" | "processing" | "failed">("all");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabTrackRef = useRef<HTMLDivElement>(null);
+  const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
+
+  const TAB_KEYS = ["all", "completed", "processing", "failed"] as const;
+
+  useLayoutEffect(() => {
+    const tabIndex = TAB_KEYS.indexOf(historyTab);
+    const btn = tabRefs.current[tabIndex];
+    const track = tabTrackRef.current;
+    if (btn && track) {
+      const trackRect = track.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      setPillStyle({
+        left: btnRect.left - trackRect.left,
+        width: btnRect.width,
+      });
+    }
+  }, [historyTab]);
 
   const handleCheckout = (amount: number) => {
     setSelectedPackage(amount);
@@ -323,20 +342,30 @@ export default function Payments() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-xl font-black text-white">Payment History</h2>
             {allPayments.length > 0 && (
-              <div className="flex items-center gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/[0.06]">
-                {tabs.map((tab) => (
+              <div
+                ref={tabTrackRef}
+                className="relative flex items-center p-1 bg-white/[0.04] rounded-xl border border-white/[0.06] overflow-hidden"
+              >
+                <div
+                  className="absolute top-1 bottom-1 rounded-lg bg-white/[0.10] border border-white/[0.10]"
+                  style={{
+                    left: pillStyle.left,
+                    width: pillStyle.width,
+                    transition: "left 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1)",
+                  }}
+                />
+                {tabs.map((tab, i) => (
                   <button
                     key={tab.key}
+                    ref={el => { tabRefs.current[i] = el; }}
                     onClick={() => setHistoryTab(tab.key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                      historyTab === tab.key
-                        ? "bg-white/[0.08] text-white"
-                        : "text-slate-500 hover:text-slate-300"
+                    className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-200 ${
+                      historyTab === tab.key ? "text-white" : "text-slate-500 hover:text-slate-300"
                     }`}
                   >
                     {tab.label}
                     {tab.count > 0 && (
-                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black transition-colors duration-200 ${
                         historyTab === tab.key ? "bg-cyan-400/20 text-cyan-300" : "bg-white/[0.06] text-slate-600"
                       }`}>
                         {tab.count}
