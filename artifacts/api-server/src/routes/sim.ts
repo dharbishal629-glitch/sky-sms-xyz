@@ -728,6 +728,132 @@ router.put("/admin/services/:code/price", async (req, res) => {
   });
 });
 
+router.get("/support/tickets", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const result = await pool.query(
+    "SELECT * FROM sim_support_tickets WHERE user_id = $1 ORDER BY created_at DESC",
+    [getUserId(req)],
+  );
+  res.json({
+    tickets: result.rows.map((row) => ({
+      id: String(row.id),
+      subject: String(row.subject),
+      category: String(row.category),
+      priority: String(row.priority),
+      message: String(row.message),
+      status: String(row.status),
+      adminReply: row.admin_reply ? String(row.admin_reply) : null,
+      createdAt: new Date(String(row.created_at)).toISOString(),
+      updatedAt: new Date(String(row.updated_at)).toISOString(),
+    })),
+  });
+});
+
+router.post("/support/tickets", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { subject, category, priority, message } = req.body as Record<string, string>;
+  if (!subject?.trim() || !category?.trim() || !message?.trim()) {
+    res.status(400).json({ error: "Subject, category, and message are required." });
+    return;
+  }
+  const validCategories = ["Billing", "Technical", "Account", "Other"];
+  const validPriorities = ["low", "medium", "high"];
+  if (!validCategories.includes(category)) {
+    res.status(400).json({ error: "Invalid category." });
+    return;
+  }
+  const safePriority = validPriorities.includes(priority) ? priority : "medium";
+  const id = crypto.randomUUID();
+  const result = await pool.query(
+    `INSERT INTO sim_support_tickets (id, user_id, subject, category, priority, message)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [id, getUserId(req), subject.trim().slice(0, 200), category, safePriority, message.trim().slice(0, 2000)],
+  );
+  const row = result.rows[0];
+  res.json({
+    ticket: {
+      id: String(row.id),
+      subject: String(row.subject),
+      category: String(row.category),
+      priority: String(row.priority),
+      message: String(row.message),
+      status: String(row.status),
+      adminReply: null,
+      createdAt: new Date(String(row.created_at)).toISOString(),
+      updatedAt: new Date(String(row.updated_at)).toISOString(),
+    },
+  });
+});
+
+router.get("/admin/support", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const result = await pool.query(`
+    SELECT t.*, u.email AS user_email, u.name AS user_name
+    FROM sim_support_tickets t
+    JOIN sim_users u ON u.id = t.user_id
+    ORDER BY t.created_at DESC
+  `);
+  res.json({
+    tickets: result.rows.map((row) => ({
+      id: String(row.id),
+      userId: String(row.user_id),
+      userEmail: String(row.user_email),
+      userName: String(row.user_name),
+      subject: String(row.subject),
+      category: String(row.category),
+      priority: String(row.priority),
+      message: String(row.message),
+      status: String(row.status),
+      adminReply: row.admin_reply ? String(row.admin_reply) : null,
+      createdAt: new Date(String(row.created_at)).toISOString(),
+      updatedAt: new Date(String(row.updated_at)).toISOString(),
+    })),
+  });
+});
+
+router.patch("/admin/support/:id", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const { id } = req.params;
+  const { status, adminReply } = req.body as Record<string, string>;
+  const validStatuses = ["open", "in_progress", "resolved", "closed"];
+  if (status && !validStatuses.includes(status)) {
+    res.status(400).json({ error: "Invalid status." });
+    return;
+  }
+  const existing = await pool.query("SELECT * FROM sim_support_tickets WHERE id = $1", [id]);
+  if (!existing.rows[0]) {
+    res.status(404).json({ error: "Ticket not found." });
+    return;
+  }
+  const newStatus = status ?? existing.rows[0].status;
+  const newReply = adminReply !== undefined ? adminReply.trim().slice(0, 3000) : existing.rows[0].admin_reply;
+  await pool.query(
+    "UPDATE sim_support_tickets SET status = $1, admin_reply = $2, updated_at = NOW() WHERE id = $3",
+    [newStatus, newReply || null, id],
+  );
+  const updated = await pool.query("SELECT * FROM sim_support_tickets WHERE id = $1", [id]);
+  const row = updated.rows[0];
+  res.json({
+    ticket: {
+      id: String(row.id),
+      subject: String(row.subject),
+      category: String(row.category),
+      priority: String(row.priority),
+      message: String(row.message),
+      status: String(row.status),
+      adminReply: row.admin_reply ? String(row.admin_reply) : null,
+      createdAt: new Date(String(row.created_at)).toISOString(),
+      updatedAt: new Date(String(row.updated_at)).toISOString(),
+    },
+  });
+});
+
 router.get("/admin/transactions", async (req, res) => {
   if (!await requireAdmin(req, res)) return;
   const result = await pool.query(`

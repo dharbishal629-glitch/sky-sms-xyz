@@ -5,10 +5,10 @@ generated = []
 id = "hhG0BBRF7_sDmhJFBH28z"
 uri = "file://skysms-frontend-cloudflare-pages.tar.gz"
 type = "unspecified"
-title = "Frontend (Cloudflare Pages)"
+title = "SKY SMS Frontend (Cloudflare Pages)"
 
 [[outputs]]
 id = "_bBTpSjdixFP0JZhXMdOq"
 uri = "file://skysms-api-server-nodejs.tar.gz"
 type = "unspecified"
-title = "API Server (Node.js Host)"
+title = "SKY SMS API Server (Railway/Render)"

@@ -102,10 +102,12 @@ function AppWithRoutes() {
       <Route path="/rentals" component={AppRoutes} />
       <Route path="/payments" component={AppRoutes} />
       <Route path="/settings" component={AppRoutes} />
+      <Route path="/support" component={AppRoutes} />
       <Route path="/admin" component={AppRoutes} />
       <Route path="/admin/users" component={AppRoutes} />
       <Route path="/admin/services" component={AppRoutes} />
       <Route path="/admin/transactions" component={AppRoutes} />
+      <Route path="/admin/support" component={AppRoutes} />
 
       <Route component={NotFound} />
     </Switch>

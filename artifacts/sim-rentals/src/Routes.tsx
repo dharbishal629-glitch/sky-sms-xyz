@@ -8,6 +8,8 @@ import AdminOverview from "@/pages/admin/Overview";
 import AdminUsers from "@/pages/admin/Users";
 import AdminTransactions from "@/pages/admin/Transactions";
 import AdminServices from "@/pages/admin/Services";
+import AdminSupport from "@/pages/admin/Support";
+import Support from "@/pages/Support";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetMe } from "@workspace/api-client-react";
 import { Switch, Route, Redirect } from "wouter";
@@ -77,6 +79,9 @@ export function AppRoutes() {
       <Route path="/settings">
         <ProtectedRoute component={Settings} />
       </Route>
+      <Route path="/support">
+        <ProtectedRoute component={Support} />
+      </Route>
 
       <Route path="/admin">
         <AdminRoute component={AdminOverview} />
@@ -89,6 +94,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/admin/transactions">
         <AdminRoute component={AdminTransactions} />
+      </Route>
+      <Route path="/admin/support">
+        <AdminRoute component={AdminSupport} />
       </Route>
     </Switch>
   );

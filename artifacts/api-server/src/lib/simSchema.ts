@@ -66,6 +66,19 @@ async function createSchema() {
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'Hero SMS';
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS provider_activation_id TEXT;
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS refunded BOOLEAN NOT NULL DEFAULT FALSE;
+
+    CREATE TABLE IF NOT EXISTS sim_support_tickets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES sim_users(id),
+      subject TEXT NOT NULL,
+      category TEXT NOT NULL,
+      priority TEXT NOT NULL DEFAULT 'medium',
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open',
+      admin_reply TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 }
 

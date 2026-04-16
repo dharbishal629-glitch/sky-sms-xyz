@@ -4,7 +4,7 @@ import { useGetMe } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Phone, History, CreditCard, Settings, Shield, Users,
-  Activity, SlidersHorizontal, LogOut, Menu, DollarSign, Zap, ChevronRight, X
+  Activity, SlidersHorizontal, LogOut, Menu, DollarSign, Zap, ChevronRight, X, LifeBuoy
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/rentals",   label: "My Rentals",  icon: History },
     { href: "/payments",  label: "Payments",    icon: CreditCard },
     { href: "/settings",  label: "Settings",    icon: Settings },
+    { href: "/support",   label: "Support",     icon: LifeBuoy },
   ];
 
   const adminItems = [
@@ -43,6 +44,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/admin/users",        label: "Users",        icon: Users },
     { href: "/admin/services",     label: "Services",     icon: SlidersHorizontal },
     { href: "/admin/transactions", label: "Transactions", icon: Activity },
+    { href: "/admin/support",      label: "Support",      icon: LifeBuoy },
   ];
 
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (

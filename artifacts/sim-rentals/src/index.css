@@ -392,4 +392,71 @@
     to   { opacity: 1; transform: translate3d(0,0,0); }
   }
   .count-up { animation: count-up 0.45s ease forwards; }
+
+  /* ─── Button reflection / shine ──────────────────── */
+  .btn-reflect {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .btn-reflect::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      rgba(255,255,255,0.28) 50%,
+      transparent 100%
+    );
+    transform: skewX(-18deg);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+  }
+  .btn-reflect:hover::before {
+    animation: reflect-sweep 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+  @keyframes reflect-sweep {
+    0%   { left: -75%; opacity: 1; }
+    100% { left: 130%; opacity: 1; }
+  }
+
+  /* ─── Page enter animation ────────────────────────── */
+  @keyframes page-in {
+    from { opacity: 0; transform: translate3d(0, 18px, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+  .page-enter {
+    animation: page-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .page-enter-d1 { animation-delay:  40ms; }
+  .page-enter-d2 { animation-delay:  90ms; }
+  .page-enter-d3 { animation-delay: 140ms; }
+  .page-enter-d4 { animation-delay: 190ms; }
+  .page-enter-d5 { animation-delay: 240ms; }
+  .page-enter-d6 { animation-delay: 290ms; }
+
+  /* ─── Input focus ring ────────────────────────────── */
+  .field-input {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.09);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+  .field-input:focus {
+    outline: none;
+    background: rgba(56,189,248,0.04);
+    border-color: rgba(56,189,248,0.35);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.08);
+  }
+
+  /* ─── Ticket status badge pulses ─────────────────── */
+  @keyframes status-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.55; }
+  }
+  .status-pulse { animation: status-pulse 2s ease-in-out infinite; }
 }
