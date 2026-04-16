@@ -237,10 +237,10 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                       onClick={() => setOpenFaq(openFaq === i ? null : i)}
                     >
                       <span className="text-[13px] font-semibold text-white">{faq.q}</span>
-                      <ChevronDown className={`h-4 w-4 shrink-0 text-sky-400 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} />
+                      <ChevronDown className={`h-4 w-4 shrink-0 text-sky-400 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${openFaq === i ? "rotate-180" : ""}`} />
                     </button>
-                    <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${openFaq === i ? "max-h-[240px] opacity-100" : "max-h-0 opacity-0"}`}>
-                      <div className="px-5 pb-4 pt-3 text-[13px] text-slate-400 leading-relaxed border-t border-white/[0.05]">
+                    <div className={`faq-body ${openFaq === i ? "faq-body-open" : ""}`}>
+                      <div className="faq-inner px-5 pb-4 pt-3 text-[13px] text-slate-400 leading-relaxed border-t border-white/[0.05]">
                         {faq.a}
                       </div>
                     </div>

@@ -337,18 +337,36 @@
   .stagger > *:nth-child(7) { transition-delay: 360ms; }
   .stagger > *:nth-child(8) { transition-delay: 420ms; }
 
-  /* ─── Dropdown animation ─────────────────────────── */
-  @keyframes dropdown-in {
-    from { opacity: 0; transform: translate3d(0,-6px,0) scale(0.97); }
-    to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+  /* ─── FAQ accordion (grid-rows technique — truly smooth) ─── */
+  .faq-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.32s cubic-bezier(0.22,1,0.36,1);
+    will-change: grid-template-rows;
   }
-  @keyframes dropdown-out {
-    from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
-    to   { opacity: 0; transform: translate3d(0,-4px,0) scale(0.97); }
+  .faq-body-open {
+    grid-template-rows: 1fr;
   }
-  [data-state="open"][data-side="bottom"]   { animation: dropdown-in  0.16s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: top center; }
-  [data-state="closed"][data-side="bottom"] { animation: dropdown-out 0.12s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: top center; }
-  [data-state="open"][data-side="top"]      { animation: dropdown-in  0.16s cubic-bezier(0.22,1,0.36,1) forwards; transform-origin: bottom center; }
+  .faq-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ─── Select/dropdown animation (no conflicts with Tailwind) */
+  @keyframes select-in {
+    from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes select-out {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  }
+  .select-dropdown {
+    transform-origin: top center;
+    will-change: transform, opacity;
+  }
+  .select-dropdown[data-state="open"]   { animation: select-in  0.22s cubic-bezier(0.16,1,0.3,1) both; }
+  .select-dropdown[data-state="closed"] { animation: select-out 0.15s cubic-bezier(0.4,0,1,1) both; }
 
   /* ─── Mobile sidebar slide ───────────────────────── */
   @keyframes sidebar-in {

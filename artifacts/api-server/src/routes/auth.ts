@@ -12,6 +12,7 @@ import {
   type AuthUser,
 } from "../lib/auth";
 import { ensureSimSchema } from "../lib/simSchema";
+import { isAdminEmail } from "../lib/adminConfig";
 
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 const router: IRouter = Router();
@@ -61,17 +62,20 @@ function getSafeReturnTo(value: unknown, fallback = "/"): string {
 async function upsertSimUser(user: AuthUser) {
   await ensureSimSchema();
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || "User";
-  const existingUsers = await pool.query("SELECT COUNT(*)::int AS users, COUNT(*) FILTER (WHERE role = 'admin')::int AS admins FROM sim_users");
-  const adminEmails = (process.env.ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-  const role = Number(existingUsers.rows[0].users) === 0 || Number(existingUsers.rows[0].admins) === 0 || (user.email && adminEmails.includes(user.email.toLowerCase())) ? "admin" : "user";
+  const email = user.email || `user-${user.id}@example.com`;
+
+  // Role is determined strictly by the admin email allowlist.
+  // No "first user" or "no admins" fallback — that was the security hole.
+  const role = isAdminEmail(user.email) ? "admin" : "user";
+
   await pool.query(
     `INSERT INTO sim_users (id, name, email, role, credits, status)
      VALUES ($1, $2, $3, $4, 0, 'active')
-     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, role = CASE WHEN sim_users.role = 'admin' THEN 'admin' ELSE EXCLUDED.role END`,
-    [user.id, name, user.email || `user-${user.id}@example.com`, role],
+     ON CONFLICT (id) DO UPDATE SET
+       name  = EXCLUDED.name,
+       email = EXCLUDED.email,
+       role  = EXCLUDED.role`,
+    [user.id, name, email, role],
   );
 }
 

@@ -76,12 +76,7 @@ const SelectContent = React.forwardRef<
       ref={ref}
       className={cn(
         "relative z-[9999] min-w-[8rem] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-xl",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-        "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
-        "data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
-        "data-[side=bottom]:slide-out-to-top-1 data-[side=top]:slide-out-to-bottom-1",
-        "origin-[--radix-select-content-transform-origin]",
+        "select-dropdown",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className

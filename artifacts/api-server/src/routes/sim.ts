@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { pool } from "@workspace/db";
 import type { AuthUser } from "../lib/auth";
 import { ensureSimSchema } from "../lib/simSchema";
+import { isAdminEmail } from "../lib/adminConfig";
 import {
   getHeroAvailability,
   getHeroBalance,
@@ -65,10 +66,10 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
-  const userId = req.user.id;
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-  if (adminEmail && req.user.email?.toLowerCase() === adminEmail) return true;
-  const result = await pool.query("SELECT role FROM sim_users WHERE id = $1", [userId]);
+  // Primary check: email must be in the admin allowlist
+  if (isAdminEmail(req.user.email)) return true;
+  // Secondary check: role in DB (catches manually-promoted users)
+  const result = await pool.query("SELECT role FROM sim_users WHERE id = $1", [req.user.id]);
   if (result.rows[0]?.role === "admin") return true;
   res.status(403).json({ error: "Admin access required" });
   return false;
@@ -289,15 +290,13 @@ async function getAccount(userId: string, authUser?: AuthUser) {
     ? [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") || "User"
     : "User";
   const email = authUser?.email || `user-${userId}@sms-rentals.app`;
-
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-  const isAdminEmail = adminEmail && email.toLowerCase() === adminEmail;
+  const role = isAdminEmail(authUser?.email) ? "admin" : "user";
 
   await pool.query(
     `INSERT INTO sim_users (id, name, email, role, credits, status)
      VALUES ($1, $2, $3, $4, 0, 'active')
-     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email${isAdminEmail ? ", role = 'admin'" : ""}`,
-    [userId, name, email, isAdminEmail ? "admin" : "user"],
+     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, role = EXCLUDED.role`,
+    [userId, name, email, role],
   );
   const result = await pool.query("SELECT * FROM sim_users WHERE id = $1", [userId]);
   const user = result.rows[0];
