@@ -79,7 +79,7 @@ export default function Rent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: servicesData, isLoading: loadingServices } = useListServices({}, {
+  const { data: servicesData, isLoading: loadingServices, isError: servicesError, refetch: refetchServices } = useListServices({}, {
     query: { queryKey: ["/api/catalog/services"], refetchInterval: 20_000, staleTime: 20_000 }
   });
 
@@ -149,7 +149,7 @@ export default function Rent() {
               </Label>
               <Select value={serviceCode} onValueChange={(val) => { setServiceCode(val); setCountryCode(""); }}>
                 <SelectTrigger id="service" className="w-full h-12 rounded-xl" data-testid="select-service">
-                  <SelectValue placeholder={loadingServices ? "Loading services..." : "Select a service (e.g. WhatsApp, Discord)"} />
+                  <SelectValue placeholder={loadingServices ? "Loading services..." : servicesError ? "Could not load services" : "Select a service (e.g. WhatsApp, Discord)"} />
                 </SelectTrigger>
                 <SelectContent>
                   {servicesData?.services.map(service => {
@@ -170,6 +170,14 @@ export default function Rent() {
                   })}
                 </SelectContent>
               </Select>
+              {servicesError && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+                  <span>Services did not load. Please retry.</span>
+                  <button type="button" onClick={() => refetchServices()} className="font-bold text-amber-50 underline">
+                    Retry
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">

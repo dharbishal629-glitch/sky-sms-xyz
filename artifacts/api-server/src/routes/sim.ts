@@ -103,8 +103,15 @@ function serviceFromCode(code: string, live?: { count?: number; cost?: number })
   };
 }
 
+async function withFastFallback<T>(promise: Promise<T>, fallback: T, timeoutMs = 1000): Promise<T> {
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
+  ]);
+}
+
 async function liveServices(countryCode?: string): Promise<Service[]> {
-  const catalog = await getHeroPriceCatalog().catch(() => []);
+  const catalog = await withFastFallback(getHeroPriceCatalog(), []);
   if (catalog.length === 0) return fallbackServices;
   const totals = new Map<string, { count: number; cost: number }>();
   for (const item of catalog) {
@@ -120,7 +127,7 @@ async function liveServices(countryCode?: string): Promise<Service[]> {
 }
 
 async function liveCountries(): Promise<Country[]> {
-  const catalog = await getHeroPriceCatalog().catch(() => []);
+  const catalog = await withFastFallback(getHeroPriceCatalog(), []);
   if (catalog.length === 0) return fallbackCountries;
   const totals = new Map<string, { count: number; cost: number }>();
   for (const item of catalog) {
@@ -443,18 +450,17 @@ router.get("/dashboard", async (req, res) => {
 });
 
 router.get("/catalog/countries", async (_req, res) => {
-  res.json(ListCountriesResponse.parse({ countries: await liveCountries(), provider: await heroProviderStatus() }));
+  res.json(ListCountriesResponse.parse({ countries: await liveCountries(), provider: providerStatus("Hero SMS") }));
 });
 
 router.get("/catalog/countries-for-service", async (req, res) => {
   const serviceCode = String(req.query.serviceCode ?? "");
-  const service = (await liveServices()).find((item) => item.code === serviceCode);
-  if (!service) {
-    res.status(400).json({ error: "Unknown service code" });
+  if (!serviceCode.trim()) {
+    res.status(400).json({ error: "Service code is required" });
     return;
   }
 
-  const liveData = await getHeroCountriesForService(serviceCode).catch(() => []);
+  const liveData = await withFastFallback(getHeroCountriesForService(serviceCode), []);
 
   const result = liveData
     .map((live) => {
@@ -477,12 +483,12 @@ router.get("/catalog/services", async (req, res) => {
   ListServicesQueryParams.parse(req.query);
   const countryCode = String(req.query.countryCode ?? "");
   const country = countryCode ? countryFromCode(countryCode) : undefined;
-  res.json(ListServicesResponse.parse({ services: await servicesWithPrices(country), provider: await heroProviderStatus() }));
+  res.json(ListServicesResponse.parse({ services: await servicesWithPrices(country), provider: providerStatus("Hero SMS") }));
 });
 
 router.get("/catalog/availability", async (req, res) => {
   const params = GetAvailabilityQueryParams.parse(req.query);
-  const live = await getHeroAvailability(params.serviceCode, params.countryCode).catch(() => null);
+  const live = await withFastFallback(getHeroAvailability(params.serviceCode, params.countryCode), null);
   const service = serviceFromCode(params.serviceCode, live ?? undefined);
   const country = countryFromCode(params.countryCode, live ?? undefined);
   if (!service || !country) {
@@ -497,7 +503,7 @@ router.get("/catalog/availability", async (req, res) => {
       available: live?.count ?? 0,
       price: customPrice,
       estimatedWait: "20 minute activation window",
-      provider: await heroProviderStatus(),
+      provider: providerStatus("Hero SMS"),
     }),
   );
 });
