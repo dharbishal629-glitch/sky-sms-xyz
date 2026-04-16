@@ -1,28 +1,71 @@
-import { useGetMe, useHealthCheck } from "@workspace/api-client-react";
+import { useGetMe } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, User, Key, Database, Activity, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  User, LogOut, HelpCircle, FileText, RefreshCw, Phone, Shield, ExternalLink,
+  ChevronRight, DollarSign, History, Zap, Lock, MessageSquare, Globe
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from "wouter";
+import { Reveal } from "@/components/Reveal";
+
+const tips = [
+  {
+    icon: Globe,
+    title: "Select service first",
+    desc: "Always pick the service you need before choosing a country. Country list updates based on real-time availability."
+  },
+  {
+    icon: Zap,
+    title: "Act fast — 20-minute window",
+    desc: "Once you rent a number, you have 20 minutes to receive an SMS. If no message arrives, you get a full automatic refund."
+  },
+  {
+    icon: RefreshCw,
+    title: "Cancel to get refunded",
+    desc: "If you change your mind or the number isn't working, cancel the rental before the window closes and your balance is instantly restored."
+  },
+  {
+    icon: MessageSquare,
+    title: "Copy codes instantly",
+    desc: "Verification codes are extracted and shown in a large format on your rental card — tap once to copy to clipboard."
+  },
+  {
+    icon: DollarSign,
+    title: "Add any amount",
+    desc: "You can top up with any dollar amount — even less than $1. Go to Payments and use the custom amount field."
+  },
+  {
+    icon: Lock,
+    title: "Private by design",
+    desc: "All payments go through OxaPay crypto processing. No card details stored, no chargebacks, fully private."
+  },
+];
 
 export default function Settings() {
   const { data: user, isLoading: userLoading } = useGetMe();
-  const { data: health, isLoading: healthLoading } = useHealthCheck();
+  const { logout } = useAuth();
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-white">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your account preferences and settings.</p>
-      </div>
+      <Reveal variant="up">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-white">Settings</h1>
+          <p className="text-muted-foreground mt-1">Manage your account and learn how to get the most out of SKY SMS.</p>
+        </div>
+      </Reveal>
 
-      <div className="grid gap-6">
+      {/* Profile */}
+      <Reveal variant="up" delay={40}>
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white"><User className="h-5 w-5 text-sky-300" /> Profile</CardTitle>
-            <CardDescription>Your personal information synced from your account.</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <User className="h-5 w-5 text-cyan-400" /> Profile
+            </CardTitle>
+            <CardDescription>Your account information.</CardDescription>
           </CardHeader>
           <CardContent>
             {userLoading ? (
@@ -35,85 +78,156 @@ export default function Settings() {
               </div>
             ) : user ? (
               <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                <Avatar className="h-20 w-20 border-2 border-sky-300/20">
+                <Avatar className="h-20 w-20 border-2 border-cyan-300/20">
                   <AvatarImage src={user.avatarUrl} />
-                  <AvatarFallback className="text-xl bg-sky-400/10 text-sky-200">{user.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                  <AvatarFallback className="text-xl bg-cyan-400/10 text-cyan-200">
+                    {user.name?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold text-white" data-testid="settings-user-name">{user.name}</h3>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-black text-white">{user.name}</h3>
                     {user.role === 'admin' && (
-                      <Badge variant="outline" className="border-sky-300/20 bg-sky-400/10 text-sky-200">Admin</Badge>
+                      <Badge variant="outline" className="border-cyan-300/20 bg-cyan-400/10 text-cyan-200">Admin</Badge>
                     )}
                   </div>
-                  <p className="text-muted-foreground" data-testid="settings-user-email">{user.email}</p>
-                  <p className="text-sm text-muted-foreground">
-                    <span className="text-sky-300 font-semibold">{user.credits}</span> credits available
-                  </p>
+                  <p className="text-muted-foreground text-sm">{user.email}</p>
+                  <div className="flex items-center gap-4 pt-1">
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <DollarSign className="h-4 w-4 text-cyan-400" />
+                      <span className="text-white font-bold">${user.credits.toFixed(2)}</span>
+                      <span className="text-muted-foreground">balance</span>
+                    </div>
+                    <Link href="/payments">
+                      <span className="text-xs text-cyan-400 font-semibold hover:text-cyan-300 transition-colors cursor-pointer flex items-center gap-1">
+                        Add funds <ChevronRight className="h-3 w-3" />
+                      </span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ) : null}
           </CardContent>
         </Card>
+      </Reveal>
 
+      {/* Quick Links */}
+      <Reveal variant="up" delay={80}>
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white"><Shield className="h-5 w-5 text-sky-300" /> Security</CardTitle>
-            <CardDescription>Your account security is managed by Replit's authentication system.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-              <div className="flex items-center gap-3">
-                <Key className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="font-medium text-white">Authentication</div>
-                  <div className="text-sm text-muted-foreground">Secured via Replit OIDC — no password required.</div>
-                </div>
-              </div>
-              <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-emerald-200">Active</Badge>
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="font-medium text-white">Session</div>
-                  <div className="text-sm text-muted-foreground">Sessions are encrypted, httpOnly, and expire after 7 days.</div>
-                </div>
-              </div>
-              <Badge variant="outline" className="border-sky-300/20 bg-sky-400/10 text-sky-200">Secure</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white"><Activity className="h-5 w-5 text-sky-300" /> System Status</CardTitle>
-            <CardDescription>Current API and platform health.</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Zap className="h-5 w-5 text-cyan-400" /> Quick Actions
+            </CardTitle>
+            <CardDescription>Everything you need, one click away.</CardDescription>
           </CardHeader>
           <CardContent>
-            {healthLoading ? (
-              <Skeleton className="h-12 w-full rounded-2xl" />
-            ) : health ? (
-              <div className="flex items-center justify-between p-4 rounded-2xl border border-emerald-300/20 bg-emerald-400/10" data-testid="system-health-status">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
-                  <div>
-                    <div className="font-medium text-emerald-100">API Server: {health.status}</div>
-                    <div className="text-sm text-emerald-200/70">All systems operational</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { href: "/rent", icon: Phone, label: "Rent a Number", desc: "Get a new temporary number", color: "cyan" },
+                { href: "/rentals", icon: History, label: "View Rentals", desc: "Check active & past rentals", color: "indigo" },
+                { href: "/payments", icon: DollarSign, label: "Add Funds", desc: "Top up your account balance", color: "emerald" },
+                { href: "/dashboard", icon: Zap, label: "Dashboard", desc: "Overview & recent activity", color: "sky" },
+              ].map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] hover:border-cyan-400/20 transition-all duration-200 cursor-pointer group">
+                    <div className="h-9 w-9 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
+                      <item.icon className="h-4 w-4 text-cyan-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-white text-sm">{item.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{item.desc}</div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-cyan-400 transition-colors shrink-0" />
                   </div>
-                </div>
-                <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-emerald-200">Live</Badge>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-4 rounded-2xl border border-red-300/20 bg-red-400/10">
-                <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
-                <span className="text-red-200 text-sm">Could not connect to API server.</span>
-              </div>
-            )}
+                </Link>
+              ))}
+            </div>
           </CardContent>
         </Card>
-      </div>
+      </Reveal>
+
+      {/* How to Use Tips */}
+      <Reveal variant="up" delay={120}>
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <HelpCircle className="h-5 w-5 text-cyan-400" /> How to Use SKY SMS
+            </CardTitle>
+            <CardDescription>Tips and tricks to get the best experience.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {tips.map((tip, i) => (
+                <div key={i} className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
+                      <tip.icon className="h-4 w-4 text-cyan-400" />
+                    </div>
+                    <span className="font-bold text-white text-sm">{tip.title}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{tip.desc}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </Reveal>
+
+      {/* Support & Legal */}
+      <Reveal variant="up" delay={160}>
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Shield className="h-5 w-5 text-cyan-400" /> Support & Legal
+            </CardTitle>
+            <CardDescription>Resources and policies for your account.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[
+                { href: "/terms", icon: FileText, label: "Terms of Service", desc: "Read the rules for using SKY SMS" },
+                { href: "/refund-policy", icon: RefreshCw, label: "Refund Policy", desc: "Learn when refunds are issued" },
+              ].map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-200 cursor-pointer group">
+                    <div className="h-9 w-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
+                      <item.icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white text-sm">{item.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{item.desc}</div>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-slate-600 group-hover:text-slate-400 transition-colors shrink-0" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </Reveal>
+
+      {/* Sign Out */}
+      <Reveal variant="up" delay={200}>
+        <Card className="glass-card border-red-400/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <LogOut className="h-5 w-5 text-red-400" /> Sign Out
+            </CardTitle>
+            <CardDescription>Sign out of your SKY SMS account on this device.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              className="border-red-400/25 text-red-300 hover:bg-red-400/10 hover:border-red-400/40 rounded-full"
+              onClick={logout}
+              data-testid="button-settings-signout"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      </Reveal>
     </div>
   );
 }

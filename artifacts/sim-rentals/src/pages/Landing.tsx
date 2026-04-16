@@ -348,10 +348,12 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
             <Phone className="h-4 w-4 text-cyan-400" />
             <span className="gradient-text">SKY SMS</span>
           </div>
-          <nav className="flex gap-6 text-sm text-slate-600">
+          <nav className="flex flex-wrap justify-center gap-6 text-sm text-slate-600">
             <a href="#services" className="hover:text-white transition-colors">Services</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+            <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+            <a href="/refund-policy" className="hover:text-white transition-colors">Refund Policy</a>
           </nav>
           <p className="text-xs text-slate-700">© {new Date().getFullYear()} SKY SMS. All rights reserved.</p>
         </div>

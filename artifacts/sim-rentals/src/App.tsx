@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
+import Terms from "@/pages/Terms";
+import RefundPolicy from "@/pages/RefundPolicy";
 import { AppRoutes } from "./Routes";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -59,7 +61,7 @@ function AuthPage() {
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.35em] text-sky-300">Welcome back</p>
         <h1 className="text-4xl font-black tracking-tight text-white">Access your dashboard</h1>
         <p className="mt-4 text-sm leading-6 text-slate-400">
-          Sign in to manage credits, rent live SMS numbers, and track verification messages from one secure account.
+          Sign in to manage your balance, rent live SMS numbers, and track verification messages from one secure account.
         </p>
         <div className="mt-8">
           <button
@@ -80,6 +82,8 @@ function AppWithRoutes() {
       <Route path="/" component={HomeRedirect} />
       <Route path="/sign-in/*?" component={AuthPage} />
       <Route path="/sign-up/*?" component={AuthPage} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/refund-policy" component={RefundPolicy} />
 
       <Route path="/dashboard" component={AppRoutes} />
       <Route path="/rent" component={AppRoutes} />
