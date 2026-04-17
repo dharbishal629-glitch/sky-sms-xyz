@@ -249,7 +249,8 @@ export async function getHeroCountriesForService(serviceCode: string): Promise<{
   const results: { countryCode: string; count: number; cost: number }[] = [];
   for (const [countryIdStr, serviceData] of Object.entries(json)) {
     const countryId = Number(countryIdStr);
-    const countryCode = reverseCountryMap[countryId] ?? `H${countryId}`;
+    const countryCode = reverseCountryMap[countryId];
+    if (!countryCode) continue;
     const data = serviceData[serviceCode];
     if (!data) continue;
     const count = Number(data.count ?? 0);
@@ -273,7 +274,8 @@ export async function getHeroPriceCatalog(): Promise<Array<{ countryCode: string
   const results: Array<{ countryCode: string; serviceCode: string; count: number; cost: number }> = [];
   for (const [countryIdStr, services] of Object.entries(json)) {
     const countryId = Number(countryIdStr);
-    const countryCode = reverseCountryMap[countryId] ?? `H${countryId}`;
+    const countryCode = reverseCountryMap[countryId];
+    if (!countryCode) continue;
     for (const [serviceCode, data] of Object.entries(services)) {
       const count = Number(data.count ?? 0);
       const cost = Number(data.cost ?? 0);

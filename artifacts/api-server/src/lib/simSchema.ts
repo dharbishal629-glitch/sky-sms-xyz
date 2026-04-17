@@ -89,6 +89,12 @@ async function createSchema() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS sim_country_base_prices (
+      country_code TEXT PRIMARY KEY,
+      base_price NUMERIC NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS sim_support_tickets (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES sim_users(id),

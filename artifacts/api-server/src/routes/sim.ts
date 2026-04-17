@@ -37,25 +37,11 @@ import {
 
 const router: IRouter = Router();
 
-const fallbackCountries = [
-  { code: "IN", name: "India", flag: "IN", available: 1294, startingPrice: 0.65 },
-  { code: "BR", name: "Brazil", flag: "BR", available: 705, startingPrice: 0.75 },
-  { code: "GB", name: "United Kingdom", flag: "GB", available: 911, startingPrice: 1.1 },
-  { code: "NL", name: "Netherlands", flag: "NL", available: 402, startingPrice: 1.15 },
-  { code: "US", name: "United States", flag: "US", available: 1842, startingPrice: 1.2 },
-  { code: "CA", name: "Canada", flag: "CA", available: 369, startingPrice: 1.25 },
-  { code: "FR", name: "France", flag: "FR", available: 528, startingPrice: 1.3 },
-  { code: "DE", name: "Germany", flag: "DE", available: 644, startingPrice: 1.35 },
-];
+type Service = { code: string; name: string; category: string; available: number; price: number };
+type Country = { code: string; name: string; flag: string; available: number; startingPrice: number };
 
-const fallbackServices = [
-  { code: "ds", name: "Discord", category: "Community", available: 486, price: 1.1 },
-  { code: "tg", name: "Telegram", category: "Messaging", available: 1244, price: 1.45 },
-  { code: "wa", name: "WhatsApp", category: "Messaging", available: 923, price: 1.65 },
-  { code: "go", name: "Google", category: "Accounts", available: 682, price: 1.95 },
-  { code: "mm", name: "Microsoft", category: "Accounts", available: 318, price: 1.8 },
-  { code: "am", name: "Amazon", category: "Commerce", available: 236, price: 2.1 },
-];
+const fallbackCountries: Country[] = [];
+const fallbackServices: Service[] = [];
 
 const serviceNames: Record<string, { name: string; category: string }> = {
   aex: { name: "AliExpress", category: "Commerce" },
@@ -107,9 +93,6 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   mbt: { name: "Microsoft Bing", category: "Accounts" },
   ot: { name: "Other", category: "General" },
 };
-
-type Service = { code: string; name: string; category: string; available: number; price: number };
-type Country = { code: string; name: string; flag: string; available: number; startingPrice: number };
 
 const countryDisplayNames = new Intl.DisplayNames(["en"], { type: "region" });
 
@@ -254,6 +237,16 @@ async function listCountryServicePrices(countryCode: string) {
   return new Map(result.rows.map((row) => [String(row.service_code), Number(row.price)]));
 }
 
+async function getCountryBasePrice(countryCode: string): Promise<number | null> {
+  const result = await pool.query("SELECT base_price FROM sim_country_base_prices WHERE country_code = $1", [countryCode]);
+  return result.rows[0] ? Number(result.rows[0].base_price) : null;
+}
+
+async function listAllCountryBasePrices(): Promise<Map<string, number>> {
+  const result = await pool.query("SELECT country_code, base_price FROM sim_country_base_prices");
+  return new Map(result.rows.map((row) => [String(row.country_code), Number(row.base_price)]));
+}
+
 async function listEnabledServiceCodes() {
   const result = await pool.query("SELECT service_code FROM sim_enabled_services WHERE enabled = TRUE");
   if (result.rows.length === 0) return null;
@@ -268,15 +261,18 @@ async function isServiceEnabled(serviceCode: string) {
 async function getServicePrice(service: Service, country: Country) {
   const countryResult = await pool.query("SELECT price FROM sim_service_country_prices WHERE service_code = $1 AND country_code = $2", [service.code, country.code]);
   if (countryResult.rows[0]) return Number(countryResult.rows[0].price);
-  const result = await pool.query("SELECT price FROM sim_service_prices WHERE service_code = $1", [service.code]);
-  if (result.rows[0]) return Number(result.rows[0].price);
-  return Number((service.price + country.startingPrice * 0.25).toFixed(2));
+  const globalResult = await pool.query("SELECT price FROM sim_service_prices WHERE service_code = $1", [service.code]);
+  if (globalResult.rows[0]) return Number(globalResult.rows[0].price);
+  const dbBasePrice = await getCountryBasePrice(country.code);
+  const basePrice = dbBasePrice ?? country.startingPrice;
+  return Number((service.price + basePrice * 0.25).toFixed(2));
 }
 
 async function servicesWithPrices(country?: Country, enabledOnly = true) {
   const prices = await listServicePrices();
   const countryPrices = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
-  const countryBase = country?.startingPrice ?? 0;
+  const dbBasePrice = country ? await getCountryBasePrice(country.code) : null;
+  const countryBase = dbBasePrice ?? country?.startingPrice ?? 0;
   const enabledCodes = enabledOnly ? await listEnabledServiceCodes() : null;
   const services = await liveServices(country?.code);
   return services.filter((service) => !enabledCodes || enabledCodes.has(service.code)).map((service) => ({
@@ -862,9 +858,14 @@ router.get("/admin/services", async (req, res) => {
   const countryOverrides = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
   const activeServices = await liveServices(country?.code);
   const enabledServiceCodes = await listEnabledServiceCodes();
+  const allCountries = await liveCountries();
+  const countryBasePrices = await listAllCountryBasePrices();
   res.json({
     selectedCountry: country ?? null,
-    countries: await liveCountries(),
+    countries: allCountries.map((c) => ({
+      ...c,
+      customBasePrice: countryBasePrices.has(c.code) ? countryBasePrices.get(c.code) : null,
+    })),
     enabledServiceCodes: Array.from(enabledServiceCodes ?? new Set(activeServices.map((service) => service.code))),
     services: activeServices.map((service) => ({
       ...service,
@@ -879,6 +880,28 @@ router.get("/admin/services", async (req, res) => {
       globalPrice: priceOverrides.has(service.code) ? Number(priceOverrides.get(service.code)) : null,
     })),
   });
+});
+
+router.put("/admin/countries/:code/base-price", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const code = String(req.params.code).toUpperCase();
+  const price = Number(req.body?.price);
+  if (!Number.isFinite(price) || price < 0) {
+    res.status(400).json({ error: "Base price must be 0 or higher." });
+    return;
+  }
+  if (price === 0) {
+    await pool.query("DELETE FROM sim_country_base_prices WHERE country_code = $1", [code]);
+    res.json({ countryCode: code, basePrice: null, message: "Custom base price removed, will use live API price." });
+    return;
+  }
+  await pool.query(
+    `INSERT INTO sim_country_base_prices (country_code, base_price, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (country_code) DO UPDATE SET base_price = EXCLUDED.base_price, updated_at = NOW()`,
+    [code, price],
+  );
+  res.json({ countryCode: code, basePrice: price });
 });
 
 router.put("/admin/services/enabled", async (req, res) => {

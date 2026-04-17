@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { CheckCircle2, Loader2, Save, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Globe, Loader2, Save, ShieldCheck } from "lucide-react";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
 
@@ -17,6 +17,7 @@ type AdminCountry = {
   flag: string;
   available: number;
   startingPrice: number;
+  customBasePrice: number | null;
 };
 
 type AdminService = {
@@ -43,6 +44,11 @@ export default function AdminServices() {
   const [savingPrice, setSavingPrice] = useState(false);
   const [savingEnabled, setSavingEnabled] = useState(false);
   const [error, setError] = useState(false);
+
+  const [basePriceCountry, setBasePriceCountry] = useState<string>("");
+  const [basePriceDraft, setBasePriceDraft] = useState<string>("");
+  const [savingBasePrice, setSavingBasePrice] = useState(false);
+
   const { toast } = useToast();
 
   const loadServices = async (country = selectedCountry) => {
@@ -76,6 +82,12 @@ export default function AdminServices() {
     setPriceDraft(String(selectedService.price));
   }, [selectedServiceCode, selectedCountry, selectedService?.price]);
 
+  const selectedBasePriceCountry = countries.find((c) => c.code === basePriceCountry);
+  useEffect(() => {
+    if (!selectedBasePriceCountry) return;
+    setBasePriceDraft(selectedBasePriceCountry.customBasePrice != null ? String(selectedBasePriceCountry.customBasePrice) : String(selectedBasePriceCountry.startingPrice));
+  }, [basePriceCountry, selectedBasePriceCountry?.customBasePrice, selectedBasePriceCountry?.startingPrice]);
+
   const serviceOptions = useMemo(() => services.map((service) => ({
     value: service.code,
     label: service.name,
@@ -93,6 +105,14 @@ export default function AdminServices() {
       icon: country.flag || "🌍",
     })),
   ], [countries]);
+
+  const basePriceCountryOptions = useMemo(() => countries.map((country) => ({
+    value: country.code,
+    label: country.name,
+    searchText: `${country.name} ${country.code}`,
+    meta: country.customBasePrice != null ? `Custom: $${country.customBasePrice.toFixed(2)}` : `API: $${country.startingPrice.toFixed(2)}`,
+    icon: country.flag || "🌍",
+  })), [countries]);
 
   const enabledCount = enabledDraft.size;
   const filteredServices = useMemo(() => {
@@ -163,6 +183,40 @@ export default function AdminServices() {
       toast({ title: "Failed to update price", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
     } finally {
       setSavingPrice(false);
+    }
+  };
+
+  const saveBasePrice = async () => {
+    if (!basePriceCountry) return;
+    const price = Number(basePriceDraft);
+    if (!Number.isFinite(price) || price < 0) {
+      toast({ title: "Invalid base price", description: "Enter 0 to reset to API price or a positive number.", variant: "destructive" });
+      return;
+    }
+    setSavingBasePrice(true);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/countries/${encodeURIComponent(basePriceCountry)}/base-price`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ price }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      setCountries((current) => current.map((c) => c.code === basePriceCountry ? {
+        ...c,
+        customBasePrice: price === 0 ? null : price,
+      } : c));
+      toast({
+        title: price === 0 ? "Base price reset" : "Country base price saved",
+        description: price === 0
+          ? `${selectedBasePriceCountry?.name ?? basePriceCountry} will now use the live API price.`
+          : `${selectedBasePriceCountry?.name ?? basePriceCountry} base price set to $${price.toFixed(2)}.`,
+      });
+    } catch (err) {
+      toast({ title: "Failed to save base price", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setSavingBasePrice(false);
     }
   };
 
@@ -288,6 +342,96 @@ export default function AdminServices() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">Use 0 to make this service free for the selected scope.</p>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5 text-emerald-300" /> Country Base Prices</CardTitle>
+          <CardDescription>
+            Set a custom starting price per country. This base price is used in the auto-calculation formula when no fixed service price is set.
+            Set to 0 to reset a country back to using the live API price.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Country</label>
+            <SearchableSelect
+              value={basePriceCountry}
+              options={basePriceCountryOptions}
+              placeholder="Select a country to set base price"
+              searchPlaceholder="Type country name..."
+              emptyText="No country found."
+              onChange={setBasePriceCountry}
+            />
+          </div>
+
+          {selectedBasePriceCountry ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-bold text-white">{selectedBasePriceCountry.name}</div>
+                  <div className="text-xs text-muted-foreground font-mono">{selectedBasePriceCountry.code}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="border-white/10 bg-white/[0.05] text-slate-300">
+                    API price: ${selectedBasePriceCountry.startingPrice.toFixed(2)}
+                  </Badge>
+                  {selectedBasePriceCountry.customBasePrice != null ? (
+                    <Badge className="bg-emerald-400/10 text-emerald-200 border border-emerald-300/20">
+                      Custom: ${selectedBasePriceCountry.customBasePrice.toFixed(2)}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-400">
+                      Using API price
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={basePriceDraft}
+                  onChange={(e) => setBasePriceDraft(e.target.value)}
+                  className="h-12 text-lg font-bold"
+                  placeholder="0.00"
+                />
+                <Button onClick={saveBasePrice} disabled={savingBasePrice} className="h-12 rounded-full px-8">
+                  {savingBasePrice ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save Base Price
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Set to <strong>0</strong> to remove custom price and use the live API price for this country.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-muted-foreground">
+              Select a country above to view and edit its base price.
+            </div>
+          )}
+
+          {countries.filter((c) => c.customBasePrice != null).length > 0 ? (
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Custom Base Prices Set</div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/[0.06]">
+                {countries.filter((c) => c.customBasePrice != null).map((c) => (
+                  <div key={c.code} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{c.flag}</span>
+                      <span className="font-medium text-white text-sm">{c.name}</span>
+                      <span className="text-xs text-muted-foreground font-mono">{c.code}</span>
+                    </div>
+                    <Badge className="bg-emerald-400/10 text-emerald-200 border border-emerald-300/20">
+                      ${c.customBasePrice!.toFixed(2)}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
         </CardContent>
