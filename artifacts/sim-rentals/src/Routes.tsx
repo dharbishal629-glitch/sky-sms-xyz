@@ -9,6 +9,7 @@ import AdminUsers from "@/pages/admin/Users";
 import AdminTransactions from "@/pages/admin/Transactions";
 import AdminServices from "@/pages/admin/Services";
 import AdminSupport from "@/pages/admin/Support";
+import AdminCoupons from "@/pages/admin/Coupons";
 import Support from "@/pages/Support";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetMe } from "@workspace/api-client-react";
@@ -97,6 +98,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/admin/support">
         <AdminRoute component={AdminSupport} />
+      </Route>
+      <Route path="/admin/coupons">
+        <AdminRoute component={AdminCoupons} />
       </Route>
     </Switch>
   );

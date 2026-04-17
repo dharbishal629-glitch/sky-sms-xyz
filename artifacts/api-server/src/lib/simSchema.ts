@@ -116,6 +116,22 @@ async function createSchema() {
       message TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS sim_coupons (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      type TEXT NOT NULL,
+      value NUMERIC NOT NULL,
+      max_uses INTEGER,
+      uses_count INTEGER NOT NULL DEFAULT 0,
+      target_user_email TEXT,
+      expires_at TIMESTAMPTZ,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+    ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS bonus_credits NUMERIC NOT NULL DEFAULT 0;
   `);
 
   for (const code of SEED_ENABLED_SERVICES) {

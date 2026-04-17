@@ -9,17 +9,19 @@ import { format } from "date-fns";
 import {
   CreditCard, ArrowUpRight, Check, AlertCircle, Clock, Loader2, Pencil,
   DollarSign, Zap, Shield, RefreshCw, ChevronRight, Bitcoin, Coins, CheckCircle2, XCircle,
-  ChevronDown, Printer, X, Receipt
+  ChevronDown, Printer, X, Receipt, Tag,
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { Link } from "wouter";
 
 const PACKAGES = [
   { amount: 5, popular: false },
-  { amount: 10, popular: true, bonus: "10% extra" },
-  { amount: 25, popular: false, bonus: "20% extra" },
-  { amount: 50, popular: false, bonus: "30% extra" },
+  { amount: 10, popular: true },
+  { amount: 25, popular: false },
+  { amount: 50, popular: false },
 ];
+
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
 
 const howItWorks = [
   { step: "1", icon: Coins, title: "Choose Amount", desc: "Pick a preset package or enter any custom amount, even less than $1." },
@@ -118,18 +120,168 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
+type CouponInfo = { code: string; type: "fixed" | "percentage"; value: number };
+
+function CheckoutModal({
+  amount,
+  onClose,
+  onConfirm,
+}: {
+  amount: number;
+  onClose: () => void;
+  onConfirm: (couponCode: string | null) => void;
+}) {
+  const { toast } = useToast();
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<CouponInfo | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const bonus = coupon
+    ? coupon.type === "percentage"
+      ? Number((amount * (coupon.value / 100)).toFixed(2))
+      : coupon.value
+    : 0;
+  const totalCredits = Number((amount + bonus).toFixed(2));
+
+  async function applyCode() {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setValidating(true);
+    setCouponError(null);
+    setCoupon(null);
+    try {
+      const res = await fetch(`${API_URL}/api/coupons/validate`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Invalid coupon");
+      setCoupon(data as CouponInfo);
+    } catch (err: any) {
+      setCouponError(err.message);
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  function removeCode() {
+    setCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-[#0d1526] border border-white/[0.1] rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <span className="font-black text-white text-lg">Confirm Payment</span>
+          <button onClick={onClose} className="h-7 w-7 rounded-full bg-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Amount summary */}
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">You pay</span>
+            <span className="font-black text-white text-xl">${amount.toFixed(2)}</span>
+          </div>
+          {bonus > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-emerald-400 flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" /> Coupon bonus
+              </span>
+              <span className="font-bold text-emerald-400">+${bonus.toFixed(2)}</span>
+            </div>
+          )}
+          <div className={`flex justify-between items-center pt-2 border-t border-white/[0.06] ${bonus > 0 ? "text-emerald-300" : "text-white"}`}>
+            <span className="text-sm font-semibold">Credits added</span>
+            <span className="font-black text-xl">${totalCredits.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Coupon section */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <Tag className="h-3.5 w-3.5" /> Coupon Code <span className="text-slate-600">(optional)</span>
+          </div>
+
+          {coupon ? (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-400/[0.08] border border-emerald-400/25">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="font-mono font-black text-emerald-300 tracking-widest">{coupon.code}</span>
+                <span className="text-xs text-emerald-400 ml-2">
+                  {coupon.type === "percentage" ? `${coupon.value}% off` : `+$${coupon.value.toFixed(2)} free`}
+                </span>
+              </div>
+              <button onClick={removeCode} className="text-slate-500 hover:text-red-400 transition-colors shrink-0">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter code"
+                value={couponInput}
+                onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                onKeyDown={(e) => e.key === "Enter" && applyCode()}
+                className="font-mono tracking-widest uppercase flex-1 h-10"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={applyCode}
+                disabled={!couponInput.trim() || validating}
+                className="h-10 px-4 rounded-xl shrink-0"
+              >
+                {validating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+              </Button>
+            </div>
+          )}
+
+          {couponError && (
+            <div className="flex items-center gap-1.5 text-xs text-red-400">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {couponError}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-1">
+          <Button variant="outline" onClick={onClose} className="flex-1 rounded-full">Cancel</Button>
+          <Button onClick={() => onConfirm(coupon?.code ?? null)} className="flex-1 rounded-full">
+            Proceed to Checkout
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Payments() {
   const { data: userData } = useGetMe();
   const { data, isLoading, error } = useListPayments();
   const createCheckout = useCreatePaymentCheckout();
   const { toast } = useToast();
-  const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
-  const [customLoading, setCustomLoading] = useState(false);
   const [historyTab, setHistoryTab] = useState<"all" | "completed" | "processing" | "failed">("all");
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const [receiptPayment, setReceiptPayment] = useState<any>(null);
+
+  // Checkout modal
+  const [checkoutAmount, setCheckoutAmount] = useState<number | null>(null);
+  const [checkoutPending, setCheckoutPending] = useState(false);
+
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tabTrackRef = useRef<HTMLDivElement>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
@@ -150,37 +302,32 @@ export default function Payments() {
     }
   }, [historyTab]);
 
-  const handleCheckout = (amount: number) => {
-    setSelectedPackage(amount);
-    createCheckout.mutate({ data: { amount, currency: "USD" } }, {
-      onSuccess: (response) => {
-        window.open(response.checkoutUrl, "_blank");
-        toast({ title: "Redirecting to checkout", description: `Opening payment for $${amount.toFixed(2)}.` });
-        setSelectedPackage(null);
+  const openCheckoutModal = (amount: number) => setCheckoutAmount(amount);
+
+  const handleConfirmedCheckout = (amount: number, couponCode: string | null) => {
+    setCheckoutAmount(null);
+    setCheckoutPending(true);
+    createCheckout.mutate(
+      { data: { amount, currency: "USD", couponCode } as any },
+      {
+        onSuccess: (response) => {
+          window.open(response.checkoutUrl, "_blank");
+          toast({ title: "Redirecting to checkout", description: `Opening payment for $${amount.toFixed(2)}.` });
+          setCustomAmount("");
+          setCheckoutPending(false);
+        },
+        onError: (err: any) => {
+          toast({ title: "Checkout failed", description: err.message || "Please try again.", variant: "destructive" });
+          setCheckoutPending(false);
+        },
       },
-      onError: (err: any) => {
-        toast({ title: "Checkout failed", description: err.message || "Please try again.", variant: "destructive" });
-        setSelectedPackage(null);
-      }
-    });
+    );
   };
 
   const handleCustomCheckout = () => {
     const amount = parseFloat(customAmount);
     if (!amount || amount <= 0) return;
-    setCustomLoading(true);
-    createCheckout.mutate({ data: { amount, currency: "USD" } }, {
-      onSuccess: (response) => {
-        window.open(response.checkoutUrl, "_blank");
-        toast({ title: "Redirecting to checkout", description: `Opening payment for $${amount.toFixed(2)}.` });
-        setCustomLoading(false);
-        setCustomAmount("");
-      },
-      onError: (err: any) => {
-        toast({ title: "Checkout failed", description: err.message || "Please try again.", variant: "destructive" });
-        setCustomLoading(false);
-      }
-    });
+    openCheckoutModal(amount);
   };
 
   const customAmountNum = parseFloat(customAmount) || 0;
@@ -204,6 +351,13 @@ export default function Payments() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-12">
+      {checkoutAmount !== null && (
+        <CheckoutModal
+          amount={checkoutAmount}
+          onClose={() => setCheckoutAmount(null)}
+          onConfirm={(couponCode) => handleConfirmedCheckout(checkoutAmount, couponCode)}
+        />
+      )}
 
       <Reveal variant="up">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -251,23 +405,19 @@ export default function Payments() {
                   <CardDescription className="text-xs">USD via crypto</CardDescription>
                 </CardHeader>
                 <CardContent className="pb-4">
-                  {pkg.bonus ? (
-                    <p className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
-                      <Check className="h-3.5 w-3.5" /> {pkg.bonus} value
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Standard rate</p>
-                  )}
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5" /> Coupon codes accepted
+                  </p>
                 </CardContent>
                 <CardFooter className="pb-5">
                   <Button
                     className="w-full rounded-full"
                     variant={pkg.popular ? "default" : "outline"}
-                    onClick={() => handleCheckout(pkg.amount)}
-                    disabled={createCheckout.isPending && selectedPackage === pkg.amount}
+                    onClick={() => openCheckoutModal(pkg.amount)}
+                    disabled={checkoutPending}
                     data-testid={`button-buy-${pkg.amount}`}
                   >
-                    {createCheckout.isPending && selectedPackage === pkg.amount ? (
+                    {checkoutPending ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
                     ) : (
                       `Add $${pkg.amount}.00`
@@ -312,11 +462,11 @@ export default function Payments() {
             )}
             <Button
               className="w-full rounded-full h-11"
-              disabled={!customAmount || customAmountNum <= 0 || customLoading}
+              disabled={!customAmount || customAmountNum <= 0 || checkoutPending}
               onClick={handleCustomCheckout}
               data-testid="button-buy-custom"
             >
-              {customLoading ? (
+              {checkoutPending ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
               ) : customAmountNum > 0 ? (
                 `Add $${customAmountNum.toFixed(2)}`

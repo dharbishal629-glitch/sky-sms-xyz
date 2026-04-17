@@ -714,6 +714,13 @@ router.post("/payments/oxapay/webhook", async (req, res) => {
             [credits, payment.user_id],
           );
         }
+        // Mark coupon as used
+        if (payment.coupon_code) {
+          await pool.query(
+            "UPDATE sim_coupons SET uses_count = uses_count + 1 WHERE code = $1",
+            [payment.coupon_code],
+          );
+        }
       }
     } else if (status === "Expired" || status === "Error") {
       if (String(payment.status) === "pending") {
@@ -735,12 +742,42 @@ router.post("/payments/checkout", async (req, res) => {
   const body = CreatePaymentCheckoutBody.parse(req.body);
   const id = crypto.randomUUID();
   const userId = getUserId(req);
+  const userEmail = req.user?.email ?? null;
+  const couponCodeRaw = typeof (req.body as any).couponCode === "string" ? (req.body as any).couponCode.trim().toUpperCase() : null;
+
   try {
+    // Validate coupon if provided
+    let bonusCredits = 0;
+    let appliedCouponCode: string | null = null;
+    if (couponCodeRaw) {
+      const couponResult = await pool.query(
+        "SELECT * FROM sim_coupons WHERE code = $1",
+        [couponCodeRaw],
+      );
+      const coupon = couponResult.rows[0];
+      const validCoupon =
+        coupon &&
+        coupon.active &&
+        (!coupon.expires_at || new Date(coupon.expires_at) > new Date()) &&
+        (coupon.max_uses === null || Number(coupon.uses_count) < Number(coupon.max_uses)) &&
+        (!coupon.target_user_email || coupon.target_user_email === userEmail);
+
+      if (validCoupon) {
+        if (coupon.type === "percentage") {
+          bonusCredits = Number((body.amount * (Number(coupon.value) / 100)).toFixed(2));
+        } else {
+          bonusCredits = Number(coupon.value);
+        }
+        appliedCouponCode = couponCodeRaw;
+      }
+    }
+
+    const totalCredits = Number((body.amount + bonusCredits).toFixed(2));
     const checkoutUrl = await createOxaPayInvoice(req, id, body.amount, body.currency);
     const result = await pool.query(
-      `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider)
-       VALUES ($1, $2, $3, $3, $4, 'pending', 'OxaPay') RETURNING *`,
-      [id, userId, body.amount, body.currency],
+      `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider, coupon_code, bonus_credits)
+       VALUES ($1, $2, $3, $4, $5, 'pending', 'OxaPay', $6, $7) RETURNING *`,
+      [id, userId, body.amount, totalCredits, body.currency, appliedCouponCode, bonusCredits],
     );
     const row = result.rows[0];
     res.json(
@@ -761,6 +798,134 @@ router.post("/payments/checkout", async (req, res) => {
   } catch (error) {
     res.status(502).json({ error: error instanceof Error ? error.message : "Unable to create OxaPay checkout." });
   }
+});
+
+// ─── Coupon: validate (user-facing) ────────────────────────────────────────
+router.post("/coupons/validate", async (req, res) => {
+  try {
+    const { code } = req.body as { code?: string };
+    if (!code || typeof code !== "string") {
+      res.status(400).json({ error: "Coupon code is required." });
+      return;
+    }
+    const userEmail = req.user?.email ?? null;
+    const result = await pool.query(
+      "SELECT * FROM sim_coupons WHERE UPPER(code) = UPPER($1)",
+      [code.trim()],
+    );
+    const coupon = result.rows[0];
+    if (!coupon || !coupon.active) {
+      res.status(404).json({ error: "Coupon code not found or inactive." });
+      return;
+    }
+    if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+      res.status(400).json({ error: "This coupon has expired." });
+      return;
+    }
+    if (coupon.max_uses !== null && Number(coupon.uses_count) >= Number(coupon.max_uses)) {
+      res.status(400).json({ error: "This coupon has reached its usage limit." });
+      return;
+    }
+    if (coupon.target_user_email && coupon.target_user_email !== userEmail) {
+      res.status(403).json({ error: "This coupon is not valid for your account." });
+      return;
+    }
+    res.json({
+      valid: true,
+      code: String(coupon.code),
+      type: String(coupon.type),
+      value: Number(coupon.value),
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to validate coupon." });
+  }
+});
+
+// ─── Coupon: admin CRUD ─────────────────────────────────────────────────────
+router.get("/admin/coupons", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const result = await pool.query(
+    "SELECT * FROM sim_coupons ORDER BY created_at DESC",
+  );
+  res.json({
+    coupons: result.rows.map((r) => ({
+      id: String(r.id),
+      code: String(r.code),
+      type: String(r.type),
+      value: Number(r.value),
+      maxUses: r.max_uses !== null ? Number(r.max_uses) : null,
+      usesCount: Number(r.uses_count),
+      targetUserEmail: r.target_user_email ?? null,
+      expiresAt: r.expires_at ? new Date(r.expires_at).toISOString() : null,
+      active: Boolean(r.active),
+      createdAt: new Date(r.created_at).toISOString(),
+    })),
+  });
+});
+
+router.post("/admin/coupons", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  try {
+    const { code, type, value, maxUses, targetUserEmail, expiresAt } = req.body as {
+      code: string; type: string; value: number;
+      maxUses?: number | null; targetUserEmail?: string | null; expiresAt?: string | null;
+    };
+    if (!code || !type || value == null) {
+      res.status(400).json({ error: "code, type and value are required." });
+      return;
+    }
+    if (!["fixed", "percentage"].includes(type)) {
+      res.status(400).json({ error: "type must be 'fixed' or 'percentage'." });
+      return;
+    }
+    if (type === "percentage" && (Number(value) <= 0 || Number(value) > 100)) {
+      res.status(400).json({ error: "Percentage must be between 1 and 100." });
+      return;
+    }
+    if (type === "fixed" && Number(value) <= 0) {
+      res.status(400).json({ error: "Fixed discount must be greater than 0." });
+      return;
+    }
+    const id = crypto.randomUUID();
+    const result = await pool.query(
+      `INSERT INTO sim_coupons (id, code, type, value, max_uses, target_user_email, expires_at)
+       VALUES ($1, UPPER($2), $3, $4, $5, $6, $7) RETURNING *`,
+      [id, code.trim(), type, value, maxUses ?? null, targetUserEmail || null, expiresAt || null],
+    );
+    const r = result.rows[0];
+    res.json({
+      id: String(r.id), code: String(r.code), type: String(r.type), value: Number(r.value),
+      maxUses: r.max_uses !== null ? Number(r.max_uses) : null, usesCount: 0,
+      targetUserEmail: r.target_user_email ?? null, expiresAt: r.expires_at ? new Date(r.expires_at).toISOString() : null,
+      active: true, createdAt: new Date(r.created_at).toISOString(),
+    });
+  } catch (error: any) {
+    if (error?.code === "23505") {
+      res.status(409).json({ error: "A coupon with this code already exists." });
+    } else {
+      res.status(500).json({ error: "Failed to create coupon." });
+    }
+  }
+});
+
+router.patch("/admin/coupons/:code/toggle", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const result = await pool.query(
+    "UPDATE sim_coupons SET active = NOT active WHERE UPPER(code) = UPPER($1) RETURNING *",
+    [req.params.code],
+  );
+  if (!result.rows[0]) { res.status(404).json({ error: "Coupon not found." }); return; }
+  res.json({ active: Boolean(result.rows[0].active) });
+});
+
+router.delete("/admin/coupons/:code", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const result = await pool.query(
+    "DELETE FROM sim_coupons WHERE UPPER(code) = UPPER($1) RETURNING id",
+    [req.params.code],
+  );
+  if (!result.rows[0]) { res.status(404).json({ error: "Coupon not found." }); return; }
+  res.json({ deleted: true });
 });
 
 router.get("/admin/overview", async (req, res) => {
