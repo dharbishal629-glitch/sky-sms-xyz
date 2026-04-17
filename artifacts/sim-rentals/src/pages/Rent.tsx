@@ -17,6 +17,7 @@ interface LiveCountry {
   flag: string;
   available: number;
   heroPrice: number;
+  price: number;
 }
 
 function useCountriesForService(serviceCode: string) {
@@ -150,7 +151,7 @@ export default function Rent() {
     value: country.code,
     label: country.name,
     searchText: `${country.name} ${country.code}`,
-    meta: `${country.heroPrice > 0 ? `$${country.heroPrice.toFixed(2)} · ` : ""}${country.available.toLocaleString()} left`,
+    meta: `${country.price > 0 ? `$${country.price.toFixed(2)} · ` : ""}${country.available.toLocaleString()} left`,
     icon: country.flag || "🌍",
   }));
 
@@ -261,9 +262,14 @@ export default function Rent() {
                   )}
 
                   <div className="flex justify-between items-center py-2 px-1 border-t border-b border-white/10">
-                    <span className="text-muted-foreground text-sm font-medium">Price per SMS</span>
+                    <div>
+                      <span className="text-muted-foreground text-sm font-medium">Price per SMS</span>
+                      {availability.price === 0 && (
+                        <div className="text-[11px] text-amber-400 mt-0.5">Price not set — configure in admin panel</div>
+                      )}
+                    </div>
                     <span className="text-xl font-bold text-primary" data-testid="text-price-quote">
-                      {availability.price === 0 ? "Free" : `$${availability.price.toFixed(2)}`}
+                      ${availability.price.toFixed(2)}
                     </span>
                   </div>
 
@@ -300,8 +306,6 @@ export default function Rent() {
                   "Provider Unavailable"
                 ) : availability?.available === 0 ? (
                   "No Numbers Available"
-                ) : availability?.price === 0 ? (
-                  "Rent Free Number"
                 ) : (
                   "Rent Number"
                 )}

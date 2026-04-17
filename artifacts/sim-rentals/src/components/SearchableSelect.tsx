@@ -33,6 +33,18 @@ type SearchableSelectProps = {
   triggerClassName?: string;
 };
 
+function IconDisplay({ icon, size = "sm" }: { icon: string | null | undefined; size?: "sm" | "md" }) {
+  if (!icon) return null;
+  const isEmoji = icon.length <= 4 && !icon.startsWith("http");
+  const sizeClass = size === "md" ? "text-lg leading-none" : "text-base leading-none";
+  const imgClass = size === "md" ? "h-5 w-5 shrink-0 object-contain" : "h-4 w-4 shrink-0 object-contain";
+  return isEmoji ? (
+    <span className={sizeClass}>{icon}</span>
+  ) : (
+    <img src={icon} alt="" className={imgClass} />
+  );
+}
+
 export function SearchableSelect({
   value,
   options,
@@ -59,13 +71,17 @@ export function SearchableSelect({
           className={cn("h-12 w-full justify-between rounded-xl border-white/10 bg-white/[0.03] px-4 text-left font-normal hover:bg-white/[0.06]", triggerClassName)}
         >
           <span className="flex min-w-0 items-center gap-2">
-            {selected?.icon ? <img src={selected.icon} alt="" className="h-4 w-4 shrink-0 object-contain" /> : null}
+            <IconDisplay icon={selected?.icon} />
             <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected?.label ?? placeholder}</span>
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn("w-[var(--radix-popover-trigger-width)] p-0", className)} align="start">
+      <PopoverContent
+        className={cn("w-[var(--radix-popover-trigger-width)] p-0", className)}
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList className="max-h-80">
@@ -83,15 +99,8 @@ export function SearchableSelect({
                   className="py-3"
                 >
                   <Check className={cn("h-4 w-4", value === option.value ? "opacity-100" : "opacity-0")} />
-                  {option.icon ? (
-                    option.icon.length <= 4 && !option.icon.startsWith("http") ? (
-                      <span className="text-base leading-none">{option.icon}</span>
-                    ) : (
-                      <img src={option.icon} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                    )
-                  ) : (
-                    <span className="h-4 w-4 shrink-0 rounded-sm bg-white/10" />
-                  )}
+                  <IconDisplay icon={option.icon} />
+                  {!option.icon && <span className="h-4 w-4 shrink-0 rounded-sm bg-white/10" />}
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
                   {option.meta ? <span className="ml-auto shrink-0 text-xs font-medium text-cyan-300">{option.meta}</span> : null}
                 </CommandItem>

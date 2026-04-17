@@ -107,29 +107,28 @@ function RentalCard({ rental }: { rental: any }) {
             </div>
 
             {rental.phoneNumber ? (
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2">
                 <div
-                  className={`font-mono font-black tracking-widest select-all ${
-                    isActive ? 'text-white text-2xl sm:text-3xl' : 'text-slate-300 text-xl sm:text-2xl'
+                  className={`font-mono font-black select-all break-all min-w-0 ${
+                    isActive ? 'text-white text-lg sm:text-2xl' : 'text-slate-300 text-base sm:text-xl'
                   }`}
                   data-testid={`text-rental-number-${rental.id}`}
-                  style={{ letterSpacing: '0.08em' }}
                 >
                   +{rental.phoneNumber}
                 </div>
                 <button
                   onClick={() => copyToClipboard(`+${rental.phoneNumber}`)}
                   data-testid={`button-copy-number-${rental.id}`}
-                  className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 ${
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all duration-200 ${
                     copied
                       ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-300/30'
                       : 'bg-white/[0.08] text-white border border-white/[0.12] hover:bg-white/[0.14] hover:border-sky-400/30'
                   }`}
                 >
                   {copied ? (
-                    <><Check className="h-3.5 w-3.5" /> Copied</>
+                    <><Check className="h-3.5 w-3.5" /><span className="hidden sm:inline ml-1">Copied</span></>
                   ) : (
-                    <><Copy className="h-3.5 w-3.5" /> Copy</>
+                    <><Copy className="h-3.5 w-3.5" /><span className="hidden sm:inline ml-1">Copy</span></>
                   )}
                 </button>
               </div>
@@ -297,9 +296,9 @@ export default function Rentals() {
         <Reveal variant="up" delay={40}>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { icon: TrendingUp, label: "Total Rentals", value: data.rentals.length, color: "cyan" },
-              { icon: Zap, label: "Active Now", value: activeRentals.length, color: "indigo" },
-              { icon: CheckCircle2, label: "SMS Received", value: smsReceived, color: "emerald" },
+              { icon: TrendingUp, label: "Total", value: data.rentals.length, color: "cyan" },
+              { icon: Zap, label: "Active", value: activeRentals.length, color: "indigo" },
+              { icon: CheckCircle2, label: "Received", value: smsReceived, color: "emerald" },
             ].map((stat, i) => (
               <div key={i} className={`glass-card rounded-2xl p-4 text-center border ${stat.color === 'cyan' ? 'border-cyan-400/10' : stat.color === 'indigo' ? 'border-indigo-400/10' : 'border-emerald-400/10'}`}>
                 <div className={`text-2xl font-black ${stat.color === 'cyan' ? 'text-white' : stat.color === 'indigo' ? 'text-white' : 'text-white'}`}>{stat.value}</div>

@@ -532,20 +532,23 @@ router.get("/catalog/countries-for-service", async (req, res) => {
 
   const liveData = await withFastFallback(getHeroCountriesForService(serviceCode), []);
 
-  const result = liveData
-    .map((live) => {
-      const country = countryFromCode(live.countryCode, live);
-      return {
-        code: country.code,
-        name: country.name,
-        flag: country.flag,
-        available: live.count,
-        heroPrice: live.cost,
-      };
-    })
+  const mapped = liveData
+    .map((live) => ({ country: countryFromCode(live.countryCode, live), available: live.count, heroPrice: live.cost }))
     .filter((c) => c.available > 0)
     .sort((a, b) => a.heroPrice - b.heroPrice || b.available - a.available)
     .slice(0, MAX_COUNTRIES);
+
+  const service = serviceFromCode(serviceCode);
+  const result = await Promise.all(
+    mapped.map(async ({ country, available, heroPrice }) => ({
+      code: country.code,
+      name: country.name,
+      flag: country.flag,
+      available,
+      heroPrice,
+      price: await getServicePrice(service, country),
+    })),
+  );
 
   res.json({ countries: result, provider: providerStatus("Hero SMS") });
 });
