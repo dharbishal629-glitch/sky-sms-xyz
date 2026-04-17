@@ -301,7 +301,7 @@ function getRequestOrigin(req: Request) {
   return host ? `${protocol}://${host}` : "https://smsrentals.app";
 }
 
-async function createOxaPayInvoice(req: Request, paymentId: string, amount: number, currency: string) {
+async function createOxaPayInvoice(req: Request, paymentId: string, amount: number, currency: string, credits?: number) {
   const merchant = process.env.OXAPAY_MERCHANT_API_KEY;
   if (!merchant) {
     throw new Error("OxaPay merchant key is not configured.");
@@ -321,7 +321,7 @@ async function createOxaPayInvoice(req: Request, paymentId: string, amount: numb
       feePaidByPayer: 1,
       underPaidCover: 1,
       orderId: paymentId,
-      description: `SMS Rentals credit package - ${amount} credits`,
+      description: `SMS Rentals credit package - ${credits ?? amount} credits`,
       returnUrl: `${origin}/payments`,
       callbackUrl: `${origin}/api/payments/oxapay/webhook`,
     }),
@@ -775,7 +775,7 @@ router.post("/payments/checkout", async (req, res) => {
     // User pays the discounted price to OxaPay but receives the full original credits
     const chargedAmount = Number(Math.max(body.amount - discountAmount, 0.01).toFixed(2));
     const totalCredits = body.amount;
-    const checkoutUrl = await createOxaPayInvoice(req, id, chargedAmount, body.currency);
+    const checkoutUrl = await createOxaPayInvoice(req, id, chargedAmount, body.currency, totalCredits);
     const result = await pool.query(
       `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider, coupon_code, bonus_credits)
        VALUES ($1, $2, $3, $4, $5, 'pending', 'OxaPay', $6, $7) RETURNING *`,
