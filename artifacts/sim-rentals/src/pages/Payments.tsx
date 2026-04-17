@@ -189,12 +189,17 @@ function CheckoutModal({
 
         {/* Amount summary */}
         <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
-          {discount > 0 && (
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Original price</span>
-              <span className="text-slate-400 line-through">${amount.toFixed(2)}</span>
-            </div>
-          )}
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">You pay</span>
+            {discount > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 line-through text-sm">${amount.toFixed(2)}</span>
+                <span className="font-black text-white text-xl">${discountedAmount.toFixed(2)}</span>
+              </div>
+            ) : (
+              <span className="font-black text-white text-xl">${amount.toFixed(2)}</span>
+            )}
+          </div>
           {discount > 0 && (
             <div className="flex justify-between items-center text-sm">
               <span className="text-emerald-400 flex items-center gap-1.5">
@@ -203,9 +208,9 @@ function CheckoutModal({
               <span className="font-bold text-emerald-400">-${discount.toFixed(2)}</span>
             </div>
           )}
-          <div className={`flex justify-between items-center ${discount > 0 ? "pt-2 border-t border-white/[0.06]" : ""}`}>
-            <span className="text-muted-foreground text-sm">You pay</span>
-            <span className={`font-black text-xl ${discount > 0 ? "text-emerald-300" : "text-white"}`}>${discountedAmount.toFixed(2)}</span>
+          <div className={`flex justify-between items-center pt-2 border-t border-white/[0.06]`}>
+            <span className="text-sm font-semibold text-white">Credits added</span>
+            <span className="font-black text-xl text-emerald-300">${amount.toFixed(2)}</span>
           </div>
         </div>
 

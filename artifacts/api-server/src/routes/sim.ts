@@ -772,14 +772,14 @@ router.post("/payments/checkout", async (req, res) => {
       }
     }
 
-    // The user pays the discounted price; credits equal what they actually pay
+    // User pays the discounted price to OxaPay but receives the full original credits
     const chargedAmount = Number(Math.max(body.amount - discountAmount, 0.01).toFixed(2));
-    const totalCredits = chargedAmount;
+    const totalCredits = body.amount;
     const checkoutUrl = await createOxaPayInvoice(req, id, chargedAmount, body.currency);
     const result = await pool.query(
       `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider, coupon_code, bonus_credits)
        VALUES ($1, $2, $3, $4, $5, 'pending', 'OxaPay', $6, $7) RETURNING *`,
-      [id, userId, chargedAmount, totalCredits, body.currency, appliedCouponCode, -discountAmount],
+      [id, userId, chargedAmount, totalCredits, body.currency, appliedCouponCode, discountAmount],
     );
     const row = result.rows[0];
     res.json(
