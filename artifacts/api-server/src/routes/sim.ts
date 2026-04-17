@@ -747,7 +747,7 @@ router.post("/payments/checkout", async (req, res) => {
 
   try {
     // Validate coupon if provided
-    let bonusCredits = 0;
+    let discountAmount = 0;
     let appliedCouponCode: string | null = null;
     if (couponCodeRaw) {
       const couponResult = await pool.query(
@@ -764,20 +764,22 @@ router.post("/payments/checkout", async (req, res) => {
 
       if (validCoupon) {
         if (coupon.type === "percentage") {
-          bonusCredits = Number((body.amount * (Number(coupon.value) / 100)).toFixed(2));
+          discountAmount = Number((body.amount * (Number(coupon.value) / 100)).toFixed(2));
         } else {
-          bonusCredits = Number(coupon.value);
+          discountAmount = Math.min(Number(coupon.value), body.amount);
         }
         appliedCouponCode = couponCodeRaw;
       }
     }
 
-    const totalCredits = Number((body.amount + bonusCredits).toFixed(2));
-    const checkoutUrl = await createOxaPayInvoice(req, id, body.amount, body.currency);
+    // The user pays the discounted price; credits equal what they actually pay
+    const chargedAmount = Number(Math.max(body.amount - discountAmount, 0.01).toFixed(2));
+    const totalCredits = chargedAmount;
+    const checkoutUrl = await createOxaPayInvoice(req, id, chargedAmount, body.currency);
     const result = await pool.query(
       `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider, coupon_code, bonus_credits)
        VALUES ($1, $2, $3, $4, $5, 'pending', 'OxaPay', $6, $7) RETURNING *`,
-      [id, userId, body.amount, totalCredits, body.currency, appliedCouponCode, bonusCredits],
+      [id, userId, chargedAmount, totalCredits, body.currency, appliedCouponCode, -discountAmount],
     );
     const row = result.rows[0];
     res.json(

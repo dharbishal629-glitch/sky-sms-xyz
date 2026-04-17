@@ -137,12 +137,12 @@ function CheckoutModal({
   const [validating, setValidating] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
-  const bonus = coupon
+  const discount = coupon
     ? coupon.type === "percentage"
       ? Number((amount * (coupon.value / 100)).toFixed(2))
-      : coupon.value
+      : Math.min(coupon.value, amount)
     : 0;
-  const totalCredits = Number((amount + bonus).toFixed(2));
+  const discountedAmount = Number(Math.max(amount - discount, 0.01).toFixed(2));
 
   async function applyCode() {
     const code = couponInput.trim().toUpperCase();
@@ -189,21 +189,23 @@ function CheckoutModal({
 
         {/* Amount summary */}
         <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">You pay</span>
-            <span className="font-black text-white text-xl">${amount.toFixed(2)}</span>
-          </div>
-          {bonus > 0 && (
+          {discount > 0 && (
             <div className="flex justify-between items-center text-sm">
-              <span className="text-emerald-400 flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5" /> Coupon bonus
-              </span>
-              <span className="font-bold text-emerald-400">+${bonus.toFixed(2)}</span>
+              <span className="text-muted-foreground">Original price</span>
+              <span className="text-slate-400 line-through">${amount.toFixed(2)}</span>
             </div>
           )}
-          <div className={`flex justify-between items-center pt-2 border-t border-white/[0.06] ${bonus > 0 ? "text-emerald-300" : "text-white"}`}>
-            <span className="text-sm font-semibold">Credits added</span>
-            <span className="font-black text-xl">${totalCredits.toFixed(2)}</span>
+          {discount > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-emerald-400 flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" /> Discount
+              </span>
+              <span className="font-bold text-emerald-400">-${discount.toFixed(2)}</span>
+            </div>
+          )}
+          <div className={`flex justify-between items-center ${discount > 0 ? "pt-2 border-t border-white/[0.06]" : ""}`}>
+            <span className="text-muted-foreground text-sm">You pay</span>
+            <span className={`font-black text-xl ${discount > 0 ? "text-emerald-300" : "text-white"}`}>${discountedAmount.toFixed(2)}</span>
           </div>
         </div>
 
@@ -219,7 +221,7 @@ function CheckoutModal({
               <div className="flex-1 min-w-0">
                 <span className="font-mono font-black text-emerald-300 tracking-widest">{coupon.code}</span>
                 <span className="text-xs text-emerald-400 ml-2">
-                  {coupon.type === "percentage" ? `${coupon.value}% off` : `+$${coupon.value.toFixed(2)} free`}
+                  {coupon.type === "percentage" ? `${coupon.value}% off` : `$${coupon.value.toFixed(2)} off`}
                 </span>
               </div>
               <button onClick={removeCode} className="text-slate-500 hover:text-red-400 transition-colors shrink-0">
