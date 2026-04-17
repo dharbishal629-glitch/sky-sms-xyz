@@ -28,7 +28,11 @@ function RentalCard({ rental }: { rental: any }) {
 
   const isActive = rental.status === 'active';
   const hasMessages = rental.messages && rental.messages.length > 0;
+  const hasCodes = rental.messages?.some((m: any) => m.code);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [progress, setProgress] = useState<number>(100);
+
+  const totalDuration = differenceInSeconds(new Date(rental.expiresAt), new Date(rental.createdAt));
 
   useEffect(() => {
     if (!isActive) return;
@@ -36,6 +40,8 @@ function RentalCard({ rental }: { rental: any }) {
       const expiresAt = new Date(rental.expiresAt);
       const diff = Math.max(0, differenceInSeconds(expiresAt, new Date()));
       setTimeLeft(diff);
+      const pct = totalDuration > 0 ? Math.min(100, Math.max(0, (diff / totalDuration) * 100)) : 0;
+      setProgress(pct);
       if (diff === 0) {
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: getListRentalsQueryKey() });
@@ -46,11 +52,13 @@ function RentalCard({ rental }: { rental: any }) {
     calculateTimeLeft();
     const interval = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(interval);
-  }, [isActive, rental.expiresAt, queryClient]);
+  }, [isActive, rental.expiresAt, rental.createdAt, totalDuration, queryClient]);
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
@@ -143,16 +151,59 @@ function RentalCard({ rental }: { rental: any }) {
 
         {/* Timer */}
         {isActive && (
-          <div className={`rounded-2xl border px-4 py-3 flex items-center justify-between ${timeLeft < 120 ? 'border-red-300/30 bg-red-400/10' : timeLeft < 300 ? 'border-amber-300/30 bg-amber-400/10' : 'border-sky-300/20 bg-sky-400/10'}`}>
-            <div className="flex items-center gap-2">
-              <Clock className={`h-4 w-4 ${timeLeft < 120 ? 'text-red-400' : timeLeft < 300 ? 'text-amber-400' : 'text-sky-400'}`} />
-              <span className={`text-sm font-semibold ${timeLeft < 120 ? 'text-red-200' : timeLeft < 300 ? 'text-amber-200' : 'text-sky-200'}`}>
-                {timeLeft === 0 ? "Expired — refreshing..." : "Time remaining"}
+          <div className={`rounded-2xl border overflow-hidden ${timeLeft < 120 ? 'border-red-300/30 bg-red-400/[0.08]' : timeLeft < 300 ? 'border-amber-300/30 bg-amber-400/[0.08]' : 'border-sky-300/20 bg-sky-400/[0.07]'}`}>
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Clock className={`h-4 w-4 shrink-0 ${timeLeft < 120 ? 'text-red-400' : timeLeft < 300 ? 'text-amber-400' : 'text-sky-400'}`} />
+                <span className={`text-sm font-semibold truncate ${timeLeft < 120 ? 'text-red-200' : timeLeft < 300 ? 'text-amber-200' : 'text-sky-200'}`}>
+                  {timeLeft === 0 ? "Expired — refreshing..." : "Expires in"}
+                </span>
+              </div>
+              <span className={`font-mono text-2xl font-black tabular-nums shrink-0 ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`}>
+                {formatTime(timeLeft)}
               </span>
             </div>
-            <span className={`font-mono text-2xl font-black tabular-nums ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`}>
-              {formatTime(timeLeft)}
-            </span>
+            {/* Progress bar */}
+            <div className="h-1.5 w-full bg-white/[0.06]">
+              <div
+                className={`h-full transition-all duration-1000 ease-linear rounded-full ${
+                  timeLeft < 120
+                    ? 'bg-gradient-to-r from-red-500 to-red-400'
+                    : timeLeft < 300
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                    : 'bg-gradient-to-r from-sky-500 to-cyan-400'
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* SMS Code History — prominent summary for expired rentals */}
+        {!isActive && hasCodes && (
+          <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.06] p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <span className="text-sm font-bold text-emerald-300 uppercase tracking-wide">SMS Codes Received</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {rental.messages
+                .filter((m: any) => m.code)
+                .map((m: any) => (
+                  <button
+                    key={m.id}
+                    onClick={() => copyToClipboard(m.code, true)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-black text-lg tracking-[0.25em] transition-all ${
+                      copiedCode === m.code
+                        ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-200'
+                        : 'bg-white/[0.06] border-emerald-300/20 text-cyan-200 hover:bg-emerald-400/15 hover:border-emerald-300/30'
+                    }`}
+                  >
+                    {m.code}
+                    {copiedCode === m.code ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 opacity-50" />}
+                  </button>
+                ))}
+            </div>
           </div>
         )}
 
@@ -204,7 +255,7 @@ function RentalCard({ rental }: { rental: any }) {
                   </div>
                   Waiting for incoming SMS...
                 </div>
-              ) : "No messages received."}
+              ) : "No messages received during this rental."}
             </div>
           )}
         </div>

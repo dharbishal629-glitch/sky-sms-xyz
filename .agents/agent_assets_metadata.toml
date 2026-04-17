@@ -12,3 +12,15 @@ id = "_bBTpSjdixFP0JZhXMdOq"
 uri = "file://skysms-api-server-nodejs.tar.gz"
 type = "unspecified"
 title = "SKY SMS API Server (Railway/Render)"
+
+[[outputs]]
+id = "fXq1hImIFco9E5yEpwyKk"
+uri = "file://sim-api-server.tar.gz"
+type = "unspecified"
+title = "API Server (backend)"
+
+[[outputs]]
+id = "cXL7OOdXJNOvPIkOCkdFJ"
+uri = "file://sim-rentals-website.tar.gz"
+type = "unspecified"
+title = "Website (frontend)"
