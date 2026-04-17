@@ -38,24 +38,22 @@ import {
 const router: IRouter = Router();
 
 const fallbackCountries = [
-  { code: "US", name: "United States", flag: "US", available: 1842, startingPrice: 1.2 },
-  { code: "GB", name: "United Kingdom", flag: "GB", available: 911, startingPrice: 1.1 },
-  { code: "DE", name: "Germany", flag: "DE", available: 644, startingPrice: 1.35 },
-  { code: "FR", name: "France", flag: "FR", available: 528, startingPrice: 1.3 },
-  { code: "NL", name: "Netherlands", flag: "NL", available: 402, startingPrice: 1.15 },
-  { code: "CA", name: "Canada", flag: "CA", available: 369, startingPrice: 1.25 },
-  { code: "BR", name: "Brazil", flag: "BR", available: 705, startingPrice: 0.75 },
   { code: "IN", name: "India", flag: "IN", available: 1294, startingPrice: 0.65 },
+  { code: "BR", name: "Brazil", flag: "BR", available: 705, startingPrice: 0.75 },
+  { code: "GB", name: "United Kingdom", flag: "GB", available: 911, startingPrice: 1.1 },
+  { code: "NL", name: "Netherlands", flag: "NL", available: 402, startingPrice: 1.15 },
+  { code: "US", name: "United States", flag: "US", available: 1842, startingPrice: 1.2 },
+  { code: "CA", name: "Canada", flag: "CA", available: 369, startingPrice: 1.25 },
+  { code: "FR", name: "France", flag: "FR", available: 528, startingPrice: 1.3 },
+  { code: "DE", name: "Germany", flag: "DE", available: 644, startingPrice: 1.35 },
 ];
 
 const fallbackServices = [
+  { code: "ds", name: "Discord", category: "Community", available: 486, price: 1.1 },
   { code: "tg", name: "Telegram", category: "Messaging", available: 1244, price: 1.45 },
   { code: "wa", name: "WhatsApp", category: "Messaging", available: 923, price: 1.65 },
   { code: "go", name: "Google", category: "Accounts", available: 682, price: 1.95 },
-  { code: "ig", name: "Instagram", category: "Social", available: 801, price: 1.35 },
-  { code: "fb", name: "Facebook", category: "Social", available: 775, price: 1.25 },
-  { code: "tw", name: "X / Twitter", category: "Social", available: 312, price: 1.55 },
-  { code: "ds", name: "Discord", category: "Community", available: 486, price: 1.1 },
+  { code: "mm", name: "Microsoft", category: "Accounts", available: 318, price: 1.8 },
   { code: "am", name: "Amazon", category: "Commerce", available: 236, price: 2.1 },
 ];
 
@@ -174,19 +172,25 @@ async function liveServices(countryCode?: string): Promise<Service[]> {
     .sort((a, b) => b.available - a.available || a.name.localeCompare(b.name));
 }
 
+const MAX_COUNTRIES = 10;
+
 async function liveCountries(): Promise<Country[]> {
   const catalog = await withFastFallback(getHeroPriceCatalog(), [], 2500);
   if (catalog.length === 0) return fallbackCountries;
+  const enabledCodes = await listEnabledServiceCodes();
   const totals = new Map<string, { count: number; cost: number }>();
   for (const item of catalog) {
+    if (enabledCodes && !enabledCodes.has(item.serviceCode)) continue;
     const current = totals.get(item.countryCode) ?? { count: 0, cost: item.cost };
     current.count += item.count;
-    current.cost = current.cost || item.cost;
+    if (item.cost > 0 && (current.cost === 0 || item.cost < current.cost)) current.cost = item.cost;
     totals.set(item.countryCode, current);
   }
   return Array.from(totals.entries())
     .map(([code, live]) => countryFromCode(code, live))
-    .sort((a, b) => b.available - a.available || a.name.localeCompare(b.name));
+    .filter((c) => c.available > 0)
+    .sort((a, b) => a.startingPrice - b.startingPrice || a.name.localeCompare(b.name))
+    .slice(0, MAX_COUNTRIES);
 }
 
 async function requireAdmin(req: Request, res: Response): Promise<boolean> {
@@ -538,7 +542,8 @@ router.get("/catalog/countries-for-service", async (req, res) => {
       };
     })
     .filter((c) => c.available > 0)
-    .sort((a, b) => b.available - a.available);
+    .sort((a, b) => a.heroPrice - b.heroPrice || b.available - a.available)
+    .slice(0, MAX_COUNTRIES);
 
   res.json({ countries: result, provider: providerStatus("Hero SMS") });
 });

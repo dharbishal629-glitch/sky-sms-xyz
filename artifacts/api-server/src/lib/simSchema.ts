@@ -2,6 +2,8 @@ import { pool } from "@workspace/db";
 
 let schemaReady: Promise<void> | null = null;
 
+const SEED_ENABLED_SERVICES = ["ds", "am", "go", "wa", "tg", "mm"];
+
 async function createSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sim_users (
@@ -81,6 +83,12 @@ async function createSchema() {
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS provider_activation_id TEXT;
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS refunded BOOLEAN NOT NULL DEFAULT FALSE;
 
+    CREATE TABLE IF NOT EXISTS sim_enabled_countries (
+      country_code TEXT PRIMARY KEY,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS sim_support_tickets (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES sim_users(id),
@@ -103,6 +111,14 @@ async function createSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+
+  for (const code of SEED_ENABLED_SERVICES) {
+    await pool.query(
+      `INSERT INTO sim_enabled_services (service_code, enabled) VALUES ($1, TRUE)
+       ON CONFLICT (service_code) DO NOTHING`,
+      [code],
+    );
+  }
 }
 
 export async function ensureSimSchema() {
