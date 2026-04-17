@@ -139,9 +139,15 @@ async function withFastFallback<T>(promise: Promise<T>, fallback: T, timeoutMs =
   ]);
 }
 
+async function structuralServiceFallback(): Promise<Service[]> {
+  const enabledCodes = await listEnabledServiceCodes();
+  if (!enabledCodes) return [];
+  return Array.from(enabledCodes).map((code) => serviceFromCode(code, { count: 0, cost: 0 }));
+}
+
 async function liveServices(countryCode?: string): Promise<Service[]> {
-  const catalog = await withFastFallback(getHeroPriceCatalog(), [], 2500);
-  if (catalog.length === 0) return fallbackServices;
+  const catalog = await withFastFallback(getHeroPriceCatalog(), [], 8000);
+  if (catalog.length === 0) return structuralServiceFallback();
   const totals = new Map<string, { count: number; cost: number }>();
   for (const item of catalog) {
     if (countryCode && item.countryCode !== countryCode) continue;
@@ -158,7 +164,7 @@ async function liveServices(countryCode?: string): Promise<Service[]> {
 const MAX_COUNTRIES = 10;
 
 async function liveCountries(): Promise<Country[]> {
-  const catalog = await withFastFallback(getHeroPriceCatalog(), [], 2500);
+  const catalog = await withFastFallback(getHeroPriceCatalog(), [], 8000);
   if (catalog.length === 0) return fallbackCountries;
   const enabledCodes = await listEnabledServiceCodes();
   const totals = new Map<string, { count: number; cost: number }>();
