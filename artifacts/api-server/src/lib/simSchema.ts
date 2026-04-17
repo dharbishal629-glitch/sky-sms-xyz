@@ -132,6 +132,7 @@ async function createSchema() {
 
     ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS coupon_code TEXT;
     ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS bonus_credits NUMERIC NOT NULL DEFAULT 0;
+    ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS track_id TEXT;
   `);
 
   for (const code of SEED_ENABLED_SERVICES) {

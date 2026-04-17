@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { ensureSimSchema } from "./lib/simSchema";
+import { startExpiredPaymentsCleaner } from "./routes/sim";
 
 const rawPort = process.env["PORT"];
 
@@ -26,6 +27,7 @@ async function start() {
     }
 
     logger.info({ port }, "Server listening");
+    startExpiredPaymentsCleaner();
   });
 }
 

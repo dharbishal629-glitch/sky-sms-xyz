@@ -317,7 +317,7 @@ async function createOxaPayInvoice(req: Request, paymentId: string, amount: numb
       merchant,
       amount,
       currency,
-      lifeTime: 60,
+      lifeTime: 20,
       feePaidByPayer: 1,
       underPaidCover: 1,
       orderId: paymentId,
@@ -333,7 +333,21 @@ async function createOxaPayInvoice(req: Request, paymentId: string, amount: numb
     throw new Error(payload?.message || "OxaPay did not return a checkout link.");
   }
 
-  return payload.payLink;
+  return { payLink: payload.payLink, trackId: payload.trackId ?? null };
+}
+
+async function closeOxaPayInvoice(trackId: string) {
+  const merchant = process.env.OXAPAY_MERCHANT_API_KEY;
+  if (!merchant) return;
+  try {
+    await fetch("https://api.oxapay.com/merchants/invoice/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ merchant, trackId }),
+    });
+  } catch {
+    // best-effort
+  }
 }
 
 function extractCode(value: string) {
@@ -775,11 +789,11 @@ router.post("/payments/checkout", async (req, res) => {
     // User pays the discounted price to OxaPay but receives the full original credits
     const chargedAmount = Number(Math.max(body.amount - discountAmount, 0.01).toFixed(2));
     const totalCredits = body.amount;
-    const checkoutUrl = await createOxaPayInvoice(req, id, chargedAmount, body.currency, totalCredits);
+    const { payLink: checkoutUrl, trackId } = await createOxaPayInvoice(req, id, chargedAmount, body.currency, totalCredits);
     const result = await pool.query(
-      `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider, coupon_code, bonus_credits)
-       VALUES ($1, $2, $3, $4, $5, 'pending', 'OxaPay', $6, $7) RETURNING *`,
-      [id, userId, chargedAmount, totalCredits, body.currency, appliedCouponCode, discountAmount],
+      `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider, coupon_code, bonus_credits, track_id)
+       VALUES ($1, $2, $3, $4, $5, 'pending', 'OxaPay', $6, $7, $8) RETURNING *`,
+      [id, userId, chargedAmount, totalCredits, body.currency, appliedCouponCode, discountAmount, trackId],
     );
     const row = result.rows[0];
     res.json(
@@ -1344,3 +1358,34 @@ router.get("/admin/transactions", async (req, res) => {
 });
 
 export default router;
+
+export function startExpiredPaymentsCleaner() {
+  const PAYMENT_TIMEOUT_MS = 20 * 60 * 1000;
+  const CHECK_INTERVAL_MS = 60 * 1000;
+
+  async function expireStalePayments() {
+    try {
+      const cutoff = new Date(Date.now() - PAYMENT_TIMEOUT_MS).toISOString();
+      const result = await pool.query(
+        `UPDATE sim_payments
+         SET status = 'failed'
+         WHERE status = 'pending' AND created_at < $1
+         RETURNING id, track_id`,
+        [cutoff],
+      );
+      for (const row of result.rows) {
+        if (row.track_id) {
+          await closeOxaPayInvoice(String(row.track_id));
+        }
+      }
+      if (result.rowCount && result.rowCount > 0) {
+        console.log(`[payments] Expired ${result.rowCount} stale pending payment(s).`);
+      }
+    } catch (err) {
+      console.error("[payments] Error expiring stale payments:", err);
+    }
+  }
+
+  setInterval(expireStalePayments, CHECK_INTERVAL_MS);
+  expireStalePayments();
+}
