@@ -36,3 +36,9 @@ id = "2GMW6Nv8owUIA0VHvVr9Y"
 uri = "file://sim-rentals.tar.gz"
 type = "unspecified"
 title = "Website Frontend (sim-rentals.tar.gz)"
+
+[[outputs]]
+id = "W0gvweBTSC-ejZgH61EBD"
+uri = "file://sky-sms-api-render.tar.gz"
+type = "unspecified"
+title = "Sky SMS API — Render Ready (pre-built)"
