@@ -42,3 +42,9 @@ id = "W0gvweBTSC-ejZgH61EBD"
 uri = "file://sky-sms-api-render.tar.gz"
 type = "unspecified"
 title = "Sky SMS API — Render Ready (pre-built)"
+
+[[outputs]]
+id = "g5iqhTCr6du27mpO4t1Kp"
+uri = "file://sky-sms-github.tar.gz"
+type = "unspecified"
+title = "Sky SMS API — GitHub Ready (standalone)"
