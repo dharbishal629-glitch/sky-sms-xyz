@@ -48,3 +48,15 @@ id = "g5iqhTCr6du27mpO4t1Kp"
 uri = "file://sky-sms-github.tar.gz"
 type = "unspecified"
 title = "Sky SMS API — GitHub Ready (standalone)"
+
+[[outputs]]
+id = "KvPdGS9iVP3I6U2LL2Gdi"
+uri = "file://api-server.zip"
+type = "unspecified"
+title = "API Server (api-server.zip)"
+
+[[outputs]]
+id = "HviqnBU-1SQI1vBojd84I"
+uri = "file://website.zip"
+type = "unspecified"
+title = "Website (website.zip)"
