@@ -66,3 +66,9 @@ id = "hUndsx6DYe3fDKmno_sHs"
 uri = "file://api-server-prebuilt.zip"
 type = "unspecified"
 title = "API Server — Pre-Built for Render"
+
+[[outputs]]
+id = "q8adspdZd0tLcM_fABaRE"
+uri = "file://api-flat.zip"
+type = "unspecified"
+title = "API Server — Flat ZIP (no subfolders, GitHub-ready)"
