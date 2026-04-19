@@ -72,3 +72,9 @@ id = "q8adspdZd0tLcM_fABaRE"
 uri = "file://api-flat.zip"
 type = "unspecified"
 title = "API Server — Flat ZIP (no subfolders, GitHub-ready)"
+
+[[outputs]]
+id = "tKCij9_EdS0ZaLVvt6KTa"
+uri = "file://website-built.zip"
+type = "unspecified"
+title = "sky-sms.xyz Website — Compiled & Ready"
