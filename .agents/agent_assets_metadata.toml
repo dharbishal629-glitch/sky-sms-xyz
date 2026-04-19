@@ -60,3 +60,9 @@ id = "HviqnBU-1SQI1vBojd84I"
 uri = "file://website.zip"
 type = "unspecified"
 title = "Website (website.zip)"
+
+[[outputs]]
+id = "hUndsx6DYe3fDKmno_sHs"
+uri = "file://api-server-prebuilt.zip"
+type = "unspecified"
+title = "API Server — Pre-Built for Render"
