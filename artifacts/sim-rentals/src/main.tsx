@@ -5,7 +5,7 @@ import "./index.css";
 
 const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "");
 if (apiUrl) {
-  setBaseUrl(`${apiUrl}/api`);
+  setBaseUrl(apiUrl);
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

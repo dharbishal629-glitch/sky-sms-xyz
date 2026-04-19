@@ -78,3 +78,9 @@ id = "tKCij9_EdS0ZaLVvt6KTa"
 uri = "file://website-built.zip"
 type = "unspecified"
 title = "sky-sms.xyz Website — Compiled & Ready"
+
+[[outputs]]
+id = "SBHKZrxCyLprvoL3MKT4d"
+uri = "file://website-fixed.zip"
+type = "unspecified"
+title = "sky-sms.xyz — FIXED (API path corrected)"
