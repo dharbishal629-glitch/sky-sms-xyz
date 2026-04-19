@@ -84,3 +84,15 @@ id = "SBHKZrxCyLprvoL3MKT4d"
 uri = "file://website-fixed.zip"
 type = "unspecified"
 title = "sky-sms.xyz — FIXED (API path corrected)"
+
+[[outputs]]
+id = "H_WUpd-dRwtegUW3R9X5A"
+uri = "file://api-v3.zip"
+type = "unspecified"
+title = "API Server v3 — Upload to GitHub (Render)"
+
+[[outputs]]
+id = "ezvQHBRSdwiBw0KNyloAT"
+uri = "file://website-v3.zip"
+type = "unspecified"
+title = "Website v3 — Upload to Cloudflare Pages"

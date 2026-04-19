@@ -508,7 +508,7 @@ router.get("/dashboard", async (req, res) => {
   const account = await getAccount(userId, req.user);
   const rentals = await listUserRentals(userId);
   const payments = await pool.query("SELECT * FROM sim_payments WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5", [userId]);
-  const heroStatus = await heroProviderStatus();
+  const heroStatus = await heroProviderStatus().catch(() => providerStatus("Hero SMS"));
   const data = GetDashboardResponse.parse({
     account,
     activeRentals: rentals.filter((r) => r.status === "active" || r.status === "sms_received").length,
@@ -756,6 +756,7 @@ router.post("/payments/checkout", async (req, res) => {
   const body = CreatePaymentCheckoutBody.parse(req.body);
   const id = crypto.randomUUID();
   const userId = getUserId(req);
+  await getAccount(userId, req.user);
   const userEmail = req.user?.email ?? null;
   const couponCodeRaw = typeof (req.body as any).couponCode === "string" ? (req.body as any).couponCode.trim().toUpperCase() : null;
 
@@ -1235,6 +1236,7 @@ router.post("/support/tickets", async (req, res) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  await getAccount(getUserId(req), req.user);
   const { subject, category, priority, message } = req.body as Record<string, string>;
   if (!subject?.trim() || !category?.trim() || !message?.trim()) {
     res.status(400).json({ error: "Subject, category, and message are required." });
