@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "installCommand": "npm install -g pnpm@latest && pnpm install --no-frozen-lockfile --filter @workspace/sim-rentals...",
-  "buildCommand": "pnpm --filter @workspace/sim-rentals run build:cloudflare",
-  "outputDirectory": "artifacts/sim-rentals/dist/cloudflare",
+  "installCommand": "echo skip",
+  "buildCommand": "echo done",
+  "outputDirectory": "artifacts/sim-rentals/web-build",
   "rewrites": [
     { "source": "/((?!assets/|favicon\\.svg|opengraph\\.jpg|_redirects).*)", "destination": "/index.html" }
   ]
