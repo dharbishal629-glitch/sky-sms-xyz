@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "installCommand": "npm install -g pnpm@10 && pnpm install --no-frozen-lockfile --config.minimum-release-age=0 --config.minimum-release-age-exclude=''",
+  "installCommand": "npm install -g pnpm@10 && pnpm install --no-frozen-lockfile --ignore-scripts=false 2>&1",
   "buildCommand": "pnpm --filter @workspace/api-server run build:vercel && pnpm --filter @workspace/sim-rentals run build:cloudflare",
   "outputDirectory": "artifacts/sim-rentals/dist/cloudflare",
   "functions": {
