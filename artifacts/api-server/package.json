@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node ./build.mjs",
+    "build:vercel": "node ./build-vercel.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "dev": "node ./build.mjs && node --enable-source-maps ./dist/index.mjs"
   },
