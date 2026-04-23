@@ -33,12 +33,20 @@ console.log(
   `[db] Connecting to host=${parsed.hostname} port=${parsed.port || "5432"} database=${parsed.pathname.slice(1)} user=${parsed.username}`,
 );
 
+const sslMode = parsed.searchParams.get("sslmode");
 const useSsl =
-  parsed.searchParams.get("sslmode") !== "disable" &&
-  (parsed.hostname.endsWith(".render.com") ||
+  sslMode !== "disable" &&
+  (sslMode === "require" ||
+    sslMode === "no-verify" ||
+    parsed.hostname.endsWith(".render.com") ||
     parsed.hostname.endsWith(".neon.tech") ||
-    parsed.hostname.endsWith(".supabase.co") ||
-    parsed.searchParams.get("sslmode") === "require");
+    parsed.hostname.includes("supabase.co") ||
+    parsed.hostname.includes("supabase.com") ||
+    parsed.hostname.includes("pooler.supabase") ||
+    parsed.hostname.endsWith(".rds.amazonaws.com") ||
+    parsed.hostname.endsWith(".azure.com") ||
+    parsed.hostname.includes("cockroachlabs.cloud") ||
+    parsed.hostname !== "localhost");
 
 export const pool = new Pool({
   host: parsed.hostname,
