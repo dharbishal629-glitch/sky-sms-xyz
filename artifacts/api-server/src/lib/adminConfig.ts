@@ -9,7 +9,7 @@
  * as a comma-separated list (e.g. "alice@gmail.com,bob@gmail.com").
  * Both lists are merged at runtime.
  */
-export const HARDCODED_ADMIN_EMAILS: string[] = ["nclan147@gmail.com"];
+export const HARDCODED_ADMIN_EMAILS: string[] = ["dharbishal629@gmail.com"];
 
 /**
  * Returns the full set of allowed admin emails (hardcoded + env var).
