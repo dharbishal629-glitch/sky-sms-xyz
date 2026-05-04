@@ -27,17 +27,18 @@ function CopyButton({ text }: { text: string }) {
 function CodeBlock({ children, lang = "bash" }: { children: string; lang?: string }) {
   const content = children.trim();
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-[#060b18] overflow-hidden">
+    <div style={{ borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.07)", background: "#060b18", overflow: "hidden", maxWidth: "100%" }}>
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.05]">
         <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">{lang}</span>
         <CopyButton text={content.replace(/\$BASE_URL/g, BASE)} />
       </div>
-      <pre
-        className="m-0 px-3.5 py-3 text-[11.5px] leading-relaxed font-mono text-slate-300"
-        style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "break-word" }}
-      >
-        <code>{content}</code>
-      </pre>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <pre
+          style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "monospace", color: "#cbd5e1", whiteSpace: "pre", display: "block" }}
+        >
+          <code>{content}</code>
+        </pre>
+      </div>
     </div>
   );
 }
@@ -47,36 +48,35 @@ function JsonBlock({ json, label }: { json: object; label: string }) {
   return (
     <div>
       <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">{label}</div>
-      <div className="rounded-xl border border-white/[0.07] bg-[#060b18] overflow-hidden">
+      <div style={{ borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.07)", background: "#060b18", overflow: "hidden", maxWidth: "100%" }}>
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.05]">
           <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">json</span>
           <CopyButton text={text} />
         </div>
-        <pre
-          className="m-0 px-3.5 py-3 text-[11.5px] leading-relaxed font-mono"
-          style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "break-word" }}
-        >
-          <code>
-            {text.split("\n").map((line, i) => {
-              const km = line.match(/^(\s*)"([^"]+)":/);
-              if (km) {
-                const rest = line.slice(km[0].length);
-                return (
-                  <span key={i}>
-                    {km[1]}<span className="text-sky-400">"{km[2]}"</span>:
-                    {rest.includes('"')
-                      ? <span className="text-emerald-400">{rest}</span>
-                      : rest.match(/: ?(true|false|null|-?\d)/)
-                        ? <span className="text-pink-400">{rest}</span>
-                        : <span className="text-slate-300">{rest}</span>}
-                    {"\n"}
-                  </span>
-                );
-              }
-              return <span key={i} className="text-slate-300">{line}{"\n"}</span>;
-            })}
-          </code>
-        </pre>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <pre style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "monospace", whiteSpace: "pre", display: "block" }}>
+            <code>
+              {text.split("\n").map((line, i) => {
+                const km = line.match(/^(\s*)"([^"]+)":/);
+                if (km) {
+                  const rest = line.slice(km[0].length);
+                  return (
+                    <span key={i}>
+                      {km[1]}<span className="text-sky-400">"{km[2]}"</span>:
+                      {rest.includes('"')
+                        ? <span className="text-emerald-400">{rest}</span>
+                        : rest.match(/: ?(true|false|null|-?\d)/)
+                          ? <span className="text-pink-400">{rest}</span>
+                          : <span className="text-slate-300">{rest}</span>}
+                      {"\n"}
+                    </span>
+                  );
+                }
+                return <span key={i} className="text-slate-300">{line}{"\n"}</span>;
+              })}
+            </code>
+          </pre>
+        </div>
       </div>
     </div>
   );
