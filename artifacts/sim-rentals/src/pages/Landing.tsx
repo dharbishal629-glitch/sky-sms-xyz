@@ -3,15 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
 import { useState, useEffect } from "react";
 
+// High-quality 128px icons from Google's social favicon service
+function svcIcon(domain: string) {
+  return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=128`;
+}
+
 const serviceIcons: Record<string, string> = {
-  Telegram:     "https://www.google.com/s2/favicons?domain=telegram.org&sz=64",
-  WhatsApp:     "https://www.google.com/s2/favicons?domain=whatsapp.com&sz=64",
-  Google:       "https://www.google.com/s2/favicons?domain=google.com&sz=64",
-  Instagram:    "https://www.google.com/s2/favicons?domain=instagram.com&sz=64",
-  Facebook:     "https://www.google.com/s2/favicons?domain=facebook.com&sz=64",
-  "X / Twitter":"https://www.google.com/s2/favicons?domain=x.com&sz=64",
-  Discord:      "https://www.google.com/s2/favicons?domain=discord.com&sz=64",
-  Amazon:       "https://www.google.com/s2/favicons?domain=amazon.com&sz=64",
+  Telegram:      svcIcon("telegram.org"),
+  WhatsApp:      svcIcon("web.whatsapp.com"),
+  Google:        svcIcon("google.com"),
+  Instagram:     svcIcon("instagram.com"),
+  Facebook:      svcIcon("facebook.com"),
+  "X / Twitter": svcIcon("x.com"),
+  Discord:       svcIcon("discord.com"),
+  Amazon:        svcIcon("amazon.com"),
 };
 
 const services = [

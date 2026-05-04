@@ -24,17 +24,26 @@ export function Reveal({ children, variant = "up", delay = 0, className = "", as
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Hard fallback: always show content within 500ms regardless of observer
+    const fallback = setTimeout(() => setInView(true), 500);
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setInView(true);
+          clearTimeout(fallback);
           observer.unobserve(el);
         }
       },
-      { threshold: 0.1, rootMargin: "0px 0px -30px 0px" },
+      { threshold: 0.01, rootMargin: "60px 0px 0px 0px" },
     );
     observer.observe(el);
-    return () => observer.disconnect();
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallback);
+    };
   }, []);
 
   const style: CSSProperties = delay ? { transitionDelay: `${delay}ms` } : {};
