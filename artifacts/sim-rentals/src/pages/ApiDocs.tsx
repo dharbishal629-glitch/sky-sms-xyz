@@ -27,15 +27,13 @@ function CopyButton({ text }: { text: string }) {
 function CodeBlock({ children, lang = "bash" }: { children: string; lang?: string }) {
   const content = children.trim();
   return (
-    <div style={{ borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.07)", background: "#060b18", overflow: "hidden", maxWidth: "100%" }}>
+    <div style={{ borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.07)", background: "#060b18", width: "100%", minWidth: 0, boxSizing: "border-box", overflow: "hidden" }}>
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.05]">
         <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">{lang}</span>
         <CopyButton text={content.replace(/\$BASE_URL/g, BASE)} />
       </div>
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <pre
-          style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "monospace", color: "#cbd5e1", whiteSpace: "pre", display: "block" }}
-        >
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", width: "100%" }}>
+        <pre style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "monospace", color: "#cbd5e1", whiteSpace: "pre", width: "max-content", minWidth: "100%", boxSizing: "border-box" }}>
           <code>{content}</code>
         </pre>
       </div>
@@ -48,13 +46,13 @@ function JsonBlock({ json, label }: { json: object; label: string }) {
   return (
     <div>
       <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">{label}</div>
-      <div style={{ borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.07)", background: "#060b18", overflow: "hidden", maxWidth: "100%" }}>
+      <div style={{ borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.07)", background: "#060b18", width: "100%", minWidth: 0, boxSizing: "border-box", overflow: "hidden" }}>
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.05]">
           <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">json</span>
           <CopyButton text={text} />
         </div>
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <pre style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "monospace", whiteSpace: "pre", display: "block" }}>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", width: "100%" }}>
+          <pre style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "monospace", whiteSpace: "pre", width: "max-content", minWidth: "100%", boxSizing: "border-box" }}>
             <code>
               {text.split("\n").map((line, i) => {
                 const km = line.match(/^(\s*)"([^"]+)":/);
@@ -100,19 +98,19 @@ interface Endpoint {
 
 function EndpointCard({ ep }: { ep: Endpoint }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] overflow-hidden">
+    <div style={{ borderRadius: "0.75rem", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)", overflow: "hidden", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
       {/* Method + Path */}
       <div className="px-4 py-3.5 border-b border-white/[0.05]">
-        <div className="flex items-center gap-2.5 mb-1.5">
+        <div className="flex items-center gap-2.5 mb-1.5" style={{ minWidth: 0 }}>
           <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-[10px] font-black font-mono tracking-wider shrink-0 ${METHOD_STYLE[ep.method]}`}>
             {ep.method}
           </span>
-          <code className="text-[12px] font-mono text-slate-200 break-all leading-snug">{ep.path}</code>
+          <code className="text-[12px] font-mono text-slate-200 break-all leading-snug" style={{ minWidth: 0 }}>{ep.path}</code>
         </div>
         <p className="text-[12px] text-slate-500 leading-relaxed">{ep.desc}</p>
       </div>
       {/* Content */}
-      <div className="px-4 pb-4 pt-3.5 space-y-3.5">
+      <div style={{ padding: "0.875rem 1rem 1rem", display: "flex", flexDirection: "column", gap: "0.875rem", minWidth: 0, overflow: "hidden" }}>
         {ep.body && <JsonBlock json={ep.body} label="PAYLOAD" />}
         <JsonBlock json={ep.response} label="RESPONSE" />
         <CodeBlock lang="bash">{ep.curl}</CodeBlock>
@@ -220,7 +218,7 @@ const sections: Section[] = [
 
 export default function ApiDocs() {
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-8">
+    <div className="max-w-3xl mx-auto space-y-6 pb-8" style={{ overflowX: "hidden", minWidth: 0 }}>
 
       {/* Header */}
       <Reveal variant="up">

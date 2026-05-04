@@ -52,7 +52,7 @@ export function Reveal({ children, variant = "up", delay = 0, className = "", as
     <Tag
       ref={ref as React.RefObject<HTMLDivElement>}
       className={`${variantClass[variant]} ${inView ? "in-view" : ""} ${className}`}
-      style={style}
+      style={{ ...style, minWidth: 0, width: "100%", boxSizing: "border-box" }}
     >
       {children}
     </Tag>
