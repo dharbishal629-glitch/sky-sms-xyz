@@ -11,6 +11,7 @@ import AdminServices from "@/pages/admin/Services";
 import AdminSupport from "@/pages/admin/Support";
 import AdminCoupons from "@/pages/admin/Coupons";
 import Support from "@/pages/Support";
+import ApiDocs from "@/pages/ApiDocs";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetMe } from "@workspace/api-client-react";
 import { Switch, Route, Redirect } from "wouter";
@@ -18,7 +19,10 @@ import { Switch, Route, Redirect } from "wouter";
 function LoadingScreen() {
   return (
     <div className="min-h-screen premium-shell flex items-center justify-center">
-      <div className="h-10 w-10 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-11 w-11 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
+        <div className="text-[12px] text-slate-600 font-medium">Loading…</div>
+      </div>
     </div>
   );
 }
@@ -82,6 +86,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/support">
         <ProtectedRoute component={Support} />
+      </Route>
+      <Route path="/api-docs">
+        <ProtectedRoute component={ApiDocs} />
       </Route>
 
       <Route path="/admin">

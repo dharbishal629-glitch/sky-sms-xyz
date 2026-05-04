@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Phone, History, DollarSign, AlertCircle, CheckCircle2, Zap,
   TrendingUp, MessageSquare, ChevronRight, Plus, ArrowUpRight,
-  Clock, Star, Wifi, Globe, ShieldCheck, ExternalLink
+  Clock, Wifi, Globe, ShieldCheck, ExternalLink
 } from "lucide-react";
 import { format, differenceInSeconds } from "date-fns";
 import { Link } from "wouter";
@@ -23,7 +23,6 @@ const serviceIcons: Record<string, string> = {
   Microsoft: "https://www.google.com/s2/favicons?domain=microsoft.com&sz=64",
 };
 
-
 function ActiveTimer({ expiresAt }: { expiresAt: string }) {
   const [timeLeft, setTimeLeft] = useState(0);
   useEffect(() => {
@@ -36,7 +35,7 @@ function ActiveTimer({ expiresAt }: { expiresAt: string }) {
   const s = timeLeft % 60;
   const urgent = timeLeft < 120;
   return (
-    <span className={`font-mono font-bold tabular-nums ${urgent ? "text-red-400" : "text-cyan-400"}`}>
+    <span className={`font-mono font-bold tabular-nums text-sm ${urgent ? "text-rose-400" : "text-sky-400"}`}>
       {m}:{s.toString().padStart(2, "0")}
     </span>
   );
@@ -53,12 +52,68 @@ const popularServices = [
   { name: "Amazon", tag: "Shopping" },
 ];
 
-const tips = [
+const howItWorks = [
   { icon: Clock, title: "20-min window", desc: "Act fast — each rental gives you 20 minutes to receive an SMS before it expires." },
   { icon: ShieldCheck, title: "Auto refund", desc: "If no SMS arrives before the window closes, the cost is instantly returned to your balance." },
-  { icon: Globe, title: "180+ countries", desc: "Numbers available across the globe — pick whichever country the platform accepts." },
+  { icon: Globe, title: "Global coverage", desc: "Numbers available across the globe — pick whichever country the platform accepts." },
   { icon: Wifi, title: "Live updates", desc: "Messages appear in real-time on your rental card. No need to refresh." },
 ];
+
+const statusStyles: Record<string, { label: string; cls: string }> = {
+  active:       { label: "Active",    cls: "text-sky-200 border-sky-400/20 bg-sky-400/10" },
+  completed:    { label: "Completed", cls: "text-emerald-200 border-emerald-400/20 bg-emerald-400/10" },
+  sms_received: { label: "✓ SMS",     cls: "text-emerald-200 border-emerald-400/20 bg-emerald-400/10" },
+  cancelled:    { label: "Cancelled", cls: "text-slate-400 border-white/10 bg-white/[0.04]" },
+  expired:      { label: "Expired",   cls: "text-slate-400 border-white/10 bg-white/[0.04]" },
+};
+
+function StatCard({
+  href, color, icon: Icon, label, value, sub, pulse,
+}: {
+  href?: string; color: "blue" | "indigo" | "emerald" | "violet";
+  icon: React.ElementType; label: string; value: React.ReactNode;
+  sub: React.ReactNode; pulse?: boolean;
+}) {
+  const colorMap = {
+    blue:    { from: "from-sky-500/10", icon: "bg-sky-500/10 border-sky-400/20 text-sky-400", blur: "bg-sky-400/[0.07]", text: "text-sky-400" },
+    indigo:  { from: "from-indigo-500/10", icon: "bg-indigo-500/10 border-indigo-400/20 text-indigo-400", blur: "bg-indigo-400/[0.07]", text: "text-indigo-400" },
+    emerald: { from: "from-emerald-500/8", icon: "bg-emerald-500/10 border-emerald-400/20 text-emerald-400", blur: "bg-emerald-400/[0.07]", text: "text-emerald-400" },
+    violet:  { from: "from-violet-500/8", icon: "bg-violet-500/10 border-violet-400/20 text-violet-400", blur: "bg-violet-400/[0.07]", text: "text-violet-400" },
+  };
+  const c = colorMap[color];
+
+  const inner = (
+    <div className={`stat-card rounded-2xl p-6 cursor-pointer group shine-hover`}>
+      <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${c.from} to-transparent pointer-events-none`} />
+      <div className={`absolute -right-4 -top-4 h-24 w-24 rounded-full ${c.blur} blur-2xl pointer-events-none`} />
+      <div className="relative z-10">
+        <div className="flex items-start justify-between mb-4">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+          <div className={`h-9 w-9 rounded-xl border flex items-center justify-center ${c.icon}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="text-[2.5rem] font-black text-white leading-none tracking-tight">{value}</div>
+          {pulse && (
+            <span className="relative flex h-3 w-3">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${c.blur} opacity-75`} style={{ background: undefined }} />
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${c.text.replace("text-", "bg-")}`} style={{ background: "currentColor" }} />
+            </span>
+          )}
+        </div>
+        <div className={`flex items-center gap-1 text-[12px] font-semibold ${c.text} group-hover:gap-2 transition-all`}>
+          {sub} {href && <ChevronRight className="h-3 w-3" />}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (href) {
+    return <Link href={href}><div data-testid={`card-stat-${label.toLowerCase().replace(/\s+/g, "-")}`}>{inner}</div></Link>;
+  }
+  return <div data-testid={`card-stat-${label.toLowerCase().replace(/\s+/g, "-")}`}>{inner}</div>;
+}
 
 export default function Dashboard() {
   const { data, isLoading, error } = useGetDashboard();
@@ -66,169 +121,95 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="space-y-2"><Skeleton className="h-9 w-56" /><Skeleton className="h-4 w-72" /></div>
+      <div className="space-y-7">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64 bg-white/[0.04]" />
+          <Skeleton className="h-4 w-80 bg-white/[0.03]" />
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-36 rounded-2xl bg-white/[0.04]" />)}
         </div>
         <div className="grid gap-5 lg:grid-cols-3">
-          <Skeleton className="h-72 rounded-2xl lg:col-span-2" />
-          <Skeleton className="h-72 rounded-2xl" />
+          <Skeleton className="h-80 rounded-2xl lg:col-span-2 bg-white/[0.04]" />
+          <Skeleton className="h-80 rounded-2xl bg-white/[0.04]" />
         </div>
-        <Skeleton className="h-56 rounded-2xl" />
+        <Skeleton className="h-60 rounded-2xl bg-white/[0.04]" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="h-16 w-16 rounded-2xl bg-red-400/10 border border-red-300/20 flex items-center justify-center mb-5">
-          <AlertCircle className="h-8 w-8 text-red-400" />
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="h-18 w-18 rounded-2xl bg-rose-400/10 border border-rose-300/20 flex items-center justify-center mb-6">
+          <AlertCircle className="h-9 w-9 text-rose-400" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Dashboard unavailable</h2>
-        <p className="text-muted-foreground text-sm">Please refresh the page and try again.</p>
+        <h2 className="text-2xl font-black text-white mb-2">Dashboard unavailable</h2>
+        <p className="text-slate-500 text-sm">Please refresh the page and try again.</p>
       </div>
     );
   }
 
-  const totalSpent = data.recentRentals.reduce((s: number, r: any) => s + (r.price || 0), 0);
   const smsCount = data.recentRentals.filter((r: any) => r.status === "sms_received" || (r.messages && r.messages.length > 0)).length;
 
-  const statusStyles: Record<string, string> = {
-    active: "text-cyan-200 border-cyan-300/20 bg-cyan-400/10",
-    completed: "text-emerald-200 border-emerald-300/20 bg-emerald-400/10",
-    sms_received: "text-emerald-200 border-emerald-300/20 bg-emerald-400/10",
-    cancelled: "text-slate-400 border-white/10 bg-white/[0.04]",
-    expired: "text-slate-400 border-white/10 bg-white/[0.04]",
-  };
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-7 page-enter">
 
-      {/* ─── Header ─────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-white">
-          Welcome back{data.account?.name ? `, ${data.account.name.split(" ")[0]}` : ""}
+      {/* ── Header ── */}
+      <div className="page-enter page-enter-d1">
+        <h1 className="text-[2rem] font-black tracking-tight text-white">
+          Welcome back{data.account?.name ? `, ${data.account.name.split(" ")[0]}` : ""} 👋
         </h1>
-        <p className="text-muted-foreground mt-1 text-sm">Here's what's happening with your account today.</p>
+        <p className="text-slate-500 mt-1.5 text-[14px]">Here's what's happening with your account today.</p>
       </div>
 
-      {/* ─── Stats grid ──────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Balance */}
-        <Link href="/payments">
-          <div className="glass-card rounded-2xl p-5 relative overflow-hidden cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200 group shine-hover" data-testid="card-stat-credits">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/[0.09] to-transparent pointer-events-none" />
-            <div className="absolute -right-3 -top-3 h-20 w-20 rounded-full bg-cyan-400/[0.08] blur-xl" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Balance</span>
-                <div className="h-8 w-8 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center">
-                  <DollarSign className="h-4 w-4 text-cyan-400" />
-                </div>
-              </div>
-              <div className="text-4xl font-black text-white mb-1" data-testid="text-stat-credits-value">
-                ${data.account.credits.toFixed(2)}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-cyan-400 font-semibold group-hover:gap-2 transition-all">
-                Add funds <ChevronRight className="h-3 w-3" />
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* Active rentals */}
-        <Link href="/rentals">
-          <div className="glass-card rounded-2xl p-5 relative overflow-hidden cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200 group shine-hover" data-testid="card-stat-active">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/[0.07] to-transparent pointer-events-none" />
-            <div className="absolute -right-3 -top-3 h-20 w-20 rounded-full bg-indigo-400/[0.08] blur-xl" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active</span>
-                <div className="h-8 w-8 rounded-xl bg-indigo-400/10 border border-indigo-300/20 flex items-center justify-center">
-                  <Phone className="h-4 w-4 text-indigo-400" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3 mb-1">
-                <span className="text-4xl font-black text-white" data-testid="text-stat-active-value">{data.activeRentals}</span>
-                {data.activeRentals > 0 && (
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-indigo-400 font-semibold">
-                {data.activeRentals > 0 ? "View live numbers" : "View rentals"} <ChevronRight className="h-3 w-3" />
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* Completed */}
-        <Link href="/rentals">
-          <div className="glass-card rounded-2xl p-5 relative overflow-hidden cursor-pointer hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200 group shine-hover" data-testid="card-stat-completed">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/[0.06] to-transparent pointer-events-none" />
-            <div className="absolute -right-3 -top-3 h-20 w-20 rounded-full bg-emerald-400/[0.07] blur-xl" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Completed</span>
-                <div className="h-8 w-8 rounded-xl bg-emerald-400/10 border border-emerald-300/20 flex items-center justify-center">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                </div>
-              </div>
-              <div className="text-4xl font-black text-white mb-1" data-testid="text-stat-completed-value">{data.completedRentals}</div>
-              <div className="flex items-center gap-1 text-xs text-emerald-400 font-semibold">
-                View history <ChevronRight className="h-3 w-3" />
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* SMS received */}
-        <div className="glass-card rounded-2xl p-5 relative overflow-hidden hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-400/[0.06] to-transparent pointer-events-none" />
-          <div className="absolute -right-3 -top-3 h-20 w-20 rounded-full bg-violet-400/[0.07] blur-xl" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">SMS Received</span>
-              <div className="h-8 w-8 rounded-xl bg-violet-400/10 border border-violet-300/20 flex items-center justify-center">
-                <MessageSquare className="h-4 w-4 text-violet-400" />
-              </div>
-            </div>
-            <div className="text-4xl font-black text-white mb-1">{smsCount}</div>
-            <div className="text-xs text-slate-600 font-semibold">codes captured</div>
-          </div>
-        </div>
+      {/* ── Stats grid ── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 page-enter page-enter-d2">
+        <StatCard href="/payments" color="blue" icon={DollarSign} label="Balance"
+          value={`$${data.account.credits.toFixed(2)}`}
+          sub="Add funds"
+        />
+        <StatCard href="/rentals" color="indigo" icon={Phone} label="Active rentals"
+          value={data.activeRentals}
+          sub={data.activeRentals > 0 ? "View live numbers" : "View rentals"}
+          pulse={data.activeRentals > 0}
+        />
+        <StatCard href="/rentals" color="emerald" icon={CheckCircle2} label="Completed"
+          value={data.completedRentals}
+          sub="View history"
+        />
+        <StatCard color="violet" icon={MessageSquare} label="SMS received"
+          value={smsCount}
+          sub="codes captured"
+        />
       </div>
 
-      {/* ─── Main grid: recent + active ──────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-3">
+      {/* ── Main content grid ── */}
+      <div className="grid gap-5 lg:grid-cols-3 page-enter page-enter-d3">
 
         {/* Recent Rentals */}
-        <div className="lg:col-span-2 glass-card rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+        <div className="lg:col-span-2 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
             <div>
-              <div className="font-black text-white">Recent Rentals</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Your latest activity</div>
+              <div className="font-black text-white text-[15px]">Recent Rentals</div>
+              <div className="text-[12px] text-slate-500 mt-0.5">Your latest activity</div>
             </div>
             <Link href="/rentals">
-              <span className="text-xs text-cyan-400 font-bold hover:text-cyan-300 transition-colors cursor-pointer flex items-center gap-1">
-                View all <ChevronRight className="h-3 w-3" />
+              <span className="text-[12px] text-sky-400 font-bold hover:text-sky-300 transition-colors cursor-pointer flex items-center gap-1">
+                View all <ChevronRight className="h-3.5 w-3.5" />
               </span>
             </Link>
           </div>
 
           {data.recentRentals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center mb-4">
-                <Phone className="h-7 w-7 text-cyan-400/50" />
+            <div className="flex flex-col items-center justify-center py-18 px-6 text-center">
+              <div className="h-16 w-16 rounded-2xl bg-sky-400/10 border border-sky-300/20 flex items-center justify-center mb-5">
+                <Phone className="h-8 w-8 text-sky-400/50" />
               </div>
-              <h3 className="font-bold text-white mb-2">No rentals yet</h3>
-              <p className="text-sm text-muted-foreground mb-5 max-w-xs">Rent your first number to get started with SMS verification.</p>
+              <h3 className="font-black text-white mb-2 text-[15px]">No rentals yet</h3>
+              <p className="text-[13px] text-slate-500 mb-6 max-w-xs">Rent your first number to get started with SMS verification.</p>
               <Link href="/rent">
-                <span className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-5 py-2.5 text-sm font-black text-black hover:bg-cyan-300 transition-colors cursor-pointer">
+                <span className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 px-6 py-3 text-[13px] font-bold text-white hover:from-sky-400 hover:to-sky-500 transition-all shadow-[0_4px_20px_rgba(14,165,233,0.3)] cursor-pointer">
                   <Zap className="h-4 w-4" /> Rent Now
                 </span>
               </Link>
@@ -236,28 +217,28 @@ export default function Dashboard() {
           ) : (
             <div className="divide-y divide-white/[0.04]">
               {data.recentRentals.slice(0, 8).map((rental: any) => {
-                const statusClass = statusStyles[rental.status] ?? statusStyles.cancelled;
+                const st = statusStyles[rental.status] ?? statusStyles.cancelled;
                 const icon = serviceIcons[rental.serviceName];
                 return (
-                  <div key={rental.id} className="flex items-center gap-4 px-6 py-3.5 hover:bg-white/[0.02] transition-colors" data-testid={`row-recent-rental-${rental.id}`}>
-                    <div className="h-9 w-9 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 overflow-hidden">
+                  <div key={rental.id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors group" data-testid={`row-recent-rental-${rental.id}`}>
+                    <div className="h-10 w-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 overflow-hidden group-hover:border-white/[0.12] transition-colors">
                       {icon ? (
-                        <img src={icon} alt={rental.serviceName} className="h-5 w-5 object-contain rounded-sm" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        <img src={icon} alt={rental.serviceName} className="h-6 w-6 object-contain rounded-sm" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                       ) : (
                         <Phone className="h-4 w-4 text-slate-500" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-white text-sm truncate">{rental.serviceName}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {rental.phoneNumber ? `+${rental.phoneNumber}` : "Allocating…"} &bull; {rental.countryName}
+                      <div className="font-semibold text-white text-[14px] truncate">{rental.serviceName}</div>
+                      <div className="text-[12px] text-slate-500 truncate mt-0.5">
+                        {rental.phoneNumber ? `+${rental.phoneNumber}` : "Allocating…"} · {rental.countryName}
                       </div>
                     </div>
                     <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-                      <Badge variant="outline" className={`text-[11px] px-2 py-0 h-5 ${statusClass}`} data-testid={`badge-rental-status-${rental.id}`}>
-                        {rental.status === "sms_received" ? "✓ SMS" : rental.status}
+                      <Badge variant="outline" className={`text-[11px] px-2.5 py-0.5 h-5 font-semibold ${st.cls}`} data-testid={`badge-rental-status-${rental.id}`}>
+                        {st.label}
                       </Badge>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[11px] text-slate-600">
                         {rental.status === "active" && rental.expiresAt
                           ? <ActiveTimer expiresAt={rental.expiresAt} />
                           : format(new Date(rental.createdAt), "MMM d, HH:mm")
@@ -271,27 +252,28 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Right column: active now + quick actions */}
-        <div className="flex flex-col gap-5">
+        {/* Right column */}
+        <div className="flex flex-col gap-4">
 
-          {/* Active Numbers */}
-          <div className="glass-card rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
-              <div className="font-bold text-white text-sm flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  {data.activeRentals > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />}
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${data.activeRentals > 0 ? "bg-cyan-400" : "bg-slate-600"}`} />
+          {/* Live Numbers */}
+          <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+              <div className="font-bold text-white text-[14px] flex items-center gap-2.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  {data.activeRentals > 0 && <span className="soft-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />}
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${data.activeRentals > 0 ? "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]" : "bg-slate-700"}`} />
                 </span>
                 Live Numbers
               </div>
-              <Badge variant="outline" className="text-xs text-cyan-200 border-cyan-300/20 bg-cyan-400/10">{data.activeRentals} active</Badge>
+              <Badge variant="outline" className="text-[11px] text-sky-200 border-sky-400/20 bg-sky-400/10 font-bold">{data.activeRentals} active</Badge>
             </div>
+
             {data.recentRentals.filter((r: any) => r.status === "active").length === 0 ? (
-              <div className="py-8 px-4 text-center">
-                <Phone className="h-8 w-8 text-slate-700 mx-auto mb-3" />
-                <p className="text-xs text-slate-600 font-semibold mb-3">No active numbers</p>
+              <div className="py-10 px-5 text-center">
+                <Phone className="h-9 w-9 text-slate-700 mx-auto mb-3" />
+                <p className="text-[12px] text-slate-600 font-semibold mb-3">No active numbers</p>
                 <Link href="/rent">
-                  <span className="text-xs text-cyan-400 font-bold hover:text-cyan-300 cursor-pointer transition-colors">
+                  <span className="text-[12px] text-sky-400 font-bold hover:text-sky-300 cursor-pointer transition-colors">
                     Rent one →
                   </span>
                 </Link>
@@ -299,10 +281,10 @@ export default function Dashboard() {
             ) : (
               <div className="divide-y divide-white/[0.04]">
                 {data.recentRentals.filter((r: any) => r.status === "active").map((r: any) => (
-                  <div key={r.id} className="px-4 py-3">
-                    <div className="text-sm font-bold text-white truncate">{r.serviceName}</div>
-                    <div className="text-xs text-cyan-300 font-mono mt-0.5">+{r.phoneNumber || "…"}</div>
-                    <div className="flex items-center justify-between mt-1.5">
+                  <div key={r.id} className="px-5 py-4">
+                    <div className="text-[14px] font-bold text-white truncate">{r.serviceName}</div>
+                    <div className="text-[13px] text-sky-300 font-mono mt-0.5">+{r.phoneNumber || "…"}</div>
+                    <div className="flex items-center justify-between mt-2">
                       <span className="text-[11px] text-slate-600">{r.countryName}</span>
                       {r.expiresAt && <ActiveTimer expiresAt={r.expiresAt} />}
                     </div>
@@ -313,19 +295,19 @@ export default function Dashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="glass-card rounded-2xl p-4">
-            <div className="font-bold text-white text-sm mb-3">Quick Actions</div>
+          <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent p-5">
+            <div className="font-bold text-white text-[14px] mb-4">Quick Actions</div>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { href: "/rent", icon: Zap, label: "Rent Now", color: "cyan" },
-                { href: "/payments", icon: Plus, label: "Add Funds", color: "emerald" },
-                { href: "/rentals", icon: History, label: "Rentals", color: "indigo" },
-                { href: "/settings", icon: TrendingUp, label: "Settings", color: "violet" },
+                { href: "/rent",     icon: Zap,        label: "Rent Now",  cls: "text-sky-400 bg-sky-500/10 border-sky-500/20 hover:bg-sky-500/15 hover:border-sky-500/30" },
+                { href: "/payments", icon: Plus,       label: "Add Funds", cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/15 hover:border-emerald-500/30" },
+                { href: "/rentals",  icon: History,    label: "Rentals",   cls: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15 hover:border-indigo-500/30" },
+                { href: "/settings", icon: TrendingUp, label: "Settings",  cls: "text-violet-400 bg-violet-500/10 border-violet-500/20 hover:bg-violet-500/15 hover:border-violet-500/30" },
               ].map((action) => (
                 <Link key={action.href} href={action.href}>
-                  <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.08] hover:border-cyan-400/20 transition-all cursor-pointer group">
-                    <action.icon className="h-5 w-5 text-cyan-400 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold text-slate-400 group-hover:text-white transition-colors">{action.label}</span>
+                  <div className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all duration-200 cursor-pointer group ${action.cls}`}>
+                    <action.icon className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-bold text-white/80 group-hover:text-white transition-colors">{action.label}</span>
                   </div>
                 </Link>
               ))}
@@ -334,24 +316,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── Popular services ─────────────────────────────────── */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+      {/* ── Popular Services ── */}
+      <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden page-enter page-enter-d4">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
           <div>
-            <div className="font-black text-white">Popular Services</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Most rented platforms on SKY SMS</div>
+            <div className="font-black text-white text-[15px]">Popular Services</div>
+            <div className="text-[12px] text-slate-500 mt-0.5">Most rented platforms on SKY SMS</div>
           </div>
           <Link href="/rent">
-            <span className="text-xs text-cyan-400 font-bold hover:text-cyan-300 transition-colors cursor-pointer flex items-center gap-1">
-              Browse all <ChevronRight className="h-3 w-3" />
+            <span className="text-[12px] text-sky-400 font-bold hover:text-sky-300 transition-colors cursor-pointer flex items-center gap-1">
+              Browse all <ChevronRight className="h-3.5 w-3.5" />
             </span>
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 divide-x divide-y divide-white/[0.05]">
-          {popularServices.map((svc) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
+          {popularServices.map((svc, i) => (
             <Link key={svc.name} href="/rent">
-              <div className="flex flex-col items-center gap-2 p-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
-                <div className="h-10 w-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center overflow-hidden group-hover:border-cyan-400/20 group-hover:bg-white/[0.09] transition-all">
+              <div className={`flex flex-col items-center gap-2.5 p-5 hover:bg-white/[0.03] transition-colors cursor-pointer group border-white/[0.04] ${i % 8 !== 7 ? "border-r" : ""}`}>
+                <div className="h-11 w-11 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center overflow-hidden group-hover:border-sky-500/20 group-hover:bg-white/[0.09] transition-all">
                   <img
                     src={serviceIcons[svc.name]}
                     alt={svc.name}
@@ -360,7 +342,7 @@ export default function Dashboard() {
                   />
                 </div>
                 <div className="text-center">
-                  <div className="text-xs font-bold text-white truncate max-w-full">{svc.name}</div>
+                  <div className="text-[12px] font-bold text-white truncate max-w-full">{svc.name}</div>
                   <div className="text-[10px] text-slate-600 mt-0.5">{svc.tag}</div>
                 </div>
               </div>
@@ -369,21 +351,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── Tips full-width ─────────────────────────────── */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/[0.06]">
-          <div className="font-black text-white">How It Works</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Get the most out of SKY SMS</div>
+      {/* ── How It Works ── */}
+      <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden page-enter page-enter-d5">
+        <div className="px-6 py-5 border-b border-white/[0.06]">
+          <div className="font-black text-white text-[15px]">How It Works</div>
+          <div className="text-[12px] text-slate-500 mt-0.5">Get the most out of SKY SMS</div>
         </div>
-        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          {tips.map((tip, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] hover:border-cyan-400/10 transition-all duration-200">
-              <div className="h-7 w-7 rounded-lg bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0 mt-0.5">
-                <tip.icon className="h-3.5 w-3.5 text-cyan-400" />
+        <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
+          {howItWorks.map((tip, i) => (
+            <div key={i} className="flex items-start gap-3.5 p-4 rounded-xl border border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04] hover:border-sky-500/10 transition-all duration-200">
+              <div className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-400/15 flex items-center justify-center shrink-0 mt-0.5">
+                <tip.icon className="h-4 w-4 text-sky-400" />
               </div>
               <div>
-                <div className="text-sm font-bold text-white">{tip.title}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{tip.desc}</div>
+                <div className="text-[13px] font-bold text-white">{tip.title}</div>
+                <div className="text-[12px] text-slate-500 mt-1 leading-relaxed">{tip.desc}</div>
               </div>
             </div>
           ))}

@@ -4,89 +4,108 @@ import { useGetMe } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Phone, History, CreditCard, Settings, Shield, Users,
-  Activity, SlidersHorizontal, LogOut, Menu, DollarSign, Zap, ChevronRight, X, LifeBuoy, Tag
+  Activity, SlidersHorizontal, LogOut, Menu, DollarSign, Zap, ChevronRight,
+  X, LifeBuoy, Tag, Code2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-export function Layout({ children }: { children: React.ReactNode }) {
+const navItems = [
+  { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/rent",      label: "Rent Number", icon: Phone },
+  { href: "/rentals",   label: "My Rentals",  icon: History },
+  { href: "/payments",  label: "Payments",    icon: CreditCard },
+  { href: "/api-docs",  label: "API",         icon: Code2 },
+  { href: "/settings",  label: "Settings",    icon: Settings },
+  { href: "/support",   label: "Support",     icon: LifeBuoy },
+];
+
+const adminItems = [
+  { href: "/admin",              label: "Overview",     icon: Shield },
+  { href: "/admin/users",        label: "Users",        icon: Users },
+  { href: "/admin/services",     label: "Services",     icon: SlidersHorizontal },
+  { href: "/admin/transactions", label: "Transactions", icon: Activity },
+  { href: "/admin/coupons",      label: "Coupons",      icon: Tag },
+  { href: "/admin/support",      label: "Support",      icon: LifeBuoy },
+];
+
+function NavItem({
+  href, label, icon: Icon, active, onClick, badge,
+}: {
+  href: string; label: string; icon: React.ElementType;
+  active: boolean; onClick?: () => void; badge?: React.ReactNode;
+}) {
+  return (
+    <Link href={href}>
+      <span
+        data-testid={`link-nav-${label.toLowerCase().replace(/\s+/g, "-")}`}
+        onClick={onClick}
+        className={`group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-200 cursor-pointer select-none ${
+          active
+            ? "bg-gradient-to-r from-sky-500/15 to-sky-500/5 text-white border border-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.08)]"
+            : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-100 border border-transparent"
+        }`}
+      >
+        <Icon className={`h-[18px] w-[18px] shrink-0 transition-colors ${active ? "text-sky-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+        <span className="flex-1 leading-none">{label}</span>
+        {badge}
+        {active && <div className="h-1.5 w-1.5 rounded-full bg-sky-400 shrink-0 shadow-[0_0_6px_rgba(56,189,248,0.8)]" />}
+      </span>
+    </Link>
+  );
+}
+
+function SidebarContent({ onNav }: { onNav?: () => void }) {
   const [location] = useLocation();
   const { data: user, isLoading } = useGetMe();
   const { logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
-
   const isAdmin = user?.role === "admin";
 
-  const openSidebar = () => { setClosing(false); setMobileOpen(true); };
-  const closeSidebar = () => {
-    setClosing(true);
-    setTimeout(() => { setMobileOpen(false); setClosing(false); }, 220);
-  };
-
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
-
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard",  icon: LayoutDashboard },
-    { href: "/rent",      label: "Rent Number", icon: Phone },
-    { href: "/rentals",   label: "My Rentals",  icon: History },
-    { href: "/payments",  label: "Payments",    icon: CreditCard },
-    { href: "/settings",  label: "Settings",    icon: Settings },
-    { href: "/support",   label: "Support",     icon: LifeBuoy },
-  ];
-
-  const adminItems = [
-    { href: "/admin",              label: "Overview",     icon: Shield },
-    { href: "/admin/users",        label: "Users",        icon: Users },
-    { href: "/admin/services",     label: "Services",     icon: SlidersHorizontal },
-    { href: "/admin/transactions", label: "Transactions", icon: Activity },
-    { href: "/admin/coupons",      label: "Coupons",      icon: Tag },
-    { href: "/admin/support",      label: "Support",      icon: LifeBuoy },
-  ];
-
-  const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
+  return (
     <div className="flex flex-col h-full">
 
       {/* Logo */}
-      <div className="px-5 pt-5 pb-4">
+      <div className="px-5 pt-6 pb-5">
         <Link href="/dashboard">
-          <span className="flex items-center gap-2.5 cursor-pointer" onClick={onNav}>
-            <div className="h-8 w-8 rounded-lg bg-sky-400/10 border border-sky-400/20 flex items-center justify-center shrink-0">
-              <Phone className="h-3.5 w-3.5 text-sky-400" />
+          <span className="flex items-center gap-3 cursor-pointer group" onClick={onNav}>
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-500/20 to-sky-600/10 border border-sky-500/25 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(14,165,233,0.15)] transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(14,165,233,0.25)]">
+              <Phone className="h-4 w-4 text-sky-400" />
             </div>
             <div>
-              <div className="text-[14px] font-bold text-white tracking-tight leading-none">SKY SMS</div>
-              <div className="text-[10px] text-slate-500 font-medium mt-0.5">Premium Panel</div>
+              <div className="text-[15px] font-bold text-white tracking-tight leading-none">SKY SMS</div>
+              <div className="text-[10px] text-slate-500 font-medium mt-0.5 uppercase tracking-wider">Premium Panel</div>
             </div>
           </span>
         </Link>
       </div>
 
-      {/* Balance */}
+      <div className="h-px mx-4 mb-4 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+      {/* Balance card */}
       {!isLoading && user && (
-        <div className="mx-4 mb-4 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Balance</span>
-            <DollarSign className="h-3 w-3 text-slate-500" />
+        <div className="mx-4 mb-4 rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Balance</span>
+            <div className="h-5 w-5 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+              <DollarSign className="h-2.5 w-2.5 text-sky-400" />
+            </div>
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight" data-testid="text-user-credits">
+          <div className="text-[26px] font-black text-white tracking-tight leading-none" data-testid="text-user-credits">
             ${user.credits.toFixed(2)}
           </div>
           <Link href="/payments">
-            <span className="mt-2 flex items-center gap-1 text-[11px] text-sky-400 font-semibold hover:text-sky-300 transition-colors cursor-pointer" data-testid="link-buy-credits" onClick={onNav}>
+            <span className="mt-2.5 flex items-center gap-1 text-[11px] text-sky-400 font-semibold hover:text-sky-300 transition-colors cursor-pointer" data-testid="link-buy-credits" onClick={onNav}>
               Add funds <ChevronRight className="h-3 w-3" />
             </span>
           </Link>
         </div>
       )}
       {isLoading && (
-        <div className="mx-4 mb-4 rounded-xl border border-white/[0.06] p-4 space-y-2">
-          <Skeleton className="h-2.5 w-16" />
-          <Skeleton className="h-7 w-24" />
+        <div className="mx-4 mb-4 rounded-2xl border border-white/[0.06] p-4 space-y-2.5">
+          <Skeleton className="h-2.5 w-14 bg-white/[0.05]" />
+          <Skeleton className="h-7 w-24 bg-white/[0.05]" />
+          <Skeleton className="h-2.5 w-16 bg-white/[0.04]" />
         </div>
       )}
 
@@ -95,7 +114,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Link href="/rent">
           <span
             onClick={onNav}
-            className="flex items-center justify-center gap-2 h-9 w-full rounded-full bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-all duration-200 cursor-pointer"
+            className="flex items-center justify-center gap-2 h-10 w-full rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 text-[13px] font-semibold text-white hover:from-sky-400 hover:to-sky-500 transition-all duration-200 cursor-pointer shadow-[0_4px_20px_rgba(14,165,233,0.3)] hover:shadow-[0_4px_28px_rgba(14,165,233,0.4)] active:scale-[0.98]"
           >
             <Zap className="h-3.5 w-3.5" />
             Rent a number
@@ -104,76 +123,55 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Nav */}
-      <div className="flex-1 overflow-y-auto px-3 pb-4">
-        <div className="mb-1.5 px-2 text-[10px] font-semibold text-slate-600 uppercase tracking-[0.18em]">Menu</div>
-        <div className="flex flex-col gap-0.5">
-          {navItems.map((item) => {
-            const active = location === item.href || location.startsWith(item.href + "/");
-            return (
-              <Link key={item.href} href={item.href}>
-                <span
-                  data-testid={`link-nav-${item.label.toLowerCase().replace(" ", "-")}`}
-                  onClick={onNav}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer group ${
-                    active
-                      ? "bg-white/[0.07] text-white"
-                      : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
-                  }`}
-                >
-                  <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-sky-400" : "text-slate-500 group-hover:text-slate-300"}`} />
-                  <span className="flex-1">{item.label}</span>
-                  {active && <div className="h-1.5 w-1.5 rounded-full bg-sky-400 shrink-0" />}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+      <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
+        <div className="mb-2 px-2 text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">Navigation</div>
+        {navItems.map((item) => {
+          const active = location === item.href || location.startsWith(item.href + "/");
+          return (
+            <NavItem key={item.href} {...item} active={active} onClick={onNav} />
+          );
+        })}
 
         {isAdmin && (
-          <div className="mt-5">
-            <div className="mb-1.5 px-2 text-[10px] font-semibold text-slate-600 uppercase tracking-[0.18em]">Admin</div>
-            <div className="flex flex-col gap-0.5">
-              {adminItems.map((item) => {
-                const active = location === item.href || location.startsWith(item.href + "/");
-                return (
-                  <Link key={item.href} href={item.href}>
-                    <span
-                      data-testid={`link-nav-admin-${item.label.toLowerCase().replace(" ", "-")}`}
-                      onClick={onNav}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer ${
-                        active
-                          ? "bg-white/[0.07] text-white"
-                          : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
-                      }`}
-                    >
-                      <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-sky-400" : "text-slate-500"}`} />
-                      {item.label}
-                      {item.href === "/admin" && (
-                        <Badge className="ml-auto bg-red-400/10 text-red-300 border-red-300/15 text-[10px] px-1.5 py-0 h-4">
-                          Admin
-                        </Badge>
-                      )}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
+          <div className="mt-5 pt-4 border-t border-white/[0.05]">
+            <div className="mb-2 px-2 text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">Admin</div>
+            {adminItems.map((item) => {
+              const active = location === item.href || location.startsWith(item.href + "/");
+              return (
+                <NavItem
+                  key={item.href}
+                  {...item}
+                  active={active}
+                  onClick={onNav}
+                  badge={item.href === "/admin" ? (
+                    <Badge className="ml-auto bg-rose-500/10 text-rose-300 border-rose-400/15 text-[9px] px-1.5 py-0 h-4 font-bold">
+                      Admin
+                    </Badge>
+                  ) : undefined}
+                />
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* User */}
-      <div className="p-3 border-t border-white/[0.05] mt-auto">
+      {/* User profile */}
+      <div className="p-3 border-t border-white/[0.05]">
         {isLoading ? (
-          <div className="flex items-center gap-3 px-2">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div className="space-y-1.5 flex-1"><Skeleton className="h-3 w-20" /><Skeleton className="h-2.5 w-14" /></div>
+          <div className="flex items-center gap-3 px-2 py-1">
+            <Skeleton className="h-9 w-9 rounded-full bg-white/[0.05]" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-3 w-20 bg-white/[0.05]" />
+              <Skeleton className="h-2.5 w-14 bg-white/[0.04]" />
+            </div>
           </div>
         ) : user ? (
-          <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors">
-            <Avatar className="h-8 w-8 border border-white/[0.08] shrink-0">
+          <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/[0.04] transition-colors group">
+            <Avatar className="h-9 w-9 border border-white/[0.1] shrink-0">
               <AvatarImage src={user.avatarUrl} />
-              <AvatarFallback className="text-[11px] bg-sky-400/10 text-sky-300">{user.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+              <AvatarFallback className="text-[12px] font-bold bg-sky-500/10 text-sky-300">
+                {user.name?.charAt(0).toUpperCase() || "U"}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-semibold text-white truncate" data-testid="text-username">{user.name}</div>
@@ -181,7 +179,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={logout}
-              className="h-7 w-7 shrink-0 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-all duration-150"
+              className="h-7 w-7 shrink-0 flex items-center justify-center rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 transition-all duration-150"
               data-testid="button-signout"
               title="Sign out"
             >
@@ -192,17 +190,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const { data: user } = useGetMe();
+
+  const openSidebar = () => { setClosing(false); setMobileOpen(true); };
+  const closeSidebar = () => {
+    setClosing(true);
+    setTimeout(() => { setMobileOpen(false); setClosing(false); }, 260);
+  };
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
 
   return (
     <div className="app-shell min-h-screen flex">
-      {/* Background */}
+      {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-sky-400/[0.04] blur-[100px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-indigo-500/[0.04] blur-[80px]" />
+        <div className="absolute -top-48 -left-48 w-[640px] h-[640px] rounded-full bg-sky-500/[0.04] blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[480px] h-[480px] rounded-full bg-violet-500/[0.04] blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-indigo-500/[0.025] blur-[120px]" />
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 left-0 z-30 border-r border-white/[0.06] bg-[#080c18]/98 backdrop-blur-xl">
+      <aside className="hidden md:flex w-[260px] flex-col fixed inset-y-0 left-0 z-30 border-r border-white/[0.055] bg-[#050914]/98 backdrop-blur-2xl">
         <SidebarContent />
       </aside>
 
@@ -210,13 +226,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
           <div
-            className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-220 ${closing ? "opacity-0" : "opacity-100"}`}
+            className={`absolute inset-0 bg-black/65 backdrop-blur-md ${closing ? "overlay-fade-out" : "overlay-fade-in"}`}
             onClick={closeSidebar}
           />
-          <aside className={`relative z-50 w-64 flex flex-col h-full bg-[#080c18] border-r border-white/[0.06] ${closing ? "sidebar-slide-out" : "sidebar-slide-in"}`}>
+          <aside className={`relative z-50 w-[270px] flex flex-col h-full bg-[#070c1a] border-r border-white/[0.07] shadow-2xl ${closing ? "sidebar-slide-out" : "sidebar-slide-in"}`}>
             <button
               onClick={closeSidebar}
-              className="absolute top-4 right-4 h-7 w-7 flex items-center justify-center rounded-md text-slate-500 hover:text-white hover:bg-white/[0.06] transition-all duration-150 z-10"
+              className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-xl text-slate-500 hover:text-white hover:bg-white/[0.07] transition-all duration-150 z-10"
             >
               <X className="h-4 w-4" />
             </button>
@@ -225,28 +241,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Content */}
-      <div className="relative z-10 flex-1 flex flex-col md:pl-64">
+      {/* Main content */}
+      <div className="relative z-10 flex-1 flex flex-col md:pl-[260px]">
 
         {/* Mobile header */}
-        <header className="md:hidden sticky top-0 z-20 flex items-center justify-between px-4 h-13 border-b border-white/[0.05] bg-[#080c18]/95 backdrop-blur-xl">
+        <header className="md:hidden sticky top-0 z-20 flex items-center justify-between px-4 h-14 border-b border-white/[0.05] bg-[#050914]/95 backdrop-blur-2xl">
           <Link href="/dashboard">
-            <span className="text-[14px] font-bold text-white cursor-pointer">SKY SMS</span>
+            <span className="flex items-center gap-2 cursor-pointer">
+              <div className="h-7 w-7 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
+                <Phone className="h-3.5 w-3.5 text-sky-400" />
+              </div>
+              <span className="text-[14px] font-bold text-white">SKY SMS</span>
+            </span>
           </Link>
           <div className="flex items-center gap-3">
             {user && (
-              <span className="text-[13px] font-semibold text-white">${user.credits.toFixed(2)}</span>
+              <div className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1">
+                <DollarSign className="h-3 w-3 text-sky-400" />
+                <span className="text-[13px] font-bold text-white">{user.credits.toFixed(2)}</span>
+              </div>
             )}
             <button
               onClick={openSidebar}
-              className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/[0.05] border border-white/[0.07] text-white hover:bg-white/[0.09] transition-all duration-150"
+              className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] text-white hover:bg-white/[0.09] transition-all duration-150 active:scale-95"
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-[18px] w-[18px]" />
             </button>
           </div>
         </header>
 
-        <main className="flex-1 p-5 md:p-7 xl:p-8 w-full max-w-screen-xl mx-auto">
+        <main className="flex-1 p-5 md:p-7 xl:p-9 w-full max-w-screen-xl mx-auto">
           {children}
         </main>
       </div>
