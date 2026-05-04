@@ -26,13 +26,13 @@ function CopyButton({ text }: { text: string }) {
 function CodeBlock({ children, lang = "bash" }: { children: string; lang?: string }) {
   const content = children.trim();
   return (
-    <div className="relative rounded-xl overflow-hidden border border-white/[0.07] bg-[#070c1a] mt-3">
+    <div className="relative rounded-xl border border-white/[0.07] bg-[#070c1a] mt-3" style={{ overflow: "clip" }}>
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
         <span className="text-[10px] font-mono text-slate-600 uppercase tracking-wider">{lang}</span>
         <CopyButton text={content} />
       </div>
-      <div className="overflow-x-auto w-full" style={{ WebkitOverflowScrolling: "touch" }}>
-        <pre className="p-4 text-[12px] leading-relaxed font-mono text-slate-300 whitespace-pre min-w-0">
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <pre style={{ margin: 0, padding: "1rem", fontSize: "12px", lineHeight: "1.6", fontFamily: "monospace", color: "#cbd5e1", whiteSpace: "pre", display: "block" }}>
           <code>{content}</code>
         </pre>
       </div>
@@ -43,13 +43,13 @@ function CodeBlock({ children, lang = "bash" }: { children: string; lang?: strin
 function ResponseBlock({ json }: { json: object }) {
   const text = JSON.stringify(json, null, 2);
   return (
-    <div className="relative rounded-xl overflow-hidden border border-white/[0.07] bg-[#070c1a] mt-3">
+    <div className="relative rounded-xl border border-white/[0.07] bg-[#070c1a] mt-3" style={{ overflow: "clip" }}>
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
         <span className="text-[10px] font-mono text-emerald-600/80 uppercase tracking-wider">200 OK · JSON</span>
         <CopyButton text={text} />
       </div>
-      <div className="overflow-x-auto w-full" style={{ WebkitOverflowScrolling: "touch" }}>
-        <pre className="p-4 text-[12px] leading-relaxed font-mono min-w-0 whitespace-pre">
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <pre style={{ margin: 0, padding: "1rem", fontSize: "12px", lineHeight: "1.6", fontFamily: "monospace", whiteSpace: "pre", display: "block" }}>
           <code>{
             text.split("\n").map((line, i) => {
               const km = line.match(/^(\s*)"([^"]+)":/);

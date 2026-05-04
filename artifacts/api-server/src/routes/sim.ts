@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { randomBytes, createHash } from "node:crypto";
 import { pool } from "@workspace/db";
 import type { AuthUser } from "../lib/auth";
 import { ensureSimSchema } from "../lib/simSchema";
@@ -1361,8 +1362,6 @@ router.get("/admin/transactions", async (req, res) => {
 
 // ── API Keys ──────────────────────────────────────────────────────────────────
 
-import { randomBytes, createHash } from "node:crypto";
-
 function generateApiKey(): { full: string; hash: string; prefix: string } {
   const raw = randomBytes(32).toString("hex");
   const full = `sk_live_${raw}`;
@@ -1398,7 +1397,7 @@ router.post("/keys", async (req, res) => {
     "SELECT COUNT(*)::int AS n FROM sim_api_keys WHERE user_id = $1 AND revoked = FALSE",
     [req.user.id],
   );
-  if (count.rows[0].n >= 10) return res.status(400).json({ error: "Maximum 10 active API keys per account" });
+  if (count.rows[0].n >= 3) return res.status(400).json({ error: "Maximum 3 active API keys per account. Revoke one to create another." });
 
   const { full, hash, prefix } = generateApiKey();
   const id = `key_${randomBytes(8).toString("hex")}`;
