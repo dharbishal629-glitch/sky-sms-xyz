@@ -70,11 +70,11 @@
 }
 
 @layer base {
-  * { @apply border-border; scroll-behavior: smooth; box-sizing: border-box; }
+  * { @apply border-border; box-sizing: border-box; }
   body {
     @apply font-sans antialiased bg-background text-foreground;
     background: #050914;
-    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
     font-feature-settings: "cv02","cv03","cv04","cv11";
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -155,7 +155,7 @@
     100% { transform: translate3d(4%,-8%,0) scale(0.97); }
   }
 
-  /* ── Glass card — premium depth ── */
+  /* ── Glass card — no backdrop-filter for 120fps scrolling ── */
   .glass-card {
     background: linear-gradient(135deg,
       rgba(255,255,255,0.035) 0%,
@@ -164,20 +164,11 @@
     border: 1px solid rgba(255,255,255,0.075);
     box-shadow:
       0 1px 0 0 rgba(255,255,255,0.04) inset,
-      0 2px 4px rgba(0,0,0,0.4),
-      0 12px 40px rgba(0,0,0,0.3);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
-    will-change: transform;
-    transform: translateZ(0);
+      0 2px 8px rgba(0,0,0,0.35);
+    transition: border-color 0.2s ease;
   }
   .glass-card:hover {
     border-color: rgba(255,255,255,0.11);
-    box-shadow:
-      0 1px 0 0 rgba(255,255,255,0.06) inset,
-      0 4px 8px rgba(0,0,0,0.45),
-      0 20px 50px rgba(0,0,0,0.35);
   }
 
   /* ── Premium stat card ── */

@@ -15,7 +15,7 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.05]"
+      className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.05] shrink-0"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "Copied" : "Copy"}
@@ -24,15 +24,16 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function CodeBlock({ children, lang = "bash" }: { children: string; lang?: string }) {
+  const content = children.trim();
   return (
     <div className="relative rounded-xl overflow-hidden border border-white/[0.07] bg-[#070c1a] mt-3">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
         <span className="text-[10px] font-mono text-slate-600 uppercase tracking-wider">{lang}</span>
-        <CopyButton text={children.trim()} />
+        <CopyButton text={content} />
       </div>
-      <div className="overflow-x-auto">
-        <pre className="p-4 text-[12px] leading-relaxed font-mono text-slate-300 min-w-0 whitespace-pre-wrap break-words sm:whitespace-pre sm:break-normal">
-          <code>{children.trim()}</code>
+      <div className="overflow-x-auto w-full" style={{ WebkitOverflowScrolling: "touch" }}>
+        <pre className="p-4 text-[12px] leading-relaxed font-mono text-slate-300 whitespace-pre min-w-0">
+          <code>{content}</code>
         </pre>
       </div>
     </div>
@@ -47,8 +48,8 @@ function ResponseBlock({ json }: { json: object }) {
         <span className="text-[10px] font-mono text-emerald-600/80 uppercase tracking-wider">200 OK · JSON</span>
         <CopyButton text={text} />
       </div>
-      <div className="overflow-x-auto">
-        <pre className="p-4 text-[12px] leading-relaxed font-mono min-w-0 whitespace-pre-wrap break-words sm:whitespace-pre sm:break-normal">
+      <div className="overflow-x-auto w-full" style={{ WebkitOverflowScrolling: "touch" }}>
+        <pre className="p-4 text-[12px] leading-relaxed font-mono min-w-0 whitespace-pre">
           <code>{
             text.split("\n").map((line, i) => {
               const km = line.match(/^(\s*)"([^"]+)":/);
@@ -98,8 +99,9 @@ const sections = [
     content: (
       <div className="space-y-4 text-[13.5px] text-slate-400 leading-relaxed">
         <p>All API requests require an API key in the <code className="text-sky-300 bg-sky-400/8 px-1.5 py-0.5 rounded text-[12px] font-mono">X-API-Key</code> header.</p>
-        <p>Find your API key in <span className="text-white font-medium">Settings → API Keys</span>. Never expose it in client-side code.</p>
-        <CodeBlock lang="bash">{`curl "${BASE}/me" \\\n  -H "X-API-Key: sk_live_your_api_key_here"`}</CodeBlock>
+        <p>Generate your API key in <span className="text-white font-medium">Settings → API Keys</span>. Never expose it in client-side code.</p>
+        <CodeBlock lang="bash">{`curl "${BASE}/me" \\
+  -H "X-API-Key: sk_live_your_key_here"`}</CodeBlock>
         <div className="rounded-xl border border-amber-400/15 bg-amber-400/5 p-4 flex gap-3">
           <Shield className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
@@ -121,7 +123,8 @@ const sections = [
         desc: "List all available SMS services with pricing.",
         auth: true,
         response: { services: [{ code: "telegram", name: "Telegram", price: 0.15, category: "messaging" }] },
-        curlExample: `curl "${BASE}/catalog/services" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl "${BASE}/catalog/services" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
     ],
   },
@@ -133,18 +136,20 @@ const sections = [
       {
         method: "GET" as const,
         path: "/api/catalog/countries-for-service",
-        desc: "Available countries with live stock count for a service.",
+        desc: "Available countries with live stock for a service.",
         auth: true,
         response: { countries: [{ code: "us", name: "United States", available: 4820, price: 0.15 }] },
-        curlExample: `curl "${BASE}/catalog/countries-for-service?serviceCode=telegram" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl "${BASE}/catalog/countries-for-service?serviceCode=telegram" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
       {
         method: "GET" as const,
         path: "/api/catalog/availability",
-        desc: "Real-time availability and price for a service + country pair.",
+        desc: "Real-time availability and price for a service + country.",
         auth: true,
         response: { available: 4820, price: 0.15, estimatedWait: "instant" },
-        curlExample: `curl "${BASE}/catalog/availability?serviceCode=telegram&countryCode=us" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl "${BASE}/catalog/availability?serviceCode=telegram&countryCode=us" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
     ],
   },
@@ -160,7 +165,10 @@ const sections = [
         auth: true,
         body: { serviceCode: "telegram", countryCode: "us" },
         response: { id: "rnt_01J2K4P8", serviceName: "Telegram", phoneNumber: "14158675309", status: "active", price: 0.15, expiresAt: "2026-05-04T10:50:00Z" },
-        curlExample: `curl -X POST "${BASE}/rentals" \\\n  -H "X-API-Key: YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"serviceCode":"telegram","countryCode":"us"}'`,
+        curlExample: `curl -X POST "${BASE}/rentals" \\
+  -H "X-API-Key: YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"serviceCode":"telegram","countryCode":"us"}'`,
       },
       {
         method: "GET" as const,
@@ -168,7 +176,8 @@ const sections = [
         desc: "List your rentals, paginated. Filter by status.",
         auth: true,
         response: { rentals: [{ id: "rnt_01J2K4P8", serviceName: "Telegram", status: "active" }], total: 1 },
-        curlExample: `curl "${BASE}/rentals?status=active&page=1" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl "${BASE}/rentals?status=active&page=1" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
       {
         method: "GET" as const,
@@ -176,7 +185,8 @@ const sections = [
         desc: "Get a rental with all received SMS messages.",
         auth: true,
         response: { id: "rnt_01J2K4P8", status: "sms_received", messages: [{ body: "Your code: 481624", code: "481624" }] },
-        curlExample: `curl "${BASE}/rentals/rnt_01J2K4P8" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl "${BASE}/rentals/rnt_01J2K4P8" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
       {
         method: "POST" as const,
@@ -184,7 +194,8 @@ const sections = [
         desc: "Manually poll for new SMS messages on an active rental.",
         auth: true,
         response: { id: "rnt_01J2K4P8", status: "active", messages: [] },
-        curlExample: `curl -X POST "${BASE}/rentals/rnt_01J2K4P8/refresh" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl -X POST "${BASE}/rentals/rnt_01J2K4P8/refresh" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
       {
         method: "POST" as const,
@@ -192,7 +203,8 @@ const sections = [
         desc: "Cancel an active rental. Full refund if window hasn't expired.",
         auth: true,
         response: { id: "rnt_01J2K4P8", status: "cancelled", refunded: true, refundAmount: 0.15 },
-        curlExample: `curl -X POST "${BASE}/rentals/rnt_01J2K4P8/cancel" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl -X POST "${BASE}/rentals/rnt_01J2K4P8/cancel" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
     ],
   },
@@ -207,7 +219,8 @@ const sections = [
         desc: "Get your account information and balance.",
         auth: true,
         response: { id: "usr_01J2K4P8", name: "John Doe", email: "john@example.com", credits: 12.50, role: "user" },
-        curlExample: `curl "${BASE}/me" \\\n  -H "X-API-Key: YOUR_KEY"`,
+        curlExample: `curl "${BASE}/me" \\
+  -H "X-API-Key: YOUR_KEY"`,
       },
     ],
   },
@@ -216,7 +229,7 @@ const sections = [
 function EndpointCard({ ep }: { ep: Endpoint }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className={`rounded-xl border overflow-hidden transition-all duration-200 ${open ? "border-white/[0.09] bg-white/[0.02]" : "border-white/[0.06] hover:border-white/[0.08]"}`}>
+    <div className={`rounded-xl border overflow-hidden ${open ? "border-white/[0.09] bg-white/[0.02]" : "border-white/[0.06]"}`}>
       <button
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
         onClick={() => setOpen(!open)}
@@ -224,13 +237,13 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
         <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-[10px] font-black font-mono tracking-wider shrink-0 ${methodColors[ep.method]}`}>
           {ep.method}
         </span>
-        <code className="flex-1 text-[12.5px] font-mono text-slate-200 truncate min-w-0">{ep.path}</code>
+        <code className="flex-1 text-[12px] sm:text-[12.5px] font-mono text-slate-200 truncate min-w-0">{ep.path}</code>
         {ep.auth && (
           <span className="hidden sm:flex items-center gap-1 text-[10px] text-violet-400 font-semibold bg-violet-400/6 border border-violet-400/12 rounded-full px-2 py-0.5 shrink-0">
             <Key className="h-2.5 w-2.5" /> Auth
           </span>
         )}
-        <ChevronDown className={`h-4 w-4 text-slate-600 transition-transform duration-250 shrink-0 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 text-slate-600 transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`} />
       </button>
 
       <div className={`faq-body ${open ? "faq-body-open" : ""}`}>
@@ -272,7 +285,7 @@ export default function ApiDocs() {
               </div>
               <h1 className="text-[1.75rem] font-black tracking-tight text-white">API Reference</h1>
             </div>
-            <p className="text-slate-500 text-[13.5px] max-w-lg">
+            <p className="text-slate-500 text-[13.5px]">
               Automate SMS rentals with the SKY SMS REST API. All endpoints return JSON.
             </p>
           </div>
@@ -291,7 +304,7 @@ export default function ApiDocs() {
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
           <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2.5">Base URL</div>
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex-1 font-mono text-[12.5px] text-sky-300 bg-sky-400/5 border border-sky-400/10 rounded-lg px-3 py-2.5 overflow-x-auto whitespace-nowrap">
+            <div className="flex-1 font-mono text-[11.5px] sm:text-[12.5px] text-sky-300 bg-sky-400/5 border border-sky-400/10 rounded-lg px-3 py-2.5 overflow-x-auto whitespace-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
               {BASE}
             </div>
             <CopyButton text={BASE} />
@@ -306,20 +319,27 @@ export default function ApiDocs() {
             <Terminal className="h-4 w-4 text-sky-400" />
             <div className="font-semibold text-white text-[14px]">Quick Start</div>
           </div>
-          <div className="p-5">
-            <CodeBlock lang="bash">{`# 1. List services\ncurl "${BASE}/catalog/services" -H "X-API-Key: YOUR_KEY"\n\n# 2. Create a rental\ncurl -X POST "${BASE}/rentals" \\\n  -H "X-API-Key: YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"serviceCode":"telegram","countryCode":"us"}'\n\n# 3. Poll for SMS\ncurl "${BASE}/rentals/{id}" -H "X-API-Key: YOUR_KEY"`}</CodeBlock>
+          <div className="p-4 sm:p-5">
+            <CodeBlock lang="bash">{`curl "${BASE}/catalog/services" -H "X-API-Key: YOUR_KEY"
+
+curl -X POST "${BASE}/rentals" \\
+  -H "X-API-Key: YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"serviceCode":"telegram","countryCode":"us"}'
+
+curl "${BASE}/rentals/{id}" -H "X-API-Key: YOUR_KEY"`}</CodeBlock>
           </div>
         </div>
       </Reveal>
 
       {/* Section tabs — scrollable on mobile */}
       <Reveal variant="up" delay={120}>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
           {sections.map((sec, i) => (
             <button
               key={sec.title}
               onClick={() => setActiveSection(i)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-semibold border transition-all duration-200 whitespace-nowrap shrink-0 ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-semibold border transition-colors whitespace-nowrap shrink-0 ${
                 activeSection === i
                   ? "bg-sky-500/12 border-sky-500/22 text-sky-300"
                   : "border-white/[0.07] text-slate-400 hover:text-white hover:border-white/[0.1] hover:bg-white/[0.03]"
@@ -361,16 +381,16 @@ export default function ApiDocs() {
           </div>
           <div className="divide-y divide-white/[0.04]">
             {[
-              { code: "200", label: "OK",               desc: "Success.",                                         color: "emerald" },
-              { code: "400", label: "Bad Request",       desc: "Missing or invalid parameters.",                   color: "amber" },
-              { code: "401", label: "Unauthorized",      desc: "Invalid or missing API key.",                      color: "rose" },
-              { code: "402", label: "Payment Required",  desc: "Insufficient balance.",                            color: "amber" },
-              { code: "404", label: "Not Found",         desc: "Resource does not exist.",                         color: "rose" },
-              { code: "409", label: "Conflict",          desc: "No numbers available for this combination.",       color: "amber" },
-              { code: "429", label: "Rate Limited",      desc: "Too many requests. Limit: 60 req/min.",            color: "amber" },
-              { code: "500", label: "Server Error",      desc: "Internal error. Contact support if persistent.",   color: "rose" },
+              { code: "200", label: "OK",              desc: "Success.",                                        color: "emerald" },
+              { code: "400", label: "Bad Request",     desc: "Missing or invalid parameters.",                  color: "amber" },
+              { code: "401", label: "Unauthorized",    desc: "Invalid or missing API key.",                     color: "rose" },
+              { code: "402", label: "Payment Required",desc: "Insufficient balance.",                           color: "amber" },
+              { code: "404", label: "Not Found",       desc: "Resource does not exist.",                        color: "rose" },
+              { code: "409", label: "Conflict",        desc: "No numbers available for this combination.",      color: "amber" },
+              { code: "429", label: "Rate Limited",    desc: "Too many requests. Limit: 60 req/min.",           color: "amber" },
+              { code: "500", label: "Server Error",    desc: "Internal error. Contact support if persistent.",  color: "rose" },
             ].map(({ code, label, desc, color }) => (
-              <div key={code} className="flex items-center gap-3 px-5 py-3">
+              <div key={code} className="flex items-start gap-3 px-5 py-3">
                 <span className={`font-mono font-bold text-[12.5px] w-10 shrink-0 ${color === "emerald" ? "text-emerald-400" : color === "rose" ? "text-rose-400" : "text-amber-400"}`}>{code}</span>
                 <span className="text-[12.5px] font-semibold text-white w-28 sm:w-36 shrink-0">{label}</span>
                 <span className="text-[12px] text-slate-500">{desc}</span>

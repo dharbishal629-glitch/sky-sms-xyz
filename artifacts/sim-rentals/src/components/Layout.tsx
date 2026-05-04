@@ -245,14 +245,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell min-h-screen flex">
-      {/* Ambient */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-48 -left-48 w-[640px] h-[640px] rounded-full bg-sky-500/[0.035] blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[480px] h-[480px] rounded-full bg-violet-500/[0.03] blur-[100px]" />
-      </div>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-[256px] flex-col fixed inset-y-0 left-0 z-30 border-r border-white/[0.05] bg-[#050914]/98 backdrop-blur-2xl">
+      {/* Desktop sidebar — solid bg for max scroll performance */}
+      <aside className="hidden md:flex w-[256px] flex-col fixed inset-y-0 left-0 z-30 border-r border-white/[0.05] bg-[#060b18]">
         <SidebarContent />
       </aside>
 
@@ -279,7 +274,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="relative z-10 flex-1 flex flex-col md:pl-[256px]">
 
         {/* Mobile header */}
-        <header className="md:hidden sticky top-0 z-20 flex items-center justify-between px-4 h-14 border-b border-white/[0.05] bg-[#050914]/95 backdrop-blur-2xl">
+        <header className="md:hidden sticky top-0 z-20 flex items-center justify-between px-4 h-14 border-b border-white/[0.05] bg-[#060b18]">
           <Link href="/dashboard">
             <span className="flex items-center gap-2 cursor-pointer">
               <div className="h-7 w-7 rounded-lg bg-sky-500/12 border border-sky-500/20 flex items-center justify-center">

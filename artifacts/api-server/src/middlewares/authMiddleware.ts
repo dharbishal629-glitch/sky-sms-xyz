@@ -1,6 +1,8 @@
 import * as oidc from "openid-client";
 import { type Request, type Response, type NextFunction } from "express";
+import { createHash } from "node:crypto";
 import type { AuthUser } from "../lib/auth";
+import { pool } from "@workspace/db";
 import {
   clearSession,
   getOidcConfig,
@@ -56,6 +58,30 @@ export async function authMiddleware(
   req.isAuthenticated = function (this: Request) {
     return this.user != null;
   } as Request["isAuthenticated"];
+
+  // API key authentication (X-API-Key header)
+  const apiKey = req.headers["x-api-key"] as string | undefined;
+  if (apiKey) {
+    try {
+      const keyHash = createHash("sha256").update(apiKey).digest("hex");
+      const result = await pool.query(
+        `SELECT k.id, k.user_id, u.email, u.name, u.role
+         FROM sim_api_keys k
+         JOIN sim_users u ON u.id = k.user_id
+         WHERE k.key_hash = $1 AND k.revoked = FALSE`,
+        [keyHash],
+      );
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        req.user = { id: row.user_id, email: row.email, name: row.name, role: row.role };
+        pool.query("UPDATE sim_api_keys SET last_used_at = NOW() WHERE id = $1", [row.id]).catch(() => {});
+      }
+    } catch {
+      // silently ignore DB errors for API key lookup
+    }
+    next();
+    return;
+  }
 
   const sid = getSessionId(req);
   if (!sid) {

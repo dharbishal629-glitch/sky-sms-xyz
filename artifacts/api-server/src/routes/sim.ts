@@ -1359,6 +1359,68 @@ router.get("/admin/transactions", async (req, res) => {
   );
 });
 
+// ── API Keys ──────────────────────────────────────────────────────────────────
+
+import { randomBytes, createHash } from "node:crypto";
+
+function generateApiKey(): { full: string; hash: string; prefix: string } {
+  const raw = randomBytes(32).toString("hex");
+  const full = `sk_live_${raw}`;
+  const hash = createHash("sha256").update(full).digest("hex");
+  const prefix = full.slice(0, 18);
+  return { full, hash, prefix };
+}
+
+router.get("/keys", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const result = await pool.query(
+    `SELECT id, name, key_prefix, last_used_at, created_at FROM sim_api_keys
+     WHERE user_id = $1 AND revoked = FALSE ORDER BY created_at DESC`,
+    [req.user.id],
+  );
+  return res.json({
+    keys: result.rows.map((r) => ({
+      id: String(r.id),
+      name: String(r.name),
+      prefix: String(r.key_prefix),
+      lastUsedAt: r.last_used_at ? new Date(r.last_used_at).toISOString() : null,
+      createdAt: new Date(r.created_at).toISOString(),
+    })),
+  });
+});
+
+router.post("/keys", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const name = (req.body?.name ?? "").trim().slice(0, 64);
+  if (!name) return res.status(400).json({ error: "Key name is required" });
+
+  const count = await pool.query(
+    "SELECT COUNT(*)::int AS n FROM sim_api_keys WHERE user_id = $1 AND revoked = FALSE",
+    [req.user.id],
+  );
+  if (count.rows[0].n >= 10) return res.status(400).json({ error: "Maximum 10 active API keys per account" });
+
+  const { full, hash, prefix } = generateApiKey();
+  const id = `key_${randomBytes(8).toString("hex")}`;
+  await pool.query(
+    `INSERT INTO sim_api_keys (id, user_id, name, key_hash, key_prefix)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [id, req.user.id, name, hash, prefix],
+  );
+  return res.status(201).json({ id, name, prefix, key: full, createdAt: new Date().toISOString() });
+});
+
+router.delete("/keys/:id", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const keyId = req.params.id;
+  const result = await pool.query(
+    "UPDATE sim_api_keys SET revoked = TRUE WHERE id = $1 AND user_id = $2 RETURNING id",
+    [keyId, req.user.id],
+  );
+  if (result.rowCount === 0) return res.status(404).json({ error: "Key not found" });
+  return res.json({ success: true });
+});
+
 export default router;
 
 export function startExpiredPaymentsCleaner() {

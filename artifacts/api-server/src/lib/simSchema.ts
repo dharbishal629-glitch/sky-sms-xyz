@@ -133,6 +133,17 @@ async function createSchema() {
     ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS coupon_code TEXT;
     ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS bonus_credits NUMERIC NOT NULL DEFAULT 0;
     ALTER TABLE sim_payments ADD COLUMN IF NOT EXISTS track_id TEXT;
+
+    CREATE TABLE IF NOT EXISTS sim_api_keys (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES sim_users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      key_hash TEXT NOT NULL UNIQUE,
+      key_prefix TEXT NOT NULL,
+      last_used_at TIMESTAMPTZ,
+      revoked BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   for (const code of SEED_ENABLED_SERVICES) {
