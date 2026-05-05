@@ -129,7 +129,7 @@ interface Endpoint {
 
 function EndpointCard({ ep }: { ep: Endpoint }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] overflow-hidden w-full">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] w-full">
       <div className="px-4 py-3.5 border-b border-white/[0.05]">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -252,7 +252,7 @@ const sections: Section[] = [
 
 export default function ApiDocs() {
   return (
-    <div className="max-w-full md:max-w-3xl mx-auto space-y-6 pb-8 px-4 overflow-x-hidden">
+    <div className="max-w-full md:max-w-3xl mx-auto space-y-6 pb-8 px-4">
 
       {/* Header */}
       <Reveal variant="up">
