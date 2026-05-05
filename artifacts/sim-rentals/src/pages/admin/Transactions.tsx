@@ -123,7 +123,7 @@ export default function AdminTransactions() {
 
       <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Transactions</h1>
+          <h1 className="text-xl font-semibold text-white">Transactions</h1>
           <p className="text-muted-foreground mt-1 text-sm">Platform-wide payment and credit activity.</p>
         </div>
         <div className="relative w-full sm:w-72">

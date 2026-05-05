@@ -98,7 +98,7 @@ function StatCard({
         </div>
       </div>
       <div className="flex items-center gap-3 mb-2">
-        <div className="text-[2.4rem] font-black text-white leading-none tracking-tight">{value}</div>
+        <div className="text-[2rem] font-bold text-white leading-none">{value}</div>
         {pulse && (
           <span className={`inline-flex rounded-full h-2 w-2 ${c.dot}`} />
         )}
@@ -143,7 +143,7 @@ export default function Dashboard() {
         <div className="h-16 w-16 rounded-2xl bg-rose-400/10 border border-rose-300/20 flex items-center justify-center mb-5">
           <AlertCircle className="h-8 w-8 text-rose-400" />
         </div>
-        <h2 className="text-2xl font-black text-white mb-2">Dashboard unavailable</h2>
+        <h2 className="text-lg font-semibold text-white mb-2">Dashboard unavailable</h2>
         <p className="text-slate-500 text-sm">Please refresh the page and try again.</p>
       </div>
     );
@@ -160,7 +160,7 @@ export default function Dashboard() {
 
       {/* Header — no emoji */}
       <div className="page-enter page-enter-d1">
-        <h1 className="text-[2rem] font-black tracking-tight text-white">
+        <h1 className="text-xl font-semibold text-white">
           {firstName ? `Welcome back, ${firstName}` : "Dashboard"}
         </h1>
         <p className="text-slate-500 mt-1.5 text-[14px]">Here's what's happening with your account.</p>

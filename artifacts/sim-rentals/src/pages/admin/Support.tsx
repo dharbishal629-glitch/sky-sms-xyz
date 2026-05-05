@@ -166,7 +166,7 @@ export default function AdminSupport() {
       <div className="page-enter page-enter-d1 flex items-start gap-4 justify-between">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-sky-400 mb-1.5">Admin</p>
-          <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-xl font-semibold text-white flex items-center gap-3">
             Support Tickets
             {openCount > 0 && <span className="text-sm font-bold px-2.5 py-0.5 rounded-full bg-red-400/10 border border-red-400/20 text-red-300">{openCount} open</span>}
           </h1>

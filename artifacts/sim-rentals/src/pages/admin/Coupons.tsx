@@ -139,19 +139,15 @@ export default function AdminCoupons() {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
-          <Tag className="h-7 w-7 text-cyan-400" /> Coupons
-        </h1>
-        <p className="text-muted-foreground mt-1">Create discount codes for your users — fixed or percentage off.</p>
+        <h1 className="text-xl font-semibold text-white">Coupons</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Create discount codes for your users.</p>
       </div>
 
       {/* Create form */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Plus className="h-4 w-4 text-cyan-400" /> Create New Coupon
-          </CardTitle>
-          <CardDescription>All fields except Code, Type, and Value are optional.</CardDescription>
+          <CardTitle className="text-base font-semibold text-white">Create New Coupon</CardTitle>
+          <CardDescription>Code, Type, and Value are required. All other fields are optional.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreate} className="space-y-4">
@@ -178,14 +174,13 @@ export default function AdminCoupons() {
                       key={t}
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, type: t }))}
-                      className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold transition-colors ${
+                      className={`flex-1 flex items-center justify-center text-[13px] font-medium transition-colors ${
                         form.type === t
-                          ? "bg-cyan-400/20 text-cyan-300 border-r-0"
-                          : "bg-transparent text-muted-foreground hover:text-white"
+                          ? "bg-white/[0.08] text-white"
+                          : "text-slate-400 hover:text-slate-200"
                       }`}
                     >
-                      {t === "percentage" ? <Percent className="h-3.5 w-3.5" /> : <DollarSign className="h-3.5 w-3.5" />}
-                      {t === "percentage" ? "Percent %" : "Fixed $"}
+                      {t === "percentage" ? "Percentage" : "Fixed Amount"}
                     </button>
                   ))}
                 </div>
@@ -193,32 +188,22 @@ export default function AdminCoupons() {
 
               {/* Value */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {form.type === "percentage" ? "Discount %" : "Discount $"} *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
-                    {form.type === "percentage" ? "%" : "$"}
-                  </span>
-                  <Input
-                    type="number"
-                    min="0.01"
-                    max={form.type === "percentage" ? "100" : undefined}
-                    step="0.01"
-                    placeholder={form.type === "percentage" ? "20" : "5.00"}
-                    value={form.value}
-                    onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
-                    className="pl-7"
-                    required
-                  />
-                </div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Discount *</label>
+                <Input
+                  type="number"
+                  min="0.01"
+                  max={form.type === "percentage" ? "100" : undefined}
+                  step="0.01"
+                  placeholder={form.type === "percentage" ? "e.g. 20 (percent)" : "e.g. 5.00 (dollars)"}
+                  value={form.value}
+                  onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
+                  required
+                />
               </div>
 
               {/* Max Uses */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Hash className="h-3 w-3" /> Max Uses <span className="text-slate-600">(blank = unlimited)</span>
-                </label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Max Uses <span className="normal-case font-normal text-slate-600">(blank = unlimited)</span></label>
                 <Input
                   type="number"
                   min="1"
@@ -231,9 +216,7 @@ export default function AdminCoupons() {
 
               {/* Target email */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Users className="h-3 w-3" /> Specific User Email <span className="text-slate-600">(blank = anyone)</span>
-                </label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">User Email <span className="normal-case font-normal text-slate-600">(blank = anyone)</span></label>
                 <Input
                   type="email"
                   placeholder="user@email.com or blank"
@@ -244,9 +227,7 @@ export default function AdminCoupons() {
 
               {/* Expires at */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Calendar className="h-3 w-3" /> Expires On <span className="text-slate-600">(blank = never)</span>
-                </label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Expires On <span className="normal-case font-normal text-slate-600">(blank = never)</span></label>
                 <Input
                   type="datetime-local"
                   value={form.expiresAt}
@@ -260,7 +241,7 @@ export default function AdminCoupons() {
               <div className="flex items-center gap-3 p-3 rounded-xl bg-cyan-400/[0.06] border border-cyan-400/20">
                 <CheckCircle2 className="h-4 w-4 text-cyan-400 shrink-0" />
                 <span className="text-sm text-cyan-200">
-                  Code <span className="font-mono font-black tracking-widest">{form.code}</span> gives{" "}
+                  Code <span className="font-mono font-semibold">{form.code}</span> gives{" "}
                   <span className="font-bold">
                     {form.type === "percentage" ? `${form.value}% off` : `$${parseFloat(form.value || "0").toFixed(2)} bonus credits`}
                   </span>
@@ -310,7 +291,7 @@ export default function AdminCoupons() {
                         <td className="px-4 py-3">
                           <button
                             onClick={() => copyCode(c.code)}
-                            className="flex items-center gap-2 font-mono font-black tracking-widest text-cyan-300 hover:text-cyan-200 transition-colors"
+                            className="flex items-center gap-2 font-mono font-medium text-sky-300 hover:text-sky-200 transition-colors"
                           >
                             {c.code}
                             {copiedCode === c.code ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3 w-3 opacity-40" />}
@@ -320,9 +301,8 @@ export default function AdminCoupons() {
 
                         {/* Discount */}
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 font-bold text-base ${c.type === "percentage" ? "text-amber-300" : "text-emerald-300"}`}>
-                            {c.type === "percentage" ? <Percent className="h-3.5 w-3.5" /> : <DollarSign className="h-3.5 w-3.5" />}
-                            {c.type === "percentage" ? `${c.value}%` : `$${c.value.toFixed(2)}`}
+                          <span className={`font-medium text-sm ${c.type === "percentage" ? "text-amber-300" : "text-emerald-300"}`}>
+                            {c.type === "percentage" ? `${c.value}% off` : `$${c.value.toFixed(2)}`}
                           </span>
                           <div className="text-[10px] text-slate-500 mt-0.5">{c.type === "percentage" ? "off payment" : "bonus credits"}</div>
                         </td>
@@ -396,10 +376,9 @@ export default function AdminCoupons() {
         )}
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 pt-1 text-xs text-slate-500">
-          <span className="flex items-center gap-1.5"><AlertCircle className="h-3 w-3 text-amber-400" /> Percentage coupons give bonus credits on top of what the user pays</span>
-          <span className="flex items-center gap-1.5"><DollarSign className="h-3 w-3 text-emerald-400" /> Fixed coupons add a set $ amount of bonus credits</span>
-        </div>
+        <p className="pt-1 text-xs text-slate-500">
+          Percentage coupons discount the payment amount. Fixed coupons add a set credit amount to the user's balance.
+        </p>
       </div>
     </div>
   );

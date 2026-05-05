@@ -217,7 +217,7 @@ export default function Support() {
       <div className="page-enter page-enter-d1 flex items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-sky-400 mb-1.5">Help Center</p>
-          <h1 className="text-2xl font-black tracking-tight text-white">Support</h1>
+          <h1 className="text-xl font-semibold text-white">Support</h1>
           <p className="mt-1 text-sm text-slate-400">Send us a message and continue the conversation until the ticket is resolved or closed.</p>
         </div>
         <button onClick={() => setShowForm((v) => !v)} className="shrink-0 flex items-center gap-2 h-10 px-5 rounded-full bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150">

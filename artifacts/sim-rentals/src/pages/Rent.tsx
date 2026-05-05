@@ -139,7 +139,7 @@ export default function Rent() {
       {/* Header */}
       <Reveal variant="up">
         <div>
-          <h1 className="text-[2rem] font-black tracking-tight text-white">Rent a Number</h1>
+          <h1 className="text-xl font-semibold text-white">Rent a Number</h1>
           <p className="text-slate-500 mt-1.5 text-[14px]">Select a service, then choose a live country. Prices and stock refresh every 20 seconds.</p>
         </div>
       </Reveal>
@@ -148,7 +148,7 @@ export default function Rent() {
       <Reveal variant="up" delay={60}>
         <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] overflow-hidden" data-testid="card-rent-selection">
           <div className="px-6 py-5 border-b border-white/[0.06]">
-            <div className="font-black text-white text-[15px]">Configure Rental</div>
+            <div className="font-semibold text-white text-[15px]">Configure Rental</div>
             <div className="text-[12px] text-slate-500 mt-0.5">Choose your service first, then select a country.</div>
           </div>
 
@@ -221,7 +221,7 @@ export default function Rent() {
         <Reveal variant="up" delay={80}>
           <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${isAvailable ? "border-sky-500/20" : "border-white/[0.07]"} bg-white/[0.025]`} data-testid="card-availability">
             <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
-              <div className="font-black text-white text-[15px]">Availability</div>
+              <div className="font-semibold text-white text-[15px]">Availability</div>
               {(loadingAvailability || fetchingAvailability) && (
                 <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
               )}
@@ -265,7 +265,7 @@ export default function Rent() {
                   {/* Info rows */}
                   <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5">
                     <InfoRow label="Price per SMS" value={
-                      <span className="text-2xl font-black text-white" data-testid="text-price-quote">${availability.price.toFixed(2)}</span>
+                      <span className="text-xl font-bold text-white" data-testid="text-price-quote">${availability.price.toFixed(2)}</span>
                     } highlight />
                     <InfoRow label="Numbers in stock" value={availability.available.toLocaleString()} />
                     <InfoRow label="Network" value={maskProviderName(availability.provider.name)} />
@@ -337,7 +337,7 @@ export default function Rent() {
                 { n: "04", title: "Receive the SMS", desc: "Codes appear on your rental card in real time. Copy with one tap." },
               ].map((step) => (
                 <div key={step.n} className="flex items-start gap-4">
-                  <span className="text-[11px] font-black text-sky-400/60 font-mono w-6 shrink-0 mt-0.5">{step.n}</span>
+                  <span className="text-[11px] font-semibold text-sky-400/60 font-mono w-6 shrink-0 mt-0.5">{step.n}</span>
                   <div>
                     <div className="text-[13px] font-bold text-white">{step.title}</div>
                     <div className="text-[12px] text-slate-500 mt-0.5">{step.desc}</div>

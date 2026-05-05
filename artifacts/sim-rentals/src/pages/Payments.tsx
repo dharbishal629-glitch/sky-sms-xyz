@@ -44,7 +44,7 @@ function ReceiptModal({ payment, onClose }: { payment: any; onClose: () => void 
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-cyan-400" />
-            <span className="font-black text-white text-lg">Receipt</span>
+            <span className="font-semibold text-white text-base">Receipt</span>
           </div>
           <button onClick={onClose} className="h-7 w-7 rounded-full bg-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white">
             <X className="h-3.5 w-3.5" />
@@ -56,7 +56,7 @@ function ReceiptModal({ payment, onClose }: { payment: any; onClose: () => void 
             <div className="inline-flex h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-300/20 items-center justify-center mb-3">
               <CheckCircle2 className="h-7 w-7 text-emerald-400" />
             </div>
-            <div className="text-3xl font-black text-white">+${payment.amount.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-white">+${payment.amount.toFixed(2)}</div>
             <div className="text-sm text-emerald-400 font-semibold mt-1">Payment Completed</div>
           </div>
 
@@ -181,7 +181,7 @@ function CheckoutModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between">
-          <span className="font-black text-white text-lg">Confirm Payment</span>
+          <span className="font-semibold text-white text-base">Confirm Payment</span>
           <button onClick={onClose} className="h-7 w-7 rounded-full bg-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white">
             <X className="h-3.5 w-3.5" />
           </button>
@@ -194,10 +194,10 @@ function CheckoutModal({
             {discount > 0 ? (
               <div className="flex items-center gap-2">
                 <span className="text-slate-400 line-through text-sm">${amount.toFixed(2)}</span>
-                <span className="font-black text-white text-xl">${discountedAmount.toFixed(2)}</span>
+                <span className="font-bold text-white text-lg">${discountedAmount.toFixed(2)}</span>
               </div>
             ) : (
-              <span className="font-black text-white text-xl">${amount.toFixed(2)}</span>
+              <span className="font-bold text-white text-lg">${amount.toFixed(2)}</span>
             )}
           </div>
           {discount > 0 && (
@@ -210,7 +210,7 @@ function CheckoutModal({
           )}
           <div className={`flex justify-between items-center pt-2 border-t border-white/[0.06]`}>
             <span className="text-sm font-semibold text-white">Credits added</span>
-            <span className="font-black text-xl text-emerald-300">${amount.toFixed(2)}</span>
+            <span className="font-bold text-lg text-emerald-300">${amount.toFixed(2)}</span>
           </div>
         </div>
 
@@ -224,7 +224,7 @@ function CheckoutModal({
             <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-400/[0.08] border border-emerald-400/25">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <span className="font-mono font-black text-emerald-300 tracking-widest">{coupon.code}</span>
+                <span className="font-mono font-semibold text-emerald-300">{coupon.code}</span>
                 <span className="text-xs text-emerald-400 ml-2">
                   {coupon.type === "percentage" ? `${coupon.value}% off` : `$${coupon.value.toFixed(2)} off`}
                 </span>
@@ -369,17 +369,17 @@ export default function Payments() {
       <Reveal variant="up">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-white">Payments</h1>
+            <h1 className="text-xl font-semibold text-white">Payments</h1>
             <p className="text-muted-foreground mt-1">Add funds to your account to rent numbers.</p>
           </div>
           {userData && (
             <div className="glass-card rounded-2xl px-5 py-4 flex items-center gap-3 shrink-0">
-              <div className="h-10 w-10 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-cyan-400" />
+              <div className="h-10 w-10 rounded-xl bg-sky-500/10 border border-sky-500/15 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-sky-400" />
               </div>
               <div>
                 <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Balance</div>
-                <div className="text-2xl font-black text-white">${userData.credits.toFixed(2)}</div>
+                <div className="text-xl font-semibold text-white">${userData.credits.toFixed(2)}</div>
               </div>
             </div>
           )}
@@ -389,7 +389,7 @@ export default function Payments() {
       <Reveal variant="up" delay={40}>
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-white">Top-Up Packages</h2>
+            <h2 className="text-base font-semibold text-white">Top-Up Packages</h2>
             <span className="text-xs text-muted-foreground bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-full">Bigger = more value</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -400,15 +400,12 @@ export default function Payments() {
                 data-testid={`card-package-${pkg.amount}`}
               >
                 {pkg.popular && (
-                  <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-                )}
-                {pkg.popular && (
-                  <span className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-400/10 text-cyan-200 border border-cyan-300/20">
+                  <span className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/10 text-sky-300 border border-sky-500/20">
                     Most Popular
                   </span>
                 )}
                 <CardHeader className="pb-2 pt-5">
-                  <div className="text-3xl font-black text-white">${pkg.amount}</div>
+                  <div className="text-2xl font-bold text-white">${pkg.amount}</div>
                   <CardDescription className="text-xs">USD via crypto</CardDescription>
                 </CardHeader>
                 <CardContent className="pb-4">
@@ -440,11 +437,11 @@ export default function Payments() {
       <Reveal variant="up" delay={80}>
         <div className="glass-card rounded-2xl p-6 max-w-md">
           <div className="flex items-center gap-3 mb-1">
-            <div className="h-9 w-9 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center">
-              <Pencil className="h-4 w-4 text-cyan-400" />
+            <div className="h-9 w-9 rounded-xl bg-sky-500/10 border border-sky-500/15 flex items-center justify-center">
+              <Pencil className="h-4 w-4 text-sky-400" />
             </div>
             <div>
-              <h2 className="text-base font-black text-white">Custom Amount</h2>
+              <h2 className="text-base font-semibold text-white">Custom Amount</h2>
               <p className="text-xs text-muted-foreground">Any amount — even less than $1</p>
             </div>
           </div>
@@ -491,7 +488,7 @@ export default function Payments() {
             onClick={() => setShowHowItWorks(v => !v)}
             className="w-full flex items-center justify-between group"
           >
-            <h2 className="text-xl font-black text-white">How It Works</h2>
+            <h2 className="text-base font-semibold text-white">How It Works</h2>
             <span className="flex items-center gap-1.5 text-xs text-slate-500 group-hover:text-slate-300 transition-colors">
               {showHowItWorks ? "Hide" : "Show"}
               <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showHowItWorks ? "rotate-180" : ""}`} />
@@ -501,9 +498,9 @@ export default function Payments() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {howItWorks.map((step, i) => (
                 <div key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden group hover:scale-[1.01] transition-all duration-200">
-                  <div className="absolute top-3 right-3 text-5xl font-black text-white/[0.03] select-none">{step.step}</div>
-                  <div className="mb-4 h-10 w-10 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center">
-                    <step.icon className="h-5 w-5 text-cyan-400" />
+                  <div className="absolute top-3 right-3 text-5xl font-bold text-white/[0.03] select-none">{step.step}</div>
+                  <div className="mb-4 h-10 w-10 rounded-xl bg-sky-500/10 border border-sky-500/15 flex items-center justify-center">
+                    <step.icon className="h-5 w-5 text-sky-400" />
                   </div>
                   <h3 className="font-bold text-white text-sm mb-1">{step.title}</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
@@ -536,8 +533,8 @@ export default function Payments() {
 
       <Reveal variant="up" delay={140}>
         <div className="glass-card rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
-            <Shield className="h-5 w-5 text-cyan-400" />
+          <div className="h-10 w-10 rounded-xl bg-sky-500/10 border border-sky-500/15 flex items-center justify-center shrink-0">
+            <Shield className="h-5 w-5 text-sky-400" />
           </div>
           <div className="flex-1">
             <div className="font-bold text-white text-sm mb-1">Questions about payments?</div>
@@ -546,7 +543,7 @@ export default function Payments() {
             </div>
           </div>
           <Link href="/refund-policy">
-            <span className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-semibold text-cyan-400 hover:bg-white/[0.09] transition-colors cursor-pointer whitespace-nowrap">
+            <span className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-semibold text-sky-400 hover:bg-white/[0.09] transition-colors cursor-pointer whitespace-nowrap">
               Refund Policy <ChevronRight className="h-3.5 w-3.5" />
             </span>
           </Link>
@@ -557,7 +554,7 @@ export default function Payments() {
       <Reveal variant="up" delay={80}>
         <div className="space-y-5 pt-4 border-t border-white/[0.06]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="text-xl font-black text-white">Payment History</h2>
+            <h2 className="text-base font-semibold text-white">Payment History</h2>
             {allPayments.length > 0 && (
               <div
                 ref={tabTrackRef}
@@ -582,7 +579,7 @@ export default function Payments() {
                   >
                     {tab.label}
                     {tab.count > 0 && (
-                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black transition-colors duration-200 ${
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors duration-200 ${
                         historyTab === tab.key ? "bg-cyan-400/20 text-cyan-300" : "bg-white/[0.06] text-slate-600"
                       }`}>
                         {tab.count}
@@ -647,7 +644,7 @@ export default function Payments() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 pl-14 sm:pl-0">
-                          <div className={`font-black text-xl ${payment.status === 'paid' ? 'text-white' : 'text-slate-500'}`}>
+                          <div className={`font-bold text-lg ${payment.status === 'paid' ? 'text-white' : 'text-slate-500'}`}>
                             +${payment.amount.toFixed(2)}
                           </div>
                           {payment.status === 'paid' && (

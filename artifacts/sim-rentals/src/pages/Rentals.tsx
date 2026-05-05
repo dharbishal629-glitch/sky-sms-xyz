@@ -92,7 +92,7 @@ function RentalCard({ rental }: { rental: any }) {
             </div>
           </div>
           <div className="text-right ml-3 shrink-0">
-            <div className="font-black text-lg text-white" data-testid={`text-rental-price-${rental.id}`}>${rental.price.toFixed(2)}</div>
+            <div className="font-bold text-base text-white" data-testid={`text-rental-price-${rental.id}`}>${rental.price.toFixed(2)}</div>
             <div className="text-xs text-muted-foreground">charged</div>
           </div>
         </div>
@@ -114,7 +114,7 @@ function RentalCard({ rental }: { rental: any }) {
             {rental.phoneNumber ? (
               <div className="flex items-center justify-between gap-2">
                 <div
-                  className={`font-mono font-black select-all break-all min-w-0 ${
+                  className={`font-mono font-semibold select-all break-all min-w-0 ${
                     isActive ? 'text-white text-lg sm:text-2xl' : 'text-slate-300 text-base sm:text-xl'
                   }`}
                   data-testid={`text-rental-number-${rental.id}`}
@@ -156,7 +156,7 @@ function RentalCard({ rental }: { rental: any }) {
                   {timeLeft === 0 ? "Expired — refreshing..." : "Expires in"}
                 </span>
               </div>
-              <span className={`font-mono text-2xl font-black tabular-nums shrink-0 ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`}>
+              <span className={`font-mono text-xl font-semibold tabular-nums shrink-0 ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`}>
                 {formatTime(timeLeft)}
               </span>
             </div>
@@ -190,7 +190,7 @@ function RentalCard({ rental }: { rental: any }) {
                   <button
                     key={m.id}
                     onClick={() => copyToClipboard(m.code, true)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-black text-lg tracking-[0.25em] transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-semibold text-base tracking-[0.15em] transition-all ${
                       copiedCode === m.code
                         ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-200'
                         : 'bg-white/[0.06] border-emerald-300/20 text-cyan-200 hover:bg-emerald-400/15 hover:border-emerald-300/30'
@@ -228,7 +228,7 @@ function RentalCard({ rental }: { rental: any }) {
                     <div className="mt-3 pt-3 border-t border-sky-200/20 flex items-center justify-between gap-2">
                       <div>
                         <div className="text-xs text-sky-300/70 font-semibold uppercase tracking-wider mb-1">Verification Code</div>
-                        <span className="font-mono font-black text-2xl text-cyan-300 tracking-[0.3em]">{msg.code}</span>
+                        <span className="font-mono font-bold text-xl text-sky-300 tracking-[0.2em]">{msg.code}</span>
                       </div>
                       <Button
                         size="sm"
@@ -331,7 +331,7 @@ export default function Rentals() {
       {/* Header */}
       <Reveal variant="up">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-white">My Rentals</h1>
+          <h1 className="text-xl font-semibold text-white">My Rentals</h1>
           <p className="text-muted-foreground mt-1">Manage active numbers and view your rental history.</p>
         </div>
       </Reveal>
@@ -346,7 +346,7 @@ export default function Rentals() {
               { icon: CheckCircle2, label: "Received", value: smsReceived, color: "emerald" },
             ].map((stat, i) => (
               <div key={i} className={`glass-card rounded-2xl p-4 text-center border ${stat.color === 'cyan' ? 'border-cyan-400/10' : stat.color === 'indigo' ? 'border-indigo-400/10' : 'border-emerald-400/10'}`}>
-                <div className={`text-2xl font-black ${stat.color === 'cyan' ? 'text-white' : stat.color === 'indigo' ? 'text-white' : 'text-white'}`}>{stat.value}</div>
+                <div className="text-2xl font-bold text-white">{stat.value}</div>
                 <div className="text-xs text-muted-foreground mt-1 font-semibold">{stat.label}</div>
               </div>
             ))}
@@ -371,7 +371,7 @@ export default function Rentals() {
                 <div className="h-16 w-16 rounded-2xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center mb-5">
                   <Phone className="h-8 w-8 text-cyan-400/60" />
                 </div>
-                <h3 className="font-black text-white text-lg mb-2">No active rentals</h3>
+                <h3 className="font-semibold text-white text-base mb-2">No active rentals</h3>
                 <p className="text-muted-foreground text-sm mb-6 max-w-xs">
                   Rent a temporary number to receive SMS verification codes instantly.
                 </p>
@@ -405,7 +405,7 @@ export default function Rentals() {
               ].map((item) => (
                 <div key={item.step} className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="h-8 w-8 rounded-full bg-cyan-400/15 border border-cyan-300/20 flex items-center justify-center shrink-0 font-black text-cyan-400 text-sm">
+                    <div className="h-8 w-8 rounded-full bg-sky-500/10 border border-sky-500/15 flex items-center justify-center shrink-0 font-semibold text-sky-400 text-sm">
                       {item.step}
                     </div>
                     <div className="h-7 w-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">

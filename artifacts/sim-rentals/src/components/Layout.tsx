@@ -285,8 +285,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             {user && (
               <div className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1">
-                <DollarSign className="h-3 w-3 text-sky-400" />
-                <span className="text-[13px] font-bold text-white">{user.credits.toFixed(2)}</span>
+                <span className="text-[12px] text-slate-400">$</span>
+                <span className="text-[13px] font-semibold text-white">{user.credits.toFixed(2)}</span>
               </div>
             )}
             <button

@@ -77,7 +77,7 @@ export default function AdminOverview() {
 
       {/* Header */}
       <div className="page-enter page-enter-d1">
-        <h1 className="text-[2rem] font-black tracking-tight text-white">Admin Overview</h1>
+        <h1 className="text-xl font-semibold text-white">Admin Overview</h1>
         <p className="text-slate-500 mt-1.5 text-[14px]">Platform metrics and configuration.</p>
       </div>
 
@@ -93,7 +93,7 @@ export default function AdminOverview() {
                   <stat.icon className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-[2.5rem] font-black text-white leading-none tracking-tight mb-1.5">{stat.value}</div>
+              <div className="text-[2rem] font-bold text-white leading-none mb-1.5">{stat.value}</div>
               <p className={`text-[12px] font-semibold ${c.badge}`}>{stat.sub}</p>
             </div>
           );

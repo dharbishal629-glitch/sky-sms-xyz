@@ -243,7 +243,7 @@ export default function AdminServices() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Service Control</h1>
+        <h1 className="text-xl font-semibold text-white">Service Control</h1>
         <p className="text-muted-foreground mt-1 text-sm">Search services, set prices, and choose exactly which Hero SMS services users can see.</p>
       </div>
 

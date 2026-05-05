@@ -65,29 +65,39 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 /* pre that scrolls horizontally — exact DraxonMails style */
-function Pre({ children, copyText }: { children: React.ReactNode; copyText?: string }) {
+function Block({ label, children, copyText }: { label: string; children: React.ReactNode; copyText?: string }) {
   return (
-    <div style={{ position: "relative" }}>
-      {copyText && (
-        <div style={{
-          position: "absolute", top: 10, right: 12, zIndex: 2,
+    <div style={{ marginTop: 10 }}>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 6,
+      }}>
+        <span style={{
+          fontSize: ".65rem",
+          fontWeight: 800,
+          color: C.textMid,
+          textTransform: "uppercase" as const,
+          letterSpacing: "0.12em",
         }}>
-          <CopyBtn text={copyText} />
-        </div>
-      )}
+          {label}
+        </span>
+        {copyText !== undefined && <CopyBtn text={copyText} />}
+      </div>
       <pre style={{
         background: C.preBg,
-        padding: "18px",
+        padding: "14px 18px",
         borderRadius: 14,
         border: `1px solid ${C.borderHi}`,
-        margin: "12px 0 18px",
+        marginBottom: 10,
         overflowX: "auto",
-        WebkitOverflowScrolling: "touch",
+        WebkitOverflowScrolling: "touch" as const,
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
         fontSize: ".82rem",
         lineHeight: 1.6,
         color: C.code,
-        whiteSpace: "pre",
+        whiteSpace: "pre" as const,
       }}>
         {children}
       </pre>
@@ -95,21 +105,6 @@ function Pre({ children, copyText }: { children: React.ReactNode; copyText?: str
   );
 }
 
-function Label({ children }: { children: string }) {
-  return (
-    <div style={{
-      fontSize: ".65rem",
-      fontWeight: 800,
-      color: C.textMid,
-      textTransform: "uppercase",
-      letterSpacing: "0.12em",
-      marginBottom: 0,
-      marginTop: 4,
-    }}>
-      {children}
-    </div>
-  );
-}
 
 function Method({ m }: { m: "GET"|"POST"|"DELETE"|"PATCH" }) {
   const colors: Record<string, string> = {
@@ -176,19 +171,11 @@ function Endpoint({
       {/* note */}
       <div style={{ fontSize: ".9rem", color: C.textMid, margin: "8px 0 14px" }}>{note}</div>
 
-      {/* payload */}
-      <Label>Payload</Label>
-      <Pre copyText={payload ?? "No request body."}>
+      <Block label="Payload" copyText={payload ?? "No request body."}>
         {payload ?? "No request body."}
-      </Pre>
-
-      {/* response */}
-      <Label>Response</Label>
-      <Pre copyText={response}>{response}</Pre>
-
-      {/* curl */}
-      <Label>cURL</Label>
-      <Pre copyText={curl}>{curl}</Pre>
+      </Block>
+      <Block label="Response" copyText={response}>{response}</Block>
+      <Block label="cURL" copyText={curl}>{curl}</Block>
     </>
   );
 }
