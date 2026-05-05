@@ -27,13 +27,19 @@ function CopyButton({ text }: { text: string }) {
 function CodeBlock({ children, lang = "bash" }: { children: string; lang?: string }) {
   const content = children.trim();
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-[#060b18] overflow-hidden w-full">
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "1fr",
+      borderRadius: "0.75rem",
+      border: "1px solid rgba(255,255,255,0.07)",
+      background: "#060b18",
+    }}>
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.05]">
         <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">{lang}</span>
         <CopyButton text={content.replace(/\$BASE_URL/g, BASE)} />
       </div>
-      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-        <pre className="m-0 p-3.5 text-[11.5px] leading-relaxed font-mono text-slate-300" style={{ whiteSpace: "pre" }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <pre style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "'JetBrains Mono', monospace", color: "#cbd5e1", whiteSpace: "pre", display: "block" }}>
           <code>{content}</code>
         </pre>
       </div>
@@ -46,13 +52,19 @@ function JsonBlock({ json, label }: { json: object; label: string }) {
   return (
     <div>
       <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">{label}</div>
-      <div className="rounded-xl border border-white/[0.07] bg-[#060b18] overflow-hidden w-full">
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr",
+        borderRadius: "0.75rem",
+        border: "1px solid rgba(255,255,255,0.07)",
+        background: "#060b18",
+      }}>
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.05]">
           <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">json</span>
           <CopyButton text={text} />
         </div>
-        <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-          <pre className="m-0 p-3.5 text-[11.5px] leading-relaxed font-mono" style={{ whiteSpace: "pre" }}>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <pre style={{ margin: 0, padding: "0.875rem", fontSize: "11.5px", lineHeight: "1.65", fontFamily: "'JetBrains Mono', monospace", whiteSpace: "pre", display: "block" }}>
             <code>
               {text.split("\n").map((line, i) => {
                 const km = line.match(/^(\s*)"([^"]+)":/);
