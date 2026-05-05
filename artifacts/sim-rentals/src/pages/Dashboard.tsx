@@ -90,28 +90,21 @@ function StatCard({
   const c = colorMap[color];
 
   const inner = (
-    <div className="relative rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-transparent overflow-hidden p-6 h-full group hover:-translate-y-0.5 transition-all duration-200">
-      <div className={`absolute inset-0 bg-gradient-to-br ${c.from} to-transparent pointer-events-none`} />
-      <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full opacity-30 blur-2xl pointer-events-none" style={{ background: `var(--tw-gradient-from, transparent)` }} />
-      <div className="relative z-10">
-        <div className="flex items-start justify-between mb-4">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
-          <div className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 ${c.icon}`}>
-            <Icon className="h-4 w-4" />
-          </div>
+    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 h-full hover:-translate-y-0.5 transition-all duration-200">
+      <div className="flex items-start justify-between mb-4">
+        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+        <div className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 ${c.icon}`}>
+          <Icon className="h-4 w-4" />
         </div>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="text-[2.4rem] font-black text-white leading-none tracking-tight">{value}</div>
-          {pulse && (
-            <span className="relative flex h-2.5 w-2.5">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${c.dot} opacity-60`} />
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${c.dot}`} />
-            </span>
-          )}
-        </div>
-        <div className={`flex items-center gap-1 text-[12px] font-semibold ${c.sub}`}>
-          {sub} {href && <ChevronRight className="h-3 w-3" />}
-        </div>
+      </div>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="text-[2.4rem] font-black text-white leading-none tracking-tight">{value}</div>
+        {pulse && (
+          <span className={`inline-flex rounded-full h-2 w-2 ${c.dot}`} />
+        )}
+      </div>
+      <div className={`flex items-center gap-1 text-[12px] font-semibold ${c.sub}`}>
+        {sub} {href && <ChevronRight className="h-3 w-3" />}
       </div>
     </div>
   );
@@ -185,7 +178,7 @@ export default function Dashboard() {
       <div className="grid gap-5 lg:grid-cols-3 page-enter page-enter-d3">
 
         {/* Recent Rentals */}
-        <div className="lg:col-span-2 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden">
+        <div className="lg:col-span-2 rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.05]">
             <div>
               <div className="font-bold text-white text-[15px]">Recent Rentals</div>
@@ -206,7 +199,7 @@ export default function Dashboard() {
               <h3 className="font-bold text-white mb-2 text-[15px]">No rentals yet</h3>
               <p className="text-[13px] text-slate-500 mb-6 max-w-xs">Rent your first number to get started with SMS verification.</p>
               <Link href="/rent">
-                <span className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-[13px] font-semibold text-white hover:bg-sky-400 transition-colors cursor-pointer shadow-[0_2px_12px_rgba(14,165,233,0.22)]">
+                <span className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-[13px] font-semibold text-white hover:bg-sky-400 transition-colors cursor-pointer">
                   <Zap className="h-3.5 w-3.5" /> Rent Now
                 </span>
               </Link>
@@ -258,13 +251,10 @@ export default function Dashboard() {
         <div className="flex flex-col gap-4">
 
           {/* Live Numbers */}
-          <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden">
+          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
               <div className="font-semibold text-white text-[14px] flex items-center gap-2.5">
-                <span className="relative flex h-2.5 w-2.5">
-                  {data.activeRentals > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-50" />}
-                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${data.activeRentals > 0 ? "bg-sky-400" : "bg-slate-700"}`} />
-                </span>
+                <span className={`inline-flex rounded-full h-2 w-2 ${data.activeRentals > 0 ? "bg-sky-400" : "bg-slate-700"}`} />
                 Live Numbers
               </div>
               <Badge variant="outline" className="text-[11px] text-sky-200 border-sky-400/20 bg-sky-400/8 font-semibold">{data.activeRentals} active</Badge>
@@ -297,7 +287,7 @@ export default function Dashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent p-5">
+          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
             <div className="font-semibold text-white text-[14px] mb-4">Quick Actions</div>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -319,7 +309,7 @@ export default function Dashboard() {
       </div>
 
       {/* Popular Services */}
-      <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden page-enter page-enter-d4">
+      <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden page-enter page-enter-d4">
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.05]">
           <div>
             <div className="font-bold text-white text-[15px]">Popular Services</div>
@@ -354,7 +344,7 @@ export default function Dashboard() {
       </div>
 
       {/* How It Works */}
-      <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden page-enter page-enter-d5">
+      <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden page-enter page-enter-d5">
         <div className="px-6 py-5 border-b border-white/[0.05]">
           <div className="font-bold text-white text-[15px]">How It Works</div>
           <div className="text-[12px] text-slate-500 mt-0.5">Get the most out of SKY SMS</div>

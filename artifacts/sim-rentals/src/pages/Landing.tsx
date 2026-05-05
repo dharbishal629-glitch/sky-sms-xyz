@@ -131,7 +131,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
             </button>
             <button
               onClick={onLogin}
-              className="btn-reflect h-9 px-5 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 text-[13px] font-semibold text-white shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:shadow-[0_0_28px_rgba(14,165,233,0.45)] hover:from-sky-400 hover:to-sky-500 transition-all duration-200 active:scale-95"
+              className="h-9 px-5 rounded-xl bg-sky-500 text-[13px] font-semibold text-white hover:bg-sky-400 transition-colors duration-200 active:scale-95"
               data-testid="button-landing-signup"
             >
               Get started
@@ -169,7 +169,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
                 onClick={onLogin}
-                className="btn-reflect group h-12 w-full sm:w-auto px-9 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 text-[15px] font-semibold text-white shadow-[0_0_50px_rgba(14,165,233,0.35)] hover:shadow-[0_0_70px_rgba(14,165,233,0.5)] hover:from-sky-400 hover:to-sky-500 transition-all duration-250 flex items-center justify-center gap-2 active:scale-95"
+                className="group h-12 w-full sm:w-auto px-9 rounded-xl bg-sky-500 text-[15px] font-semibold text-white hover:bg-sky-400 transition-colors flex items-center justify-center gap-2 active:scale-95"
                 data-testid="button-hero-cta"
               >
                 Rent a number now
@@ -247,7 +247,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                 <Reveal key={svc.name} variant="up" delay={i * 45}>
                   <button
                     onClick={onLogin}
-                    className="w-full group relative flex cursor-pointer items-center gap-4 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 text-left transition-all duration-250 hover:-translate-y-1 hover:border-sky-500/20 hover:shadow-[0_8px_30px_rgba(14,165,233,0.1)] active:scale-[0.98]"
+                    className="w-full group relative flex cursor-pointer items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-sky-500/15 active:scale-[0.98]"
                   >
                     <div className="h-12 w-12 shrink-0 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center overflow-hidden group-hover:bg-white/[0.09] group-hover:border-sky-500/20 transition-all duration-200">
                       <img
@@ -283,7 +283,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {features.map((feat, i) => (
                 <Reveal key={feat.title} variant="up" delay={i * 60}>
-                  <div className="group relative rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 hover:-translate-y-1 hover:border-sky-500/15 hover:shadow-[0_8px_30px_rgba(14,165,233,0.08)] transition-all duration-250 h-full">
+                  <div className="group relative rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 hover:-translate-y-1 hover:border-sky-500/15 transition-all duration-200 h-full">
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/10 border border-sky-500/15 text-sky-400 group-hover:bg-sky-500/15 transition-colors">
                       <feat.icon className="h-5 w-5" />
                     </div>
@@ -312,8 +312,8 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                 <Reveal key={plan.name} variant="up" delay={i * 80}>
                   <div className={`relative rounded-2xl p-7 h-full transition-all duration-250 ${
                     plan.highlight
-                      ? "border border-sky-500/30 bg-gradient-to-br from-sky-500/10 to-violet-500/5 shadow-[0_0_0_1px_rgba(14,165,233,0.2),0_8px_40px_rgba(14,165,233,0.12)]"
-                      : "border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01]"
+                      ? "border border-sky-500/30 bg-sky-500/[0.07]"
+                      : "border border-white/[0.07] bg-white/[0.025]"
                   }`}>
                     {plan.highlight && (
                       <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
@@ -342,7 +342,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                       onClick={onLogin}
                       className={`w-full h-11 rounded-xl text-[14px] font-semibold transition-all duration-200 active:scale-95 ${
                         plan.highlight
-                          ? "btn-reflect bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-[0_0_24px_rgba(14,165,233,0.3)] hover:shadow-[0_0_36px_rgba(14,165,233,0.45)] hover:from-sky-400 hover:to-sky-500"
+                          ? "bg-sky-500 text-white hover:bg-sky-400"
                           : "border border-white/[0.1] text-white hover:bg-white/[0.05] hover:border-white/20"
                       }`}
                     >
@@ -370,8 +370,8 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                 <Reveal key={i} variant="up" delay={i * 45}>
                   <div className={`rounded-2xl overflow-hidden border transition-all duration-250 ${
                     openFaq === i
-                      ? "border-sky-500/20 bg-gradient-to-br from-sky-500/[0.06] to-transparent shadow-[0_0_20px_rgba(14,165,233,0.06)]"
-                      : "border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent hover:border-white/[0.1]"
+                      ? "border-sky-500/20 bg-sky-500/[0.05]"
+                      : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.1]"
                   }`}>
                     <button
                       className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
@@ -397,13 +397,11 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
           <Reveal variant="scale">
             <div className="mx-auto max-w-2xl relative rounded-3xl overflow-hidden">
               {/* Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-sky-600/20 via-indigo-600/10 to-violet-600/15" />
+              <div className="absolute inset-0 bg-sky-500/[0.06]" />
               <div className="absolute inset-0 border border-sky-500/20 rounded-3xl" />
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-sky-400/50 to-transparent" />
-              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-sky-500/15 blur-3xl" />
 
               <div className="relative z-10 p-10 text-center">
-                <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/15 border border-sky-500/25 shadow-[0_0_24px_rgba(14,165,233,0.2)]">
+                <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/15 border border-sky-500/25">
                   <Phone className="h-7 w-7 text-sky-400" />
                 </div>
                 <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-sky-400">Get started free</p>
@@ -416,7 +414,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <button
                     onClick={onLogin}
-                    className="btn-reflect group h-12 px-9 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 text-[15px] font-semibold text-white shadow-[0_0_40px_rgba(14,165,233,0.35)] hover:shadow-[0_0_56px_rgba(14,165,233,0.5)] hover:from-sky-400 hover:to-sky-500 transition-all duration-250 flex items-center gap-2 active:scale-95"
+                    className="group h-12 px-9 rounded-xl bg-sky-500 text-[15px] font-semibold text-white hover:bg-sky-400 transition-colors flex items-center gap-2 active:scale-95"
                   >
                     Create free account
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -444,7 +442,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
           </div>
           <button
             onClick={onLogin}
-            className="btn-reflect shrink-0 h-10 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 px-6 text-[13px] font-bold text-white shadow-[0_0_16px_rgba(14,165,233,0.3)] hover:shadow-[0_0_24px_rgba(14,165,233,0.45)] hover:from-sky-400 hover:to-sky-500 transition-all"
+            className="shrink-0 h-10 rounded-xl bg-sky-500 px-6 text-[13px] font-bold text-white hover:bg-sky-400 transition-colors"
           >
             Get started
           </button>

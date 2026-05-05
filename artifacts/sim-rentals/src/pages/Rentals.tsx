@@ -75,7 +75,7 @@ function RentalCard({ rental }: { rental: any }) {
   };
 
   return (
-    <Card className={`glass-card overflow-hidden transition-all duration-300 ${isActive ? 'blue-glow border-cyan-400/15' : 'opacity-80 hover:opacity-100'}`} data-testid={`card-rental-${rental.id}`}>
+    <Card className={`glass-card overflow-hidden transition-all duration-300 ${isActive ? 'border-sky-400/15' : 'opacity-80 hover:opacity-100'}`} data-testid={`card-rental-${rental.id}`}>
       <div className={`h-1.5 w-full ${isActive ? 'bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-400' : rental.status === 'completed' || rental.status === 'sms_received' ? 'bg-emerald-400' : 'bg-slate-700'}`} />
 
       <CardHeader className="pb-3">
@@ -100,15 +100,12 @@ function RentalCard({ rental }: { rental: any }) {
 
       <CardContent className="pb-4 space-y-4">
         {/* Phone Number — premium display */}
-        <div className={`relative rounded-2xl p-5 border overflow-hidden ${
+        <div className={`rounded-2xl p-5 border overflow-hidden ${
           isActive
-            ? 'bg-gradient-to-br from-sky-950/60 via-[#0a1628]/60 to-indigo-950/60 border-sky-400/25'
+            ? 'bg-sky-400/[0.05] border-sky-400/20'
             : 'bg-white/[0.03] border-white/10'
         }`}>
-          {isActive && (
-            <div className="absolute inset-0 bg-gradient-to-r from-sky-400/[0.04] via-transparent to-indigo-400/[0.04] pointer-events-none" />
-          )}
-          <div className="relative">
+          <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold">Your Number</span>
@@ -249,10 +246,7 @@ function RentalCard({ rental }: { rental: any }) {
             <div className="text-center py-8 bg-white/[0.02] rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">
               {isActive ? (
                 <div className="flex flex-col items-center gap-2">
-                  <div className="relative">
-                    <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-cyan-400 opacity-75 top-0 right-0" />
-                    <MessageSquare className="h-6 w-6 opacity-40" />
-                  </div>
+                  <MessageSquare className="h-6 w-6 opacity-40" />
                   Waiting for incoming SMS...
                 </div>
               ) : "No messages received during this rental."}
@@ -364,10 +358,7 @@ export default function Rentals() {
       <div className="space-y-4">
         <Reveal variant="up" delay={60}>
           <h2 className="text-lg font-bold flex items-center gap-2 text-white">
-            <span className="relative flex h-3 w-3">
-              {activeRentals.length > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />}
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400" />
-            </span>
+            <span className="inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
             Active Now
             <span className="text-muted-foreground font-normal text-sm">({activeRentals.length})</span>
           </h2>

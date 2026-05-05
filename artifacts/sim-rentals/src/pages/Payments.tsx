@@ -396,7 +396,7 @@ export default function Payments() {
             {PACKAGES.map((pkg) => (
               <Card
                 key={pkg.amount}
-                className={`glass-card relative overflow-hidden transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 ${pkg.popular ? 'blue-glow border-cyan-400/20' : ''}`}
+                className={`glass-card relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 ${pkg.popular ? 'border-sky-400/20' : ''}`}
                 data-testid={`card-package-${pkg.amount}`}
               >
                 {pkg.popular && (

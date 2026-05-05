@@ -92,6 +92,7 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   ub: { name: "Uber", category: "Travel" },
   ly: { name: "Olacabs", category: "Travel" },
   mbt: { name: "Microsoft Bing", category: "Accounts" },
+  pp: { name: "PayPal", category: "Finance" },
   ot: { name: "Other", category: "General" },
 };
 

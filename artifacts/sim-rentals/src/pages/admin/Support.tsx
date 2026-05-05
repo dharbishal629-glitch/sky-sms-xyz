@@ -143,7 +143,7 @@ function AdminTicketCard({ ticket }: { ticket: AdminTicket }) {
               <textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Type a new message to the user…" rows={4} maxLength={3000} className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 resize-none leading-relaxed bg-white/[0.03] border border-white/[0.09] focus:outline-none focus:border-sky-400/40 focus:bg-sky-400/[0.03] transition-all" />
             </div>
 
-            <button onClick={() => mutation.mutate({ id: ticket.id, status, adminReply: reply.trim() || undefined })} disabled={mutation.isPending || (!reply.trim() && status === ticket.status)} className="btn-reflect flex items-center gap-2 h-10 px-5 rounded-xl bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={() => mutation.mutate({ id: ticket.id, status, adminReply: reply.trim() || undefined })} disabled={mutation.isPending || (!reply.trim() && status === ticket.status)} className="flex items-center gap-2 h-10 px-5 rounded-xl bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
               {mutation.isPending ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <><Send className="h-3.5 w-3.5" /> Save update</>}
             </button>
           </div>

@@ -159,7 +159,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
                 <button
                   onClick={() => replyMutation.mutate({ id: ticket.id, message: reply.trim() })}
                   disabled={replyMutation.isPending || !reply.trim()}
-                  className="btn-reflect h-10 px-5 rounded-xl bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="h-10 px-5 rounded-xl bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {replyMutation.isPending ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Sending…</> : <><Send className="h-3.5 w-3.5" /> Reply</>}
                 </button>
@@ -220,7 +220,7 @@ export default function Support() {
           <h1 className="text-2xl font-black tracking-tight text-white">Support</h1>
           <p className="mt-1 text-sm text-slate-400">Send us a message and continue the conversation until the ticket is resolved or closed.</p>
         </div>
-        <button onClick={() => setShowForm((v) => !v)} className="btn-reflect shrink-0 flex items-center gap-2 h-10 px-5 rounded-full bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150">
+        <button onClick={() => setShowForm((v) => !v)} className="shrink-0 flex items-center gap-2 h-10 px-5 rounded-full bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150">
           {showForm ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showForm ? "Cancel" : "New ticket"}
         </button>
@@ -251,7 +251,7 @@ export default function Support() {
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Describe your issue in detail. Include any order IDs or rental numbers if relevant." rows={5} maxLength={2000} required className="field-input w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 resize-none leading-relaxed" />
             <p className="text-[10px] text-slate-600 text-right">{message.length}/2000</p>
           </div>
-          <button type="submit" disabled={mutation.isPending || !subject.trim() || !message.trim()} className="btn-reflect w-full h-12 rounded-xl bg-sky-400 text-[14px] font-bold text-[#080c18] hover:bg-sky-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <button type="submit" disabled={mutation.isPending || !subject.trim() || !message.trim()} className="w-full h-12 rounded-xl bg-sky-400 text-[14px] font-bold text-[#080c18] hover:bg-sky-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
             {mutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</> : <><Send className="h-4 w-4" /> Submit ticket</>}
           </button>
         </form>
@@ -266,7 +266,7 @@ export default function Support() {
       <div className="page-enter page-enter-d3 space-y-3">
         {isLoading && <div className="flex flex-col gap-3">{[1, 2].map((i) => <div key={i} className="glass-card rounded-2xl p-5 animate-pulse"><div className="flex gap-4"><div className="h-8 w-8 rounded-lg bg-white/[0.04]" /><div className="flex-1 space-y-2.5"><div className="h-3.5 bg-white/[0.04] rounded w-1/2" /><div className="h-2.5 bg-white/[0.03] rounded w-1/4" /></div></div></div>)}</div>}
         {!isLoading && tickets.length > 0 && <div className="space-y-3"><h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5" /> Your tickets ({tickets.length})</h2>{tickets.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} />)}</div>}
-        {!isLoading && tickets.length === 0 && !showForm && <div className="glass-card rounded-2xl py-14 flex flex-col items-center gap-4 text-center"><div className="h-14 w-14 rounded-2xl bg-sky-400/[0.08] border border-sky-400/[0.12] flex items-center justify-center"><LifeBuoy className="h-6 w-6 text-sky-400/60" /></div><div><p className="text-[15px] font-semibold text-white mb-1">No support tickets yet</p><p className="text-sm text-slate-500">Open a ticket above and our team will get back to you.</p></div><button onClick={() => setShowForm(true)} className="btn-reflect mt-1 flex items-center gap-2 h-10 px-6 rounded-full bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150"><Plus className="h-4 w-4" /> Open first ticket</button></div>}
+        {!isLoading && tickets.length === 0 && !showForm && <div className="glass-card rounded-2xl py-14 flex flex-col items-center gap-4 text-center"><div className="h-14 w-14 rounded-2xl bg-sky-400/[0.08] border border-sky-400/[0.12] flex items-center justify-center"><LifeBuoy className="h-6 w-6 text-sky-400/60" /></div><div><p className="text-[15px] font-semibold text-white mb-1">No support tickets yet</p><p className="text-sm text-slate-500">Open a ticket above and our team will get back to you.</p></div><button onClick={() => setShowForm(true)} className="mt-1 flex items-center gap-2 h-10 px-6 rounded-full bg-sky-400 text-[13px] font-semibold text-[#080c18] hover:bg-sky-300 transition-colors duration-150"><Plus className="h-4 w-4" /> Open first ticket</button></div>}
       </div>
     </div>
   );

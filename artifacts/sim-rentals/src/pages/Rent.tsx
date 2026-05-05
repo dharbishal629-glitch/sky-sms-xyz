@@ -146,7 +146,7 @@ export default function Rent() {
 
       {/* Selection card */}
       <Reveal variant="up" delay={60}>
-        <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-transparent overflow-hidden" data-testid="card-rent-selection">
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] overflow-hidden" data-testid="card-rent-selection">
           <div className="px-6 py-5 border-b border-white/[0.06]">
             <div className="font-black text-white text-[15px]">Configure Rental</div>
             <div className="text-[12px] text-slate-500 mt-0.5">Choose your service first, then select a country.</div>
@@ -219,7 +219,7 @@ export default function Rent() {
       {/* Availability card */}
       {countryCode && serviceCode && (
         <Reveal variant="up" delay={80}>
-          <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${isAvailable ? "border-sky-500/20 shadow-[0_0_30px_rgba(14,165,233,0.08)]" : "border-white/[0.07]"} bg-gradient-to-br from-white/[0.04] to-transparent`} data-testid="card-availability">
+          <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${isAvailable ? "border-sky-500/20" : "border-white/[0.07]"} bg-white/[0.025]`} data-testid="card-availability">
             <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
               <div className="font-black text-white text-[15px]">Availability</div>
               {(loadingAvailability || fetchingAvailability) && (
@@ -287,7 +287,7 @@ export default function Rent() {
                   <button
                     className={`w-full h-13 rounded-xl text-[15px] font-bold transition-all duration-250 flex items-center justify-center gap-2.5 active:scale-[0.98] ${
                       canRent
-                        ? "btn-reflect bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:shadow-[0_0_45px_rgba(14,165,233,0.45)] hover:from-sky-400 hover:to-sky-500"
+                        ? "bg-sky-500 text-white hover:bg-sky-400"
                         : "bg-white/[0.05] border border-white/[0.08] text-slate-600 cursor-not-allowed"
                     }`}
                     disabled={!canRent}
@@ -327,7 +327,7 @@ export default function Rent() {
       {/* Tips */}
       {!countryCode && (
         <Reveal variant="up" delay={120}>
-          <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.02] to-transparent p-6">
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
             <div className="text-[13px] font-bold text-slate-500 mb-4 uppercase tracking-wider">How it works</div>
             <div className="space-y-4">
               {[

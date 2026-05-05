@@ -107,46 +107,6 @@
     max-width: 100vw;
   }
 
-  /* ── Rich ambient background ── */
-  .premium-shell::before {
-    content: '';
-    position: fixed;
-    top: -30%;
-    left: -15%;
-    width: 70%;
-    height: 70%;
-    background: radial-gradient(ellipse at center,
-      rgba(14,165,233,0.09) 0%,
-      rgba(99,102,241,0.05) 45%,
-      transparent 70%
-    );
-    border-radius: 50%;
-    pointer-events: none;
-    will-change: transform;
-    transform: translateZ(0);
-    animation: mesh-a 30s ease-in-out infinite alternate;
-    z-index: 0;
-  }
-  .premium-shell::after {
-    content: '';
-    position: fixed;
-    bottom: -20%;
-    right: -12%;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(ellipse at center,
-      rgba(124,58,237,0.08) 0%,
-      rgba(14,165,233,0.04) 40%,
-      transparent 70%
-    );
-    border-radius: 50%;
-    pointer-events: none;
-    will-change: transform;
-    transform: translateZ(0);
-    animation: mesh-b 36s ease-in-out infinite alternate-reverse;
-    z-index: 0;
-  }
-
   @keyframes mesh-a {
     0%   { transform: translate3d(0,0,0) scale(1) rotate(0deg); }
     50%  { transform: translate3d(4%,5%,0) scale(1.08) rotate(3deg); }
@@ -158,94 +118,49 @@
     100% { transform: translate3d(4%,-8%,0) scale(0.97); }
   }
 
-  /* ── Glass card — no backdrop-filter for 120fps scrolling ── */
+  /* ── Glass card ── */
   .glass-card {
-    background: linear-gradient(135deg,
-      rgba(255,255,255,0.035) 0%,
-      rgba(255,255,255,0.015) 100%
-    );
+    background: rgba(255,255,255,0.025);
     border: 1px solid rgba(255,255,255,0.075);
-    box-shadow:
-      0 1px 0 0 rgba(255,255,255,0.04) inset,
-      0 2px 8px rgba(0,0,0,0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     transition: border-color 0.2s ease;
   }
   .glass-card:hover {
     border-color: rgba(255,255,255,0.11);
   }
 
-  /* ── Premium stat card ── */
+  /* ── Stat card ── */
   .stat-card {
-    background: linear-gradient(145deg,
-      rgba(255,255,255,0.04) 0%,
-      rgba(255,255,255,0.01) 100%
-    );
+    background: rgba(255,255,255,0.025);
     border: 1px solid rgba(255,255,255,0.08);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.05) inset,
-      0 4px 16px rgba(0,0,0,0.5),
-      0 24px 60px rgba(0,0,0,0.3);
     position: relative;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
-    will-change: transform;
+    transition: all 0.2s ease;
   }
   .stat-card:hover {
-    transform: translateY(-3px) scale(1.01);
-    border-color: rgba(255,255,255,0.13);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.07) inset,
-      0 8px 24px rgba(0,0,0,0.55),
-      0 32px 70px rgba(0,0,0,0.35);
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
   }
 
-  /* ── Glow variants ── */
-  .blue-glow {
-    box-shadow:
-      0 0 0 1px rgba(14,165,233,0.18),
-      0 0 40px rgba(14,165,233,0.1),
-      0 4px 16px rgba(0,0,0,0.4);
-  }
-  .violet-glow {
-    box-shadow:
-      0 0 0 1px rgba(124,58,237,0.18),
-      0 0 40px rgba(124,58,237,0.1),
-      0 4px 16px rgba(0,0,0,0.4);
-  }
-  .emerald-glow {
-    box-shadow:
-      0 0 0 1px rgba(16,185,129,0.18),
-      0 0 40px rgba(16,185,129,0.08),
-      0 4px 16px rgba(0,0,0,0.4);
-  }
+  /* ── Glow variants (kept minimal for compatibility) ── */
+  .blue-glow { }
+  .violet-glow { }
+  .emerald-glow { }
 
-  /* ── Gradient text ── */
-  .gradient-text {
-    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .gradient-text-blue {
-    background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 60%, #7dd3fc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+  /* ── Gradient text (kept as plain sky for compatibility) ── */
+  .gradient-text { color: #38bdf8; }
+  .gradient-text-blue { color: #0ea5e9; }
 
-  /* ── Primary gradient button ── */
+  /* ── Primary button ── */
   .btn-primary {
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-    box-shadow: 0 0 0 1px rgba(14,165,233,0.3), 0 4px 20px rgba(14,165,233,0.25);
-    transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
-    position: relative;
-    overflow: hidden;
+    background: #0ea5e9;
+    transition: all 0.2s ease;
   }
   .btn-primary::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    background: transparent;
     pointer-events: none;
   }
   .btn-primary:hover {

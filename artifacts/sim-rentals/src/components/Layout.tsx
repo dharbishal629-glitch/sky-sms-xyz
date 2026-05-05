@@ -76,7 +76,6 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
             </div>
             <div>
               <div className="text-[15px] font-bold text-white tracking-tight leading-none">SKY SMS</div>
-              <div className="text-[10px] text-slate-500 font-medium mt-0.5 uppercase tracking-wider">Premium Panel</div>
             </div>
           </span>
         </Link>

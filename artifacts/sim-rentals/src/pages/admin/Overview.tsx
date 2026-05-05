@@ -86,18 +86,15 @@ export default function AdminOverview() {
         {stats.map((stat) => {
           const c = colorMap[stat.color];
           return (
-            <div key={stat.label} className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-transparent relative overflow-hidden p-6" data-testid={stat.testId}>
-              <div className={`absolute inset-0 bg-gradient-to-br ${c.from} to-transparent pointer-events-none`} />
-              <div className="relative z-10">
-                <div className="flex items-start justify-between mb-4">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-tight">{stat.label}</span>
-                  <div className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 ${c.icon}`}>
-                    <stat.icon className="h-4 w-4" />
-                  </div>
+            <div key={stat.label} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6" data-testid={stat.testId}>
+              <div className="flex items-start justify-between mb-4">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-tight">{stat.label}</span>
+                <div className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 ${c.icon}`}>
+                  <stat.icon className="h-4 w-4" />
                 </div>
-                <div className="text-[2.5rem] font-black text-white leading-none tracking-tight mb-1.5">{stat.value}</div>
-                <p className={`text-[12px] font-semibold ${c.badge}`}>{stat.sub}</p>
               </div>
+              <div className="text-[2.5rem] font-black text-white leading-none tracking-tight mb-1.5">{stat.value}</div>
+              <p className={`text-[12px] font-semibold ${c.badge}`}>{stat.sub}</p>
             </div>
           );
         })}
@@ -107,7 +104,7 @@ export default function AdminOverview() {
       <div className="grid gap-5 md:grid-cols-2 page-enter page-enter-d3">
 
         {/* Provider status */}
-        <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
           <div className="px-6 py-5 border-b border-white/[0.06]">
             <div className="font-bold text-white text-[15px]">Provider Status</div>
             <div className="text-[12px] text-slate-500 mt-0.5">Upstream SMS provider health and balance.</div>
@@ -135,7 +132,7 @@ export default function AdminOverview() {
         </div>
 
         {/* Community links */}
-        <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
           <div className="px-6 py-5 border-b border-white/[0.06]">
             <div className="font-bold text-white text-[15px] flex items-center gap-2">
               <Link2 className="h-4 w-4 text-sky-400" />
