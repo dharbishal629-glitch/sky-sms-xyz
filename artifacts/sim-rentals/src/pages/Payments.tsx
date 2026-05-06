@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect, useEffect } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { useListPayments, useCreatePaymentCheckout, useGetMe } from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
   ChevronDown, Printer, X, Receipt, Tag,
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 
 const PACKAGES = [
   { amount: 5, popular: false },
@@ -25,10 +25,11 @@ const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\
 
 const howItWorks = [
   { step: "1", icon: Coins, title: "Choose Amount", desc: "Pick a preset package or enter any custom amount, even less than $1." },
-  { step: "2", icon: CreditCard, title: "Pay via PayPal or Crypto", desc: "Pay securely with PayPal or BTC, ETH, USDT & 30+ coins via OxaPay." },
+  { step: "2", icon: Bitcoin, title: "Pay via Crypto", desc: "Pay securely with BTC, ETH, USDT, or 30+ other coins via OxaPay." },
   { step: "3", icon: Zap, title: "Instant Balance", desc: "Your account balance updates automatically once payment is confirmed." },
   { step: "4", icon: RefreshCw, title: "Auto Refunds", desc: "Rentals with no SMS received are refunded automatically to your balance." },
 ];
+
 
 const HISTORY_PAGE_SIZE = 8;
 
@@ -120,23 +121,17 @@ function StatusPill({ status }: { status: string }) {
 }
 
 type CouponInfo = { code: string; type: "fixed" | "percentage"; value: number };
-type PaymentMethod = "paypal" | "crypto";
 
 function CheckoutModal({
   amount,
   onClose,
-  onConfirmCrypto,
-  onConfirmPayPal,
-  paypalPending,
+  onConfirm,
 }: {
   amount: number;
   onClose: () => void;
-  onConfirmCrypto: (couponCode: string | null) => void;
-  onConfirmPayPal: (couponCode: string | null) => void;
-  paypalPending: boolean;
+  onConfirm: (couponCode: string | null) => void;
 }) {
   const { toast } = useToast();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("paypal");
   const [couponInput, setCouponInput] = useState("");
   const [coupon, setCoupon] = useState<CouponInfo | null>(null);
   const [validating, setValidating] = useState(false);
@@ -184,6 +179,7 @@ function CheckoutModal({
         className="bg-[#0d1526] border border-white/[0.1] rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-5"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="flex items-center justify-between">
           <span className="font-semibold text-white text-base">Confirm Payment</span>
           <button onClick={onClose} className="h-7 w-7 rounded-full bg-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white">
@@ -191,6 +187,7 @@ function CheckoutModal({
           </button>
         </div>
 
+        {/* Amount summary */}
         <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">You pay</span>
@@ -211,47 +208,10 @@ function CheckoutModal({
               <span className="font-bold text-emerald-400">-${discount.toFixed(2)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center pt-2 border-t border-white/[0.06]">
+          <div className={`flex justify-between items-center pt-2 border-t border-white/[0.06]`}>
             <span className="text-sm font-semibold text-white">Credits added</span>
             <span className="font-bold text-lg text-emerald-300">${amount.toFixed(2)}</span>
           </div>
-        </div>
-
-        {/* Payment method selector */}
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-muted-foreground mb-2">Payment Method</div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setPaymentMethod("paypal")}
-              className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all duration-150 ${
-                paymentMethod === "paypal"
-                  ? "bg-[#003087]/20 border-[#009cde]/50 text-white"
-                  : "bg-white/[0.03] border-white/[0.08] text-slate-400 hover:border-white/20"
-              }`}
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none">
-                <path d="M7.4 4h8.1c2.7 0 4.5 1.8 4.1 4.4-.6 3.9-3.3 5.4-6.5 5.4H11l-.9 5.2H6.8L7.4 4z" fill={paymentMethod === "paypal" ? "#009cde" : "#64748b"} />
-                <path d="M5 8.5h8.1c2.7 0 4.5 1.8 4.1 4.4-.6 3.9-3.3 5.4-6.5 5.4H8.6l-.9 5.2H4.4L5 8.5z" fill={paymentMethod === "paypal" ? "#003087" : "#475569"} opacity="0.8" />
-              </svg>
-              <span className="text-xs font-bold">PayPal</span>
-            </button>
-            <button
-              onClick={() => setPaymentMethod("crypto")}
-              className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all duration-150 ${
-                paymentMethod === "crypto"
-                  ? "bg-amber-500/10 border-amber-400/40 text-white"
-                  : "bg-white/[0.03] border-white/[0.08] text-slate-400 hover:border-white/20"
-              }`}
-            >
-              <Bitcoin className={`h-6 w-6 ${paymentMethod === "crypto" ? "text-amber-400" : "text-slate-500"}`} />
-              <span className="text-xs font-bold">Crypto</span>
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-500 text-center mt-1">
-            {paymentMethod === "paypal"
-              ? "Pay securely with your PayPal account or card."
-              : "Pay with BTC, ETH, USDT & 30+ coins via OxaPay."}
-          </p>
         </div>
 
         {/* Coupon section */}
@@ -305,20 +265,9 @@ function CheckoutModal({
         {/* Actions */}
         <div className="flex gap-3 pt-1">
           <Button variant="outline" onClick={onClose} className="flex-1 rounded-full">Cancel</Button>
-          {paymentMethod === "paypal" ? (
-            <Button
-              onClick={() => onConfirmPayPal(coupon?.code ?? null)}
-              disabled={paypalPending}
-              className="flex-1 rounded-full bg-[#009cde] hover:bg-[#0085c0] text-white"
-            >
-              {paypalPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Pay with PayPal
-            </Button>
-          ) : (
-            <Button onClick={() => onConfirmCrypto(coupon?.code ?? null)} className="flex-1 rounded-full">
-              Pay with Crypto
-            </Button>
-          )}
+          <Button onClick={() => onConfirm(coupon?.code ?? null)} className="flex-1 rounded-full">
+            Proceed to Checkout
+          </Button>
         </div>
       </div>
     </div>
@@ -326,19 +275,19 @@ function CheckoutModal({
 }
 
 export default function Payments() {
-  const { data: userData, refetch: refetchMe } = useGetMe();
-  const { data, isLoading, error, refetch: refetchPayments } = useListPayments();
+  const { data: userData } = useGetMe();
+  const { data, isLoading, error } = useListPayments();
   const createCheckout = useCreatePaymentCheckout();
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
   const [customAmount, setCustomAmount] = useState<string>("");
   const [historyTab, setHistoryTab] = useState<"all" | "completed" | "processing" | "failed">("all");
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const [receiptPayment, setReceiptPayment] = useState<any>(null);
+
+  // Checkout modal
   const [checkoutAmount, setCheckoutAmount] = useState<number | null>(null);
   const [checkoutPending, setCheckoutPending] = useState(false);
-  const [paypalPending, setPaypalPending] = useState(false);
 
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tabTrackRef = useRef<HTMLDivElement>(null);
@@ -353,50 +302,16 @@ export default function Payments() {
     if (btn && track) {
       const trackRect = track.getBoundingClientRect();
       const btnRect = btn.getBoundingClientRect();
-      setPillStyle({ left: btnRect.left - trackRect.left, width: btnRect.width });
+      setPillStyle({
+        left: btnRect.left - trackRect.left,
+        width: btnRect.width,
+      });
     }
   }, [historyTab]);
 
-  // Handle PayPal return
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const paypalSuccess = params.get("paypal_success");
-    const paypalCancel = params.get("paypal_cancel");
-    const paymentId = params.get("payment_id");
-    const token = params.get("token"); // PayPal order ID
-
-    if (paypalCancel) {
-      toast({ title: "PayPal cancelled", description: "Your payment was cancelled.", variant: "destructive" });
-      setLocation("/payments");
-      return;
-    }
-
-    if (paypalSuccess && paymentId && token) {
-      setLocation("/payments");
-      setPaypalPending(true);
-      fetch(`${API_URL}/api/payments/paypal/capture`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId, orderId: token }),
-      })
-        .then(async (res) => {
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error ?? "Capture failed");
-          toast({ title: "Payment successful!", description: "Your credits have been added to your account." });
-          refetchPayments();
-          refetchMe();
-        })
-        .catch((err) => {
-          toast({ title: "Payment capture failed", description: err.message, variant: "destructive" });
-        })
-        .finally(() => setPaypalPending(false));
-    }
-  }, []);
-
   const openCheckoutModal = (amount: number) => setCheckoutAmount(amount);
 
-  const handleConfirmCrypto = (amount: number, couponCode: string | null) => {
+  const handleConfirmedCheckout = (amount: number, couponCode: string | null) => {
     setCheckoutAmount(null);
     setCheckoutPending(true);
     createCheckout.mutate(
@@ -414,25 +329,6 @@ export default function Payments() {
         },
       },
     );
-  };
-
-  const handleConfirmPayPal = async (amount: number, couponCode: string | null) => {
-    setCheckoutAmount(null);
-    setPaypalPending(true);
-    try {
-      const res = await fetch(`${API_URL}/api/payments/paypal/create`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, couponCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to create PayPal order");
-      window.location.href = data.approvalUrl;
-    } catch (err: any) {
-      toast({ title: "PayPal checkout failed", description: err.message || "Please try again.", variant: "destructive" });
-      setPaypalPending(false);
-    }
   };
 
   const handleCustomCheckout = () => {
@@ -466,20 +362,8 @@ export default function Payments() {
         <CheckoutModal
           amount={checkoutAmount}
           onClose={() => setCheckoutAmount(null)}
-          onConfirmCrypto={(couponCode) => handleConfirmCrypto(checkoutAmount, couponCode)}
-          onConfirmPayPal={(couponCode) => handleConfirmPayPal(checkoutAmount, couponCode)}
-          paypalPending={paypalPending}
+          onConfirm={(couponCode) => handleConfirmedCheckout(checkoutAmount, couponCode)}
         />
-      )}
-
-      {paypalPending && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1526] border border-white/10 rounded-3xl p-8 flex flex-col items-center gap-4 max-w-xs w-full mx-4">
-            <Loader2 className="h-10 w-10 text-[#009cde] animate-spin" />
-            <div className="text-white font-semibold text-center">Confirming your PayPal payment…</div>
-            <div className="text-xs text-slate-500 text-center">Please wait while we verify your transaction.</div>
-          </div>
-        </div>
       )}
 
       {receiptPayment && <ReceiptModal payment={receiptPayment} onClose={() => setReceiptPayment(null)} />}
@@ -524,7 +408,7 @@ export default function Payments() {
                 )}
                 <CardHeader className="pb-2 pt-5">
                   <div className="text-2xl font-bold text-white">${pkg.amount}</div>
-                  <CardDescription className="text-xs">PayPal or crypto</CardDescription>
+                  <CardDescription className="text-xs">USD via crypto</CardDescription>
                 </CardHeader>
                 <CardContent className="pb-4">
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5">
@@ -536,10 +420,10 @@ export default function Payments() {
                     className="w-full rounded-full"
                     variant={pkg.popular ? "default" : "outline"}
                     onClick={() => openCheckoutModal(pkg.amount)}
-                    disabled={checkoutPending || paypalPending}
+                    disabled={checkoutPending}
                     data-testid={`button-buy-${pkg.amount}`}
                   >
-                    {checkoutPending || paypalPending ? (
+                    {checkoutPending ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
                     ) : (
                       `Add $${pkg.amount}.00`
@@ -584,11 +468,11 @@ export default function Payments() {
             )}
             <Button
               className="w-full rounded-full h-11"
-              disabled={!customAmount || customAmountNum <= 0 || checkoutPending || paypalPending}
+              disabled={!customAmount || customAmountNum <= 0 || checkoutPending}
               onClick={handleCustomCheckout}
               data-testid="button-buy-custom"
             >
-              {checkoutPending || paypalPending ? (
+              {checkoutPending ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing</>
               ) : customAmountNum > 0 ? (
                 `Add $${customAmountNum.toFixed(2)}`
@@ -632,9 +516,9 @@ export default function Payments() {
       <Reveal variant="up" delay={120}>
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            { icon: Shield, title: "Secure Checkout", desc: "All payments are fully encrypted and processed securely." },
-            { icon: CreditCard, title: "PayPal & Crypto", desc: "Pay via PayPal or BTC, ETH, USDT & 30+ coins via OxaPay." },
-            { icon: RefreshCw, title: "Auto Refunds", desc: "Unused rental fees returned instantly to your balance." },
+            { icon: Shield, title: "Secure Checkout", desc: "All payments processed by OxaPay — fully encrypted." },
+            { icon: Bitcoin, title: "Crypto Only", desc: "BTC, ETH, USDT & 30+ coins accepted." },
+            { icon: RefreshCw, title: "Auto Refunds", desc: "Unused rental fees returned instantly." },
           ].map((item, i) => (
             <div key={i} className="glass-card rounded-2xl p-4 flex items-start gap-3">
               <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
@@ -657,7 +541,7 @@ export default function Payments() {
           <div className="flex-1">
             <div className="font-bold text-white text-sm mb-1">Questions about payments?</div>
             <div className="text-xs text-slate-400 leading-relaxed">
-              PayPal payments are subject to PayPal's standard policies. Crypto payments are private and irreversible. Unused balance stays in your account forever. For full details on refunds, disputes, and policies, see our Refund Policy.
+              Crypto payments are private and irreversible. Unused balance stays in your account forever. For full details on refunds, disputes, and policies, see our Refund Policy.
             </div>
           </div>
           <Link href="/refund-policy">

@@ -198,11 +198,8 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   return false;
 }
 
-function providerStatus(name: "Hero SMS" | "OxaPay" | "PayPal") {
-  let configured: boolean;
-  if (name === "Hero SMS") configured = Boolean(process.env.HERO_SMS_API_KEY);
-  else if (name === "OxaPay") configured = Boolean(process.env.OXAPAY_MERCHANT_API_KEY);
-  else configured = Boolean(process.env.PAYPAL_CLIENT_ID) && Boolean(process.env.PAYPAL_CLIENT_SECRET);
+function providerStatus(name: "Hero SMS" | "OxaPay") {
+  const configured = name === "Hero SMS" ? Boolean(process.env.HERO_SMS_API_KEY) : Boolean(process.env.OXAPAY_MERCHANT_API_KEY);
   return {
     name,
     mode: configured ? "live" : "setup_required",
@@ -210,64 +207,6 @@ function providerStatus(name: "Hero SMS" | "OxaPay" | "PayPal") {
       ? `${name} credentials are configured for live server-side requests.`
       : `${name} secret is not configured yet. Live provider actions are disabled until the secret is added securely.`,
   };
-}
-
-// ─── PayPal helpers ──────────────────────────────────────────────────────────
-function getPaypalBase() {
-  return process.env.PAYPAL_MODE === "sandbox"
-    ? "https://api-m.sandbox.paypal.com"
-    : "https://api-m.paypal.com";
-}
-
-async function getPaypalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-  if (!clientId || !clientSecret) throw new Error("PayPal credentials are not configured.");
-  const response = await fetch(`${getPaypalBase()}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-  const data = (await response.json()) as { access_token?: string };
-  if (!data.access_token) throw new Error("Failed to get PayPal access token.");
-  return data.access_token;
-}
-
-async function createPaypalOrder(req: Request, paymentId: string, amount: number) {
-  const token = await getPaypalAccessToken();
-  const origin = getRequestOrigin(req);
-  const response = await fetch(`${getPaypalBase()}/v2/checkout/orders`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      intent: "CAPTURE",
-      purchase_units: [{ reference_id: paymentId, amount: { currency_code: "USD", value: amount.toFixed(2) }, description: "SKY SMS Credits" }],
-      application_context: {
-        return_url: `${origin}/payments?paypal_success=1&payment_id=${paymentId}`,
-        cancel_url: `${origin}/payments?paypal_cancel=1`,
-        brand_name: "SKY SMS",
-        user_action: "PAY_NOW",
-        landing_page: "LOGIN",
-      },
-    }),
-  });
-  const data = (await response.json()) as { id?: string; links?: { rel: string; href: string }[] };
-  if (!data.id) throw new Error("PayPal did not return an order ID.");
-  const approvalUrl = data.links?.find((l) => l.rel === "approve")?.href;
-  if (!approvalUrl) throw new Error("PayPal did not return an approval URL.");
-  return { orderId: data.id, approvalUrl };
-}
-
-async function capturePaypalOrder(orderId: string) {
-  const token = await getPaypalAccessToken();
-  const response = await fetch(`${getPaypalBase()}/v2/checkout/orders/${orderId}/capture`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-  });
-  return (await response.json()) as { status?: string };
 }
 
 async function heroProviderStatus() {
@@ -585,7 +524,7 @@ router.get("/dashboard", async (req, res) => {
       provider: String(row.provider),
       createdAt: new Date(String(row.created_at)).toISOString(),
     })),
-    providerStatuses: [heroStatus, providerStatus("OxaPay"), providerStatus("PayPal")],
+    providerStatuses: [heroStatus, providerStatus("OxaPay")],
   });
   res.json(data);
 });
@@ -878,83 +817,6 @@ router.post("/payments/checkout", async (req, res) => {
   }
 });
 
-// ─── PayPal: create order ────────────────────────────────────────────────────
-router.post("/payments/paypal/create", async (req, res) => {
-  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { amount, couponCode } = req.body as { amount?: number; couponCode?: string | null };
-  if (!amount || typeof amount !== "number" || amount <= 0) {
-    res.status(400).json({ error: "Invalid amount." });
-    return;
-  }
-  const id = crypto.randomUUID();
-  const userId = getUserId(req);
-  await getAccount(userId, req.user);
-  const userEmail = req.user?.email ?? null;
-  try {
-    let discountAmount = 0;
-    let appliedCouponCode: string | null = null;
-    const couponCodeRaw = typeof couponCode === "string" ? couponCode.trim().toUpperCase() : null;
-    if (couponCodeRaw) {
-      const couponResult = await pool.query("SELECT * FROM sim_coupons WHERE code = $1", [couponCodeRaw]);
-      const coupon = couponResult.rows[0];
-      const validCoupon =
-        coupon &&
-        coupon.active &&
-        (!coupon.expires_at || new Date(coupon.expires_at) > new Date()) &&
-        (coupon.max_uses === null || Number(coupon.uses_count) < Number(coupon.max_uses)) &&
-        (!coupon.target_user_email || coupon.target_user_email === userEmail);
-      if (validCoupon) {
-        discountAmount = coupon.type === "percentage"
-          ? Number((amount * (Number(coupon.value) / 100)).toFixed(2))
-          : Math.min(Number(coupon.value), amount);
-        appliedCouponCode = couponCodeRaw;
-      }
-    }
-    const chargedAmount = Number(Math.max(amount - discountAmount, 0.01).toFixed(2));
-    const totalCredits = amount;
-    const { orderId, approvalUrl } = await createPaypalOrder(req, id, chargedAmount);
-    await pool.query(
-      `INSERT INTO sim_payments (id, user_id, amount, credits, currency, status, provider, coupon_code, bonus_credits, track_id)
-       VALUES ($1, $2, $3, $4, 'USD', 'pending', 'PayPal', $5, $6, $7)`,
-      [id, userId, chargedAmount, totalCredits, appliedCouponCode, discountAmount, orderId],
-    );
-    res.json({ paymentId: id, orderId, approvalUrl });
-  } catch (error) {
-    res.status(502).json({ error: error instanceof Error ? error.message : "Unable to create PayPal checkout." });
-  }
-});
-
-// ─── PayPal: capture order ───────────────────────────────────────────────────
-router.post("/payments/paypal/capture", async (req, res) => {
-  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { paymentId, orderId } = req.body as { paymentId?: string; orderId?: string };
-  if (!paymentId || !orderId) { res.status(400).json({ error: "paymentId and orderId are required." }); return; }
-  try {
-    const paymentResult = await pool.query(
-      "SELECT * FROM sim_payments WHERE id = $1 AND user_id = $2",
-      [paymentId, getUserId(req)],
-    );
-    const payment = paymentResult.rows[0];
-    if (!payment) { res.status(404).json({ error: "Payment not found." }); return; }
-    if (String(payment.status) === "paid") { res.json({ success: true, alreadyPaid: true }); return; }
-    const captureData = await capturePaypalOrder(orderId);
-    if (captureData.status === "COMPLETED") {
-      await pool.query("UPDATE sim_payments SET status = 'paid' WHERE id = $1", [paymentId]);
-      const credits = Number(payment.credits);
-      await pool.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [credits, payment.user_id]);
-      if (payment.coupon_code) {
-        await pool.query("UPDATE sim_coupons SET uses_count = uses_count + 1 WHERE code = $1", [payment.coupon_code]);
-      }
-      res.json({ success: true });
-    } else {
-      await pool.query("UPDATE sim_payments SET status = 'failed' WHERE id = $1", [paymentId]);
-      res.status(400).json({ error: "PayPal payment was not completed." });
-    }
-  } catch (error) {
-    res.status(502).json({ error: error instanceof Error ? error.message : "Failed to capture PayPal payment." });
-  }
-});
-
 // ─── Coupon: validate (user-facing) ────────────────────────────────────────
 router.post("/coupons/validate", async (req, res) => {
   try {
@@ -1096,7 +958,7 @@ router.get("/admin/overview", async (req, res) => {
       activeRentals: rentals.rows[0].count,
       revenue: Number(revenue.rows[0].total),
       pendingPayments: pending.rows[0].count,
-      providerStatuses: [heroStatus, providerStatus("OxaPay"), providerStatus("PayPal")],
+      providerStatuses: [heroStatus, providerStatus("OxaPay")],
     }),
   );
 });

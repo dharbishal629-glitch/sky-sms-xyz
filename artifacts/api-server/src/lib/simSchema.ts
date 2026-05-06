@@ -2,7 +2,7 @@ import { pool } from "@workspace/db";
 
 let schemaReady: Promise<void> | null = null;
 
-const SEED_ENABLED_SERVICES = ["ds", "am", "go", "wa", "tg", "mm"];
+const SEED_ENABLED_SERVICES = ["ds", "am", "go", "wa", "tg", "mm", "pp"];
 
 async function createSchema() {
   await pool.query(`
@@ -153,6 +153,13 @@ async function createSchema() {
       [code],
     );
   }
+
+  // Always ensure PayPal is enabled (upsert for existing DBs)
+  await pool.query(
+    `INSERT INTO sim_enabled_services (service_code, enabled) VALUES ('pp', TRUE)
+     ON CONFLICT (service_code) DO UPDATE SET enabled = TRUE`,
+  );
+
 }
 
 export async function ensureSimSchema() {
