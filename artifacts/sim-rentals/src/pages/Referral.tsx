@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Check, Gift, Users2, Link2, ChevronRight, Share2 } from "lucide-react";
+import { Copy, Check, Gift, Users2, Link2, ChevronRight, Share2, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,8 @@ interface ReferralData {
   totalReferrals: number;
   totalBonus: number;
   creditedCount: number;
+  bonusAmount: number;
+  minDepositAmount: number;
   referrals: { id: number; referredName: string; bonusAmount: number; credited: boolean; createdAt: string }[];
 }
 
@@ -95,11 +97,18 @@ export default function Referral() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: applyCode.trim() }),
       });
-      const result = await res.json() as { success?: boolean; bonusAmount?: number; error?: string };
+      const result = await res.json() as { success?: boolean; bonusAmount?: number; requiresDeposit?: boolean; minDepositAmount?: number; error?: string };
       if (!res.ok) {
         toast({ title: result.error ?? "Failed to apply code", variant: "destructive" });
+      } else if (result.requiresDeposit && result.minDepositAmount) {
+        toast({
+          title: "Referral code applied!",
+          description: `Deposit at least $${result.minDepositAmount.toFixed(2)} to unlock your $${(result.bonusAmount ?? 0).toFixed(2)} bonus.`,
+        });
+        setApplyCode("");
+        await fetchReferrals();
       } else {
-        toast({ title: `Referral applied!`, description: `You both earned $${(result.bonusAmount ?? 0).toFixed(2)} credit.` });
+        toast({ title: "Referral applied!", description: `You both earned $${(result.bonusAmount ?? 0).toFixed(2)} credit.` });
         setApplyCode("");
         await fetchReferrals();
       }
@@ -111,6 +120,9 @@ export default function Referral() {
   };
 
   const referralUrl = data ? `${window.location.origin}/?ref=${data.referralCode}` : "";
+  const bonus = data?.bonusAmount ?? 0.5;
+  const minDeposit = data?.minDepositAmount ?? 0;
+  const hasMinDeposit = minDeposit > 0;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 page-enter">
@@ -118,7 +130,10 @@ export default function Referral() {
       <Reveal variant="up">
         <div>
           <h1 className="text-xl font-semibold text-white">Referral Program</h1>
-          <p className="text-slate-500 mt-1.5 text-[14px]">Invite friends and earn $0.50 credit for every referral.</p>
+          <p className="text-slate-500 mt-1.5 text-[14px]">
+            Invite friends and earn ${bonus.toFixed(2)} credit for every referral.
+            {hasMinDeposit && ` Reward unlocks after your friend deposits $${minDeposit.toFixed(2)}.`}
+          </p>
         </div>
       </Reveal>
 
@@ -130,11 +145,17 @@ export default function Referral() {
               <Gift className="h-4 w-4 text-amber-400" />
             </div>
             <div>
-              <div className="text-[14px] font-bold text-white">Earn $0.50 per referral</div>
-              <div className="text-[12px] text-slate-500 mt-0.5">Both you and your friend get the bonus when they sign up</div>
+              <div className="text-[14px] font-bold text-white">
+                Earn ${loading ? "..." : bonus.toFixed(2)} per referral
+              </div>
+              <div className="text-[12px] text-slate-500 mt-0.5">
+                {hasMinDeposit
+                  ? `Bonus credited once your friend deposits $${minDeposit.toFixed(2)} or more`
+                  : "Both you and your friend get the bonus instantly when they sign up"}
+              </div>
             </div>
             <span className="ml-auto text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/15 rounded-full px-3 py-1 shrink-0">
-              $0.50 each
+              ${loading ? "..." : bonus.toFixed(2)} each
             </span>
           </div>
 
@@ -160,6 +181,23 @@ export default function Referral() {
         </div>
       </Reveal>
 
+      {/* Deposit requirement notice */}
+      {!loading && hasMinDeposit && (
+        <Reveal variant="up" delay={55}>
+          <div className="flex items-start gap-3 p-4 rounded-2xl border border-sky-500/15 bg-sky-500/[0.04]">
+            <AlertCircle className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[13px] font-semibold text-white mb-0.5">How to claim your reward</div>
+              <div className="text-[12px] text-slate-400 leading-relaxed">
+                After your friend signs up using your referral link, they must make a deposit of at least{" "}
+                <span className="text-sky-300 font-semibold">${minDeposit.toFixed(2)}</span> to unlock the bonus.
+                Once their deposit is confirmed, <span className="text-amber-300 font-semibold">${bonus.toFixed(2)}</span> credit is automatically added to both accounts — no manual action needed.
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      )}
+
       {/* Your referral link */}
       <Reveal variant="up" delay={80}>
         <section className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
@@ -179,7 +217,7 @@ export default function Referral() {
                       try {
                         await navigator.share({
                           title: "Join SKY SMS",
-                          text: "Rent phone numbers instantly for SMS verification. Use my referral link and we both get $0.50 credit!",
+                          text: `Rent phone numbers instantly for SMS verification. Use my referral link and we both get $${bonus.toFixed(2)} credit!`,
                           url: referralUrl,
                         });
                       } catch {
@@ -209,7 +247,10 @@ export default function Referral() {
           </div>
           <div className="p-5">
             <p className="text-[12.5px] text-slate-500 mb-3 leading-relaxed">
-              Enter a friend's referral code below. You'll both receive $0.50 credit once you make your first purchase.
+              Enter a friend's referral code below.
+              {hasMinDeposit
+                ? ` You'll both receive $${bonus.toFixed(2)} credit once you deposit at least $${minDeposit.toFixed(2)}.`
+                : ` You'll both receive $${bonus.toFixed(2)} credit instantly.`}
             </p>
             <div className="flex gap-2">
               <input
@@ -253,8 +294,8 @@ export default function Referral() {
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-[13px] font-bold text-emerald-400">+${r.bonusAmount.toFixed(2)}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.credited ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/15" : "bg-white/[0.05] text-slate-600 border border-white/[0.07]"}`}>
-                      {r.credited ? "Credited" : "Pending"}
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.credited ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/15" : "bg-amber-500/10 text-amber-400 border border-amber-500/15"}`}>
+                      {r.credited ? "Credited" : hasMinDeposit ? "Awaiting deposit" : "Pending"}
                     </span>
                   </div>
                 </div>
@@ -275,7 +316,13 @@ export default function Referral() {
             {[
               { n: "01", t: "Share your link", d: "Copy your unique referral link and share it with friends, on social media, or anywhere you like." },
               { n: "02", t: "Friend signs up", d: "Your friend creates a free account using your referral link — no purchase needed yet." },
-              { n: "03", t: "Both get credited", d: "Once your friend makes their first top-up, you both automatically receive $0.50 credit." },
+              {
+                n: "03",
+                t: hasMinDeposit ? "Friend makes a deposit" : "Both get credited",
+                d: hasMinDeposit
+                  ? `Your friend must deposit at least $${minDeposit.toFixed(2)}. The reward is then automatically credited to both accounts — no claiming needed.`
+                  : `Once your friend signs up with your link, you both automatically receive $${bonus.toFixed(2)} credit.`,
+              },
             ].map((step) => (
               <div key={step.n} className="flex gap-4 items-start p-4 rounded-xl border border-white/[0.05] bg-white/[0.01]">
                 <div className="text-[2rem] font-bold text-amber-500/15 leading-none select-none shrink-0 font-mono w-10">{step.n}</div>

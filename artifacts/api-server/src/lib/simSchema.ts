@@ -176,13 +176,16 @@ async function createSchema() {
       id INTEGER PRIMARY KEY DEFAULT 1,
       enabled BOOLEAN NOT NULL DEFAULT TRUE,
       bonus_amount NUMERIC NOT NULL DEFAULT 0.50,
+      min_deposit_amount NUMERIC NOT NULL DEFAULT 0,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    ALTER TABLE sim_referral_settings ADD COLUMN IF NOT EXISTS min_deposit_amount NUMERIC NOT NULL DEFAULT 0;
   `);
 
   await pool.query(
-    `INSERT INTO sim_referral_settings (id, enabled, bonus_amount)
-     VALUES (1, TRUE, 0.50)
+    `INSERT INTO sim_referral_settings (id, enabled, bonus_amount, min_deposit_amount)
+     VALUES (1, TRUE, 0.50, 0)
      ON CONFLICT (id) DO NOTHING`
   );
 

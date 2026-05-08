@@ -735,6 +735,37 @@ router.post("/payments/oxapay/webhook", async (req, res) => {
             [payment.coupon_code],
           );
         }
+        // Check if this payment qualifies for a pending referral bonus
+        try {
+          const refSettingsRow = await pool.query("SELECT min_deposit_amount FROM sim_referral_settings WHERE id = 1");
+          const minDeposit = Number(refSettingsRow.rows[0]?.min_deposit_amount ?? 0);
+          if (minDeposit > 0 && Number(payment.amount) >= minDeposit) {
+            // Find uncredited referral where this user is the referred_id
+            const pendingRef = await pool.query(
+              "SELECT * FROM sim_referrals WHERE referred_id = $1 AND credited = FALSE",
+              [payment.user_id],
+            );
+            if (pendingRef.rows[0]) {
+              const ref = pendingRef.rows[0];
+              const bonus = Number(ref.bonus_amount);
+              await pool.query("UPDATE sim_referrals SET credited = TRUE WHERE id = $1", [ref.id]);
+              await pool.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [bonus, ref.referrer_id]);
+              await pool.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [bonus, ref.referred_id]);
+              await pool.query(
+                `INSERT INTO sim_notifications (user_id, title, message, type)
+                 VALUES ($1, $2, $3, 'success')`,
+                [ref.referrer_id, "Referral bonus earned!", `Your referred friend made their first deposit. You both received $${bonus.toFixed(2)} credit!`],
+              );
+              await pool.query(
+                `INSERT INTO sim_notifications (user_id, title, message, type)
+                 VALUES ($1, $2, $3, 'success')`,
+                [ref.referred_id, "Referral reward unlocked!", `Your $${bonus.toFixed(2)} referral bonus has been credited to your account!`],
+              );
+            }
+          }
+        } catch (refErr) {
+          console.error("Referral credit error:", refErr);
+        }
       }
     } else if (status === "Expired" || status === "Error") {
       if (String(payment.status) === "pending") {
@@ -1558,12 +1589,16 @@ router.get("/referrals", async (req, res) => {
      LIMIT 20`,
     [userId],
   );
+  const settingsRow = await pool.query("SELECT enabled, bonus_amount, min_deposit_amount FROM sim_referral_settings WHERE id = 1");
+  const refSettings = settingsRow.rows[0] ?? { enabled: true, bonus_amount: 0.5, min_deposit_amount: 0 };
   const s = stats.rows[0];
   return res.json({
     referralCode: code,
     totalReferrals: Number(s.total ?? 0),
     totalBonus: Number(s.total_bonus ?? 0),
     creditedCount: Number(s.credited ?? 0),
+    bonusAmount: Number(refSettings.bonus_amount),
+    minDepositAmount: Number(refSettings.min_deposit_amount),
     referrals: referrals.rows.map((r) => ({
       id: Number(r.id),
       referredName: String(r.referred_name),
@@ -1590,34 +1625,44 @@ router.post("/referrals/apply", async (req, res) => {
   const referrerId = String(referrer.rows[0].id);
   if (referrerId === userId) return res.status(400).json({ error: "You cannot use your own referral code." });
 
-  const settingsRow = await pool.query("SELECT enabled, bonus_amount FROM sim_referral_settings WHERE id = 1");
-  const refSettings = settingsRow.rows[0] ?? { enabled: true, bonus_amount: 0.5 };
+  const settingsRow = await pool.query("SELECT enabled, bonus_amount, min_deposit_amount FROM sim_referral_settings WHERE id = 1");
+  const refSettings = settingsRow.rows[0] ?? { enabled: true, bonus_amount: 0.5, min_deposit_amount: 0 };
   if (!refSettings.enabled) {
     return res.status(403).json({ error: "The referral program is currently disabled." });
   }
   const BONUS = Number(refSettings.bonus_amount);
+  const MIN_DEPOSIT = Number(refSettings.min_deposit_amount);
+  const requiresDeposit = MIN_DEPOSIT > 0;
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // If no min deposit required, credit immediately; otherwise hold until deposit
+    const shouldCreditNow = !requiresDeposit;
     await client.query(
       `INSERT INTO sim_referrals (referrer_id, referred_id, bonus_amount, credited)
-       VALUES ($1, $2, $3, TRUE)`,
-      [referrerId, userId, BONUS],
+       VALUES ($1, $2, $3, $4)`,
+      [referrerId, userId, BONUS, shouldCreditNow],
     );
-    // Credit both users
-    await client.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [BONUS, referrerId]);
-    await client.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [BONUS, userId]);
-    // Send notifications to both
-    await client.query(
-      `INSERT INTO sim_notifications (user_id, title, message, type)
-       VALUES ($1, $2, $3, 'success')`,
-      [referrerId, "Referral bonus earned! 🎉", `Someone signed up using your referral code. You both received $${BONUS.toFixed(2)} credit!`],
-    );
-    await client.query(
-      `INSERT INTO sim_notifications (user_id, title, message, type)
-       VALUES ($1, $2, $3, 'success')`,
-      [userId, "Welcome bonus applied! 🎉", `Your referral code was accepted. $${BONUS.toFixed(2)} credit has been added to your account!`],
-    );
+    if (shouldCreditNow) {
+      await client.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [BONUS, referrerId]);
+      await client.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [BONUS, userId]);
+      await client.query(
+        `INSERT INTO sim_notifications (user_id, title, message, type)
+         VALUES ($1, $2, $3, 'success')`,
+        [referrerId, "Referral bonus earned!", `Someone signed up using your referral code. You both received $${BONUS.toFixed(2)} credit!`],
+      );
+      await client.query(
+        `INSERT INTO sim_notifications (user_id, title, message, type)
+         VALUES ($1, $2, $3, 'success')`,
+        [userId, "Welcome bonus applied!", `Your referral code was accepted. $${BONUS.toFixed(2)} credit has been added to your account!`],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO sim_notifications (user_id, title, message, type)
+         VALUES ($1, $2, $3, 'info')`,
+        [userId, "Referral code applied!", `Make a deposit of at least $${MIN_DEPOSIT.toFixed(2)} to unlock your $${BONUS.toFixed(2)} referral bonus.`],
+      );
+    }
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK");
@@ -1626,33 +1671,34 @@ router.post("/referrals/apply", async (req, res) => {
     client.release();
   }
 
-  return res.json({ success: true, bonusAmount: BONUS });
+  return res.json({ success: true, bonusAmount: BONUS, requiresDeposit, minDepositAmount: MIN_DEPOSIT });
 });
 
 router.get("/admin/referral-settings", async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
   const user = req.user as AuthUser;
   if (!isAdminEmail(user.email)) return res.status(403).json({ error: "Forbidden" });
-  const result = await pool.query("SELECT enabled, bonus_amount FROM sim_referral_settings WHERE id = 1");
-  const row = result.rows[0] ?? { enabled: true, bonus_amount: 0.5 };
-  return res.json({ enabled: Boolean(row.enabled), bonusAmount: Number(row.bonus_amount) });
+  const result = await pool.query("SELECT enabled, bonus_amount, min_deposit_amount FROM sim_referral_settings WHERE id = 1");
+  const row = result.rows[0] ?? { enabled: true, bonus_amount: 0.5, min_deposit_amount: 0 };
+  return res.json({ enabled: Boolean(row.enabled), bonusAmount: Number(row.bonus_amount), minDepositAmount: Number(row.min_deposit_amount) });
 });
 
 router.put("/admin/referral-settings", async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
   const user = req.user as AuthUser;
   if (!isAdminEmail(user.email)) return res.status(403).json({ error: "Forbidden" });
-  const { enabled, bonusAmount } = req.body as { enabled?: boolean; bonusAmount?: number };
+  const { enabled, bonusAmount, minDepositAmount } = req.body as { enabled?: boolean; bonusAmount?: number; minDepositAmount?: number };
   if (typeof enabled !== "boolean" || typeof bonusAmount !== "number" || bonusAmount < 0 || bonusAmount > 100) {
     return res.status(400).json({ error: "Invalid settings" });
   }
+  const safeMinDeposit = typeof minDepositAmount === "number" && minDepositAmount >= 0 ? minDepositAmount : 0;
   await pool.query(
-    `INSERT INTO sim_referral_settings (id, enabled, bonus_amount, updated_at)
-     VALUES (1, $1, $2, NOW())
-     ON CONFLICT (id) DO UPDATE SET enabled = $1, bonus_amount = $2, updated_at = NOW()`,
-    [enabled, bonusAmount],
+    `INSERT INTO sim_referral_settings (id, enabled, bonus_amount, min_deposit_amount, updated_at)
+     VALUES (1, $1, $2, $3, NOW())
+     ON CONFLICT (id) DO UPDATE SET enabled = $1, bonus_amount = $2, min_deposit_amount = $3, updated_at = NOW()`,
+    [enabled, bonusAmount, safeMinDeposit],
   );
-  return res.json({ success: true, enabled, bonusAmount });
+  return res.json({ success: true, enabled, bonusAmount, minDepositAmount: safeMinDeposit });
 });
 
 export default router;

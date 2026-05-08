@@ -12,31 +12,41 @@ function ReferralSettingsCard() {
   const { toast } = useToast();
   const [enabled, setEnabled] = useState(true);
   const [bonusAmount, setBonusAmount] = useState("0.50");
+  const [minDepositAmount, setMinDepositAmount] = useState("0.00");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/api/admin/referral-settings`, { credentials: "include" })
       .then(r => r.json())
-      .then(d => { setEnabled(d.enabled); setBonusAmount(Number(d.bonusAmount).toFixed(2)); })
+      .then(d => {
+        setEnabled(d.enabled);
+        setBonusAmount(Number(d.bonusAmount).toFixed(2));
+        setMinDepositAmount(Number(d.minDepositAmount ?? 0).toFixed(2));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const save = async () => {
     const amt = parseFloat(bonusAmount);
+    const minDep = parseFloat(minDepositAmount);
     if (isNaN(amt) || amt < 0 || amt > 100) {
       toast({ title: "Invalid bonus amount", variant: "destructive" }); return;
+    }
+    if (isNaN(minDep) || minDep < 0) {
+      toast({ title: "Invalid minimum deposit amount", variant: "destructive" }); return;
     }
     setSaving(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/referral-settings`, {
         method: "PUT", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled, bonusAmount: amt }),
+        body: JSON.stringify({ enabled, bonusAmount: amt, minDepositAmount: minDep }),
       });
       if (!res.ok) throw new Error();
-      toast({ title: "Referral settings saved", description: `Program ${enabled ? "enabled" : "disabled"}, bonus $${amt.toFixed(2)} per referral.` });
+      const depositNote = minDep > 0 ? `, min deposit $${minDep.toFixed(2)}` : ", no deposit required";
+      toast({ title: "Referral settings saved", description: `Program ${enabled ? "enabled" : "disabled"}, bonus $${amt.toFixed(2)} per referral${depositNote}.` });
     } catch {
       toast({ title: "Failed to save settings", variant: "destructive" });
     } finally {
@@ -51,11 +61,12 @@ function ReferralSettingsCard() {
           <Gift className="h-4 w-4 text-amber-400" />
           Referral Program
         </div>
-        <div className="text-[12px] text-slate-500 mt-0.5">Control the referral system and bonus amounts.</div>
+        <div className="text-[12px] text-slate-500 mt-0.5">Control the referral system, bonus amounts, and deposit requirements.</div>
       </div>
       <div className="p-5 space-y-5">
         {loading ? (
           <div className="space-y-3">
+            <Skeleton className="h-12 rounded-xl bg-white/[0.04]" />
             <Skeleton className="h-12 rounded-xl bg-white/[0.04]" />
             <Skeleton className="h-12 rounded-xl bg-white/[0.04]" />
           </div>
@@ -96,8 +107,34 @@ function ReferralSettingsCard() {
                   onChange={e => setBonusAmount(e.target.value)}
                   className="flex-1 h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-[13px] text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/35 transition-all"
                 />
-                <span className="text-slate-600 text-[12px]">per referral (both users)</span>
+                <span className="text-slate-600 text-[12px]">credited to both users</span>
               </div>
+            </div>
+
+            {/* Minimum deposit requirement */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-[12px] font-semibold text-slate-400">
+                <div className="h-5 w-5 rounded-md bg-sky-500/15 border border-sky-500/20 flex items-center justify-center">
+                  <DollarSign className="h-3 w-3 text-sky-400" />
+                </div>
+                Minimum deposit to unlock reward (USD)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-[14px] pl-1">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10000"
+                  step="0.01"
+                  value={minDepositAmount}
+                  onChange={e => setMinDepositAmount(e.target.value)}
+                  className="flex-1 h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-[13px] text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500/35 transition-all"
+                />
+                <span className="text-slate-600 text-[12px]">0 = instant reward</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed pl-1">
+                Set to 0 to credit both users immediately when the code is applied. Set a value to hold the reward until the invited user makes a deposit of at least that amount.
+              </p>
             </div>
 
             <button
