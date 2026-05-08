@@ -121,44 +121,50 @@ function ApiKeysSection() {
       </div>
 
       <div className="p-5 space-y-3">
-        {/* Revealed key banner */}
+        {/* Revealed key banner — exact ApiDocs Block style */}
         {revealedKey && (
-          <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.03] overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-              <div>
-                <div className="text-[12.5px] font-semibold text-white">Your new API key — copy it now</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">It won't be shown again after you dismiss this.</div>
-              </div>
+          <div style={{ marginTop: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: ".65rem", fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                Your new API key — copy it now &nbsp;·&nbsp; won't be shown again
+              </span>
               <button
                 onClick={() => copyKey(revealedKey.key)}
                 style={{
+                  marginLeft: "auto", flexShrink: 0,
                   display: "flex", alignItems: "center", gap: 4,
-                  fontSize: "0.7rem", fontWeight: 600,
-                  color: copied ? "#34d399" : "#9ca3af",
+                  fontSize: ".72rem", fontWeight: 600,
+                  color: copied ? "#1de9b6" : "#9ca3af",
                   background: "none", border: "none", cursor: "pointer",
-                  padding: "4px 8px", borderRadius: 6, transition: "color .15s", flexShrink: 0,
+                  padding: "2px 6px", borderRadius: 6, transition: "color .15s",
                 }}
               >
                 {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                {copied ? "Copied!" : "Copy"}
+                {copied ? "Copied" : "Copy"}
               </button>
             </div>
             <pre style={{
-              margin: 0, padding: "12px 16px",
-              fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
-              fontSize: "0.78rem", lineHeight: 1.6,
-              color: "#86efac", whiteSpace: "pre",
-              background: "transparent",
+              background: "#0b0e14",
+              padding: "14px 18px",
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.11)",
+              marginBottom: 6,
               overflowX: "auto",
               WebkitOverflowScrolling: "touch",
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              fontSize: ".82rem",
+              lineHeight: 1.6,
+              color: "#86efac",
+              whiteSpace: "pre",
             }}>
               {revealedKey.key}
             </pre>
-            <div className="px-4 py-2.5 border-t border-white/[0.04]">
-              <button onClick={() => setRevealedKey(null)} className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
-                I've saved it — dismiss
-              </button>
-            </div>
+            <button onClick={() => setRevealedKey(null)} style={{ fontSize: "11px", color: "#4b5563", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color .15s" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#9ca3af")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#4b5563")}
+            >
+              I've saved it — dismiss
+            </button>
           </div>
         )}
 

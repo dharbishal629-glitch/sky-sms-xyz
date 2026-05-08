@@ -25,60 +25,39 @@ function CopyLinkBlock({ url }: { url: string }) {
   };
 
   return (
-    <div style={{
-      background: "rgba(0,0,0,0.45)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 12,
-      overflow: "hidden",
-    }}>
-      {/* header bar */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "8px 14px",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(255,255,255,0.02)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Link2 size={12} style={{ color: "#d4a843", opacity: 0.7 }} />
-          <span style={{ fontSize: "0.65rem", fontWeight: 800, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Your Referral Link
-          </span>
-        </div>
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontSize: ".65rem", fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+          Your Referral Link
+        </span>
         <button
           onClick={copy}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            fontSize: "0.7rem",
-            fontWeight: 600,
-            color: copied ? "#34d399" : "#9ca3af",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "2px 8px",
-            borderRadius: 6,
-            transition: "color .15s",
+            marginLeft: "auto", flexShrink: 0,
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: ".72rem", fontWeight: 600,
+            color: copied ? "#1de9b6" : "#9ca3af",
+            background: "none", border: "none", cursor: "pointer",
+            padding: "2px 6px", borderRadius: 6, transition: "color .15s",
           }}
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
-          {copied ? "Copied!" : "Copy"}
+          {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      {/* scrollable url */}
       <pre style={{
-        margin: 0,
-        padding: "14px 16px",
-        fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
-        fontSize: "0.82rem",
+        background: "#0b0e14",
+        padding: "14px 18px",
+        borderRadius: 14,
+        border: "1px solid rgba(255,255,255,0.11)",
+        marginBottom: 10,
+        overflowX: "auto",
+        WebkitOverflowScrolling: "touch",
+        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+        fontSize: ".82rem",
         lineHeight: 1.6,
         color: "#d4a843",
         whiteSpace: "pre",
-        overflowX: "auto",
-        WebkitOverflowScrolling: "touch",
-        background: "transparent",
       }}>
         {url}
       </pre>
