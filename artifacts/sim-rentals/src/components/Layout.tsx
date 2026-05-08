@@ -429,7 +429,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <div className="relative z-10 flex-1 flex flex-col md:pl-[250px]">
+      <div className="relative z-10 flex-1 min-w-0 flex flex-col md:pl-[250px]">
 
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-20 flex items-center justify-between px-4 h-14 border-b border-amber-900/10 bg-[#060a16]">
@@ -458,7 +458,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 p-5 md:p-7 xl:p-9 w-full max-w-screen-xl mx-auto overflow-x-hidden">
+        <main className="flex-1 min-w-0 p-5 md:p-7 xl:p-9 w-full max-w-screen-xl mx-auto overflow-x-hidden">
           {children}
         </main>
       </div>
