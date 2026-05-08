@@ -1,12 +1,39 @@
-<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="180" height="180" rx="36" fill="#0b0f1e"/>
-  <rect width="180" height="180" rx="36" fill="url(#grad)"/>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark rounded square background -->
+  <rect width="200" height="200" rx="44" fill="#080c18"/>
+  <!-- Subtle gold gradient overlay -->
+  <rect width="200" height="200" rx="44" fill="url(#bgGrad)" opacity="0.6"/>
+  <!-- Gold ring border -->
+  <rect x="1" y="1" width="198" height="198" rx="43" stroke="url(#ringGrad)" stroke-width="2" fill="none" opacity="0.4"/>
+
+  <!-- Signal arc top -->
+  <path d="M62 76 Q100 42 138 76" stroke="#d4a843" stroke-width="5.5" stroke-linecap="round" fill="none" opacity="0.35"/>
+  <!-- Signal arc middle -->
+  <path d="M72 88 Q100 62 128 88" stroke="#d4a843" stroke-width="5.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+
+  <!-- Phone body -->
+  <rect x="74" y="96" width="52" height="76" rx="10" fill="url(#phoneGrad)" stroke="#d4a843" stroke-width="2" opacity="0.95"/>
+  <!-- Screen -->
+  <rect x="81" y="108" width="38" height="42" rx="5" fill="#0b0f1e" opacity="0.9"/>
+  <!-- Screen glow lines -->
+  <rect x="86" y="114" width="20" height="2.5" rx="1.25" fill="#d4a843" opacity="0.5"/>
+  <rect x="86" y="120" width="27" height="2.5" rx="1.25" fill="#d4a843" opacity="0.3"/>
+  <rect x="86" y="126" width="16" height="2.5" rx="1.25" fill="#d4a843" opacity="0.3"/>
+  <!-- Home button -->
+  <circle cx="100" cy="158" r="5" fill="#d4a843" opacity="0.5"/>
+
   <defs>
-    <linearGradient id="grad" x1="0" y1="0" x2="180" y2="180" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#d4a843" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#0b0f1e" stop-opacity="0"/>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d4a843" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#080c18" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d4a843"/>
+      <stop offset="100%" stop-color="#d4a843" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="phoneGrad" x1="74" y1="96" x2="126" y2="172" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a1f30"/>
+      <stop offset="100%" stop-color="#0d1020"/>
     </linearGradient>
   </defs>
-  <!-- Phone handset icon, centered -->
-  <path d="M68 52c-2.2 0-4 1.8-4 4v68c0 2.2 1.8 4 4 4h44c2.2 0 4-1.8 4-4V56c0-2.2-1.8-4-4-4H68zm20 70a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm22-16H70V62h40v44z" fill="#d4a843"/>
 </svg>
