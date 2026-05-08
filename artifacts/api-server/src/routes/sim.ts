@@ -1094,6 +1094,24 @@ router.get("/admin/services", async (req, res) => {
     .filter((c) => c.available > 0)
     .sort((a, b) => a.startingPrice - b.startingPrice || a.name.localeCompare(b.name));
   const countryBasePrices = await listAllCountryBasePrices();
+
+  // Merge live catalog services with ALL known services from serviceNames so that
+  // every predefined service (e.g. PayPal "pp") is always visible in the admin panel,
+  // even when the Hero SMS catalog doesn't include it in the current response.
+  const liveCodeSet = new Set(activeServices.map((s) => s.code));
+  const allKnownServices: Service[] = [...activeServices];
+  for (const [code, meta] of Object.entries(serviceNames)) {
+    if (!liveCodeSet.has(code)) {
+      allKnownServices.push({ code, name: meta.name, category: meta.category, available: 0, price: 0 });
+    }
+  }
+  allKnownServices.sort((a, b) => {
+    // Sort: live (available > 0) first, then alphabetically
+    if (a.available > 0 && b.available === 0) return -1;
+    if (a.available === 0 && b.available > 0) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
   res.json({
     selectedCountry: country ?? null,
     countries: allCountries.map((c) => ({
@@ -1101,7 +1119,7 @@ router.get("/admin/services", async (req, res) => {
       customBasePrice: countryBasePrices.has(c.code) ? countryBasePrices.get(c.code) : null,
     })),
     enabledServiceCodes: Array.from(enabledServiceCodes ?? new Set(activeServices.map((service) => service.code))),
-    services: activeServices.map((service) => ({
+    services: allKnownServices.map((service) => ({
       ...service,
       basePrice: service.price,
       price: countryOverrides.has(service.code)
