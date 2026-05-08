@@ -19,6 +19,7 @@ const navItems = [
   { href: "/rent",      label: "Rent Number", icon: Phone },
   { href: "/rentals",   label: "My Rentals",  icon: History },
   { href: "/payments",  label: "Payments",    icon: CreditCard },
+  { href: "/referral",  label: "Referral",    icon: Tag },
   { href: "/support",   label: "Support",     icon: LifeBuoy },
   { href: "/settings",  label: "Settings",    icon: Settings },
 ];
@@ -224,8 +225,8 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Logo + Notification bell */}
-      <div className="px-4 pt-5 pb-4 flex items-center justify-between">
+      {/* Logo — no bell here on mobile (bell is in mobile header) */}
+      <div className={`px-4 pt-5 pb-4 flex items-center justify-between ${onNav ? "pr-14" : ""}`}>
         <Link href="/dashboard">
           <span className="flex items-center gap-2.5 cursor-pointer group" onClick={onNav}>
             <div className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:bg-amber-500/15">
@@ -236,7 +237,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
             </div>
           </span>
         </Link>
-        <NotificationBell />
+        {!onNav && <NotificationBell />}
       </div>
 
       <div className="h-px mx-4 mb-4 divider" />
@@ -440,13 +441,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span className="text-[14px] font-bold text-white">SKY SMS</span>
             </span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {user && (
               <div className="flex items-center gap-1.5 rounded-full border border-amber-900/15 bg-amber-500/[0.04] px-3 py-1">
                 <span className="text-[12px] text-amber-500/70">$</span>
                 <span className="text-[13px] font-semibold text-white">{user.credits.toFixed(2)}</span>
               </div>
             )}
+            <NotificationBell />
             <button
               onClick={openSidebar}
               className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/[0.07] text-white hover:bg-white/[0.06] transition-all duration-150 active:scale-95"

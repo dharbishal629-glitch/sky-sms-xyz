@@ -13,6 +13,7 @@ import AdminCoupons from "@/pages/admin/Coupons";
 import AdminNotifications from "@/pages/admin/Notifications";
 import Support from "@/pages/Support";
 import ApiDocs from "@/pages/ApiDocs";
+import Referral from "@/pages/Referral";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetMe } from "@workspace/api-client-react";
 import { Switch, Route, Redirect } from "wouter";
@@ -90,6 +91,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/api-docs">
         <ProtectedRoute component={ApiDocs} />
+      </Route>
+      <Route path="/referral">
+        <ProtectedRoute component={Referral} />
       </Route>
 
       <Route path="/admin">

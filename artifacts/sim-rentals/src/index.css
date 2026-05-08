@@ -314,6 +314,7 @@
   .faq-body {
     display: grid;
     grid-template-rows: 0fr;
+    overflow: hidden;
     transition: grid-template-rows 0.35s cubic-bezier(0.22,1,0.36,1);
     will-change: grid-template-rows;
   }
@@ -490,6 +491,22 @@
   .divider {
     height: 1px;
     background: linear-gradient(to right, transparent, rgba(212,168,67,0.12), transparent);
+  }
+
+  /* ── Toast slide in ── */
+  @keyframes toast-slide-in {
+    from { opacity: 0; transform: translateX(60px) scale(0.94); filter: blur(2px); }
+    to   { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+  }
+
+  /* ── Card reflect on click ── */
+  @keyframes card-reflect {
+    0%   { left: -80%; opacity: 0; }
+    10%  { opacity: 1; }
+    100% { left: 130%; opacity: 0; }
+  }
+  .card-reflect-active::after {
+    animation: card-reflect 0.7s cubic-bezier(0.4,0,0.2,1) forwards !important;
   }
 
   /* ── Notification bell badge ── */

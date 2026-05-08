@@ -1,0 +1,293 @@
+import { useState, useEffect, useCallback } from "react";
+import { Copy, Check, Gift, Users2, Link2, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { Reveal } from "@/components/Reveal";
+
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+
+interface ReferralData {
+  referralCode: string;
+  totalReferrals: number;
+  totalBonus: number;
+  creditedCount: number;
+  referrals: { id: number; referredName: string; bonusAmount: number; credited: boolean; createdAt: string }[];
+}
+
+function CopyLinkBlock({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div style={{
+      background: "rgba(0,0,0,0.45)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12,
+      overflow: "hidden",
+    }}>
+      {/* header bar */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "8px 14px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(255,255,255,0.02)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Link2 size={12} style={{ color: "#d4a843", opacity: 0.7 }} />
+          <span style={{ fontSize: "0.65rem", fontWeight: 800, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            Your Referral Link
+          </span>
+        </div>
+        <button
+          onClick={copy}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: "0.7rem",
+            fontWeight: 600,
+            color: copied ? "#34d399" : "#9ca3af",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "2px 8px",
+            borderRadius: 6,
+            transition: "color .15s",
+          }}
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          {copied ? "Copied!" : "Copy"}
+        </button>
+      </div>
+      {/* scrollable url */}
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
+        <pre style={{
+          margin: 0,
+          padding: "14px 16px",
+          fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
+          fontSize: "0.82rem",
+          lineHeight: 1.6,
+          color: "#d4a843",
+          whiteSpace: "pre",
+          minWidth: "max-content",
+        }}>
+          {url}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+export default function Referral() {
+  const { toast } = useToast();
+  const [data, setData] = useState<ReferralData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [applyCode, setApplyCode] = useState("");
+  const [applying, setApplying] = useState(false);
+
+  const fetchReferrals = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/referrals`, { credentials: "include" });
+      if (res.ok) setData(await res.json() as ReferralData);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchReferrals(); }, [fetchReferrals]);
+
+  const applyReferralCode = async () => {
+    if (!applyCode.trim()) return;
+    setApplying(true);
+    try {
+      const res = await fetch(`${API_URL}/api/referrals/apply`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: applyCode.trim() }),
+      });
+      const result = await res.json() as { success?: boolean; bonusAmount?: number; error?: string };
+      if (!res.ok) {
+        toast({ title: result.error ?? "Failed to apply code", variant: "destructive" });
+      } else {
+        toast({ title: `Referral applied!`, description: `You both earned $${(result.bonusAmount ?? 0).toFixed(2)} credit.` });
+        setApplyCode("");
+        await fetchReferrals();
+      }
+    } catch {
+      toast({ title: "Failed to apply referral code", variant: "destructive" });
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const referralUrl = data ? `${window.location.origin}/?ref=${data.referralCode}` : "";
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6 page-enter">
+
+      <Reveal variant="up">
+        <div>
+          <h1 className="text-xl font-semibold text-white">Referral Program</h1>
+          <p className="text-slate-500 mt-1.5 text-[14px]">Invite friends and earn $0.50 credit for every referral.</p>
+        </div>
+      </Reveal>
+
+      {/* Stats banner */}
+      <Reveal variant="up" delay={40}>
+        <div className="rounded-2xl border border-amber-500/15 bg-amber-500/[0.04] overflow-hidden">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-amber-900/10">
+            <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Gift className="h-4 w-4 text-amber-400" />
+            </div>
+            <div>
+              <div className="text-[14px] font-bold text-white">Earn $0.50 per referral</div>
+              <div className="text-[12px] text-slate-500 mt-0.5">Both you and your friend get the bonus when they sign up</div>
+            </div>
+            <span className="ml-auto text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/15 rounded-full px-3 py-1 shrink-0">
+              $0.50 each
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="p-5 grid grid-cols-3 gap-3">
+              {[1,2,3].map(i => <Skeleton key={i} className="h-16 rounded-xl bg-white/[0.04]" />)}
+            </div>
+          ) : data && (
+            <div className="grid grid-cols-3">
+              {[
+                { label: "Total referrals", value: data.totalReferrals, icon: Users2, color: "text-amber-400" },
+                { label: "Total earned",    value: `$${data.totalBonus.toFixed(2)}`, icon: Gift, color: "text-emerald-400" },
+                { label: "Credited",        value: data.creditedCount, icon: Check, color: "text-slate-300" },
+              ].map((s, i) => (
+                <div key={s.label} className={`flex flex-col items-center gap-2 py-5 px-4 ${i < 2 ? "border-r border-amber-900/10" : ""}`}>
+                  <s.icon className={`h-4 w-4 ${s.color}`} />
+                  <div className={`text-[22px] font-bold ${s.color} leading-none`}>{s.value}</div>
+                  <div className="text-[10px] text-slate-600 uppercase tracking-wider font-semibold text-center">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Reveal>
+
+      {/* Your referral link */}
+      <Reveal variant="up" delay={80}>
+        <section className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+          <div className="flex items-center gap-2.5 px-6 py-4 border-b border-white/[0.05]">
+            <Link2 className="h-4 w-4 text-amber-400" />
+            <span className="font-semibold text-white text-[14px]">Your Referral Link</span>
+          </div>
+          <div className="p-5">
+            {loading ? (
+              <Skeleton className="h-20 w-full rounded-xl bg-white/[0.04]" />
+            ) : data ? (
+              <CopyLinkBlock url={referralUrl} />
+            ) : (
+              <p className="text-[13px] text-slate-500 text-center py-4">Could not load referral data</p>
+            )}
+          </div>
+        </section>
+      </Reveal>
+
+      {/* Apply a code */}
+      <Reveal variant="up" delay={110}>
+        <section className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+          <div className="flex items-center gap-2.5 px-6 py-4 border-b border-white/[0.05]">
+            <ChevronRight className="h-4 w-4 text-slate-400" />
+            <span className="font-semibold text-white text-[14px]">Have a Referral Code?</span>
+          </div>
+          <div className="p-5">
+            <p className="text-[12.5px] text-slate-500 mb-3 leading-relaxed">
+              Enter a friend's referral code below. You'll both receive $0.50 credit once you make your first purchase.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={applyCode}
+                onChange={(e) => setApplyCode(e.target.value.toUpperCase())}
+                placeholder="SKY-XXXXXX"
+                className="flex-1 h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 text-[13px] font-mono text-white placeholder-slate-700 focus:outline-none focus:border-amber-500/35 transition-all"
+                onKeyDown={(e) => e.key === "Enter" && applyReferralCode()}
+                maxLength={12}
+              />
+              <button
+                onClick={applyReferralCode}
+                disabled={applying || !applyCode.trim()}
+                className="h-10 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[13px] font-semibold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              >
+                {applying ? "Applying…" : "Apply"}
+              </button>
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      {/* Referral history */}
+      {!loading && data && data.referrals.length > 0 && (
+        <Reveal variant="up" delay={140}>
+          <section className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+            <div className="flex items-center gap-2.5 px-6 py-4 border-b border-white/[0.05]">
+              <Users2 className="h-4 w-4 text-slate-400" />
+              <span className="font-semibold text-white text-[14px]">Your Referrals</span>
+              <span className="ml-auto text-[11px] text-slate-600">{data.referrals.length} total</span>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {data.referrals.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 px-6 py-4">
+                  <div className="h-9 w-9 shrink-0 rounded-full bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+                    <span className="text-[13px] font-bold text-amber-400">{r.referredName.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-white">{r.referredName}</div>
+                    <div className="text-[11px] text-slate-600 mt-0.5">{format(new Date(r.createdAt), "MMM d, yyyy")}</div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[13px] font-bold text-emerald-400">+${r.bonusAmount.toFixed(2)}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.credited ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/15" : "bg-white/[0.05] text-slate-600 border border-white/[0.07]"}`}>
+                      {r.credited ? "Credited" : "Pending"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </Reveal>
+      )}
+
+      {/* How it works */}
+      <Reveal variant="up" delay={170}>
+        <section className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+          <div className="flex items-center gap-2.5 px-6 py-4 border-b border-white/[0.05]">
+            <Gift className="h-4 w-4 text-slate-400" />
+            <span className="font-semibold text-white text-[14px]">How It Works</span>
+          </div>
+          <div className="p-5 space-y-3">
+            {[
+              { n: "01", t: "Share your link", d: "Copy your unique referral link and share it with friends, on social media, or anywhere you like." },
+              { n: "02", t: "Friend signs up", d: "Your friend creates a free account using your referral link — no purchase needed yet." },
+              { n: "03", t: "Both get credited", d: "Once your friend makes their first top-up, you both automatically receive $0.50 credit." },
+            ].map((step) => (
+              <div key={step.n} className="flex gap-4 items-start p-4 rounded-xl border border-white/[0.05] bg-white/[0.01]">
+                <div className="text-[2rem] font-bold text-amber-500/15 leading-none select-none shrink-0 font-mono w-10">{step.n}</div>
+                <div>
+                  <div className="text-[13.5px] font-bold text-white mb-1">{step.t}</div>
+                  <div className="text-[12px] text-slate-500 leading-relaxed">{step.d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </Reveal>
+    </div>
+  );
+}

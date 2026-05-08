@@ -1,6 +1,6 @@
 import { Shield, Zap, Globe, Lock, ChevronRight, MessageSquare, RefreshCw, Clock, Phone, ChevronDown, ArrowRight, Code2, Check, Star, Users } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function svcIcon(domain: string) {
   return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=128`;
@@ -54,6 +54,54 @@ const trustBadges = [
   { icon: Users,  text: "Thousands of Users" },
   { icon: Star,   text: "Crypto Payments" },
 ];
+
+function StepCard({ step, index, total, onLogin }: { step: { num: string; title: string; desc: string }; index: number; total: number; onLogin?: () => void }) {
+  const [reflecting, setReflecting] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const handleClick = () => {
+    setReflecting(false);
+    clearTimeout(timerRef.current ?? undefined);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setReflecting(true);
+        timerRef.current = setTimeout(() => setReflecting(false), 700);
+      });
+    });
+    onLogin?.();
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className={`relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:border-amber-500/12 transition-all duration-200 cursor-pointer overflow-hidden shine-hover${reflecting ? " card-reflect-active" : ""}`}
+      style={{ isolation: "isolate" }}
+    >
+      {/* reflect layer */}
+      <div
+        className="pointer-events-none"
+        style={{
+          position: "absolute",
+          top: 0, left: "-80%",
+          width: "50%", height: "100%",
+          background: "linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)",
+          transform: "skewX(-18deg)",
+          zIndex: 1,
+          opacity: 0,
+          animation: reflecting ? "card-reflect 0.7s cubic-bezier(0.4,0,0.2,1) forwards" : "none",
+        }}
+      />
+      <div className="font-display text-[3.5rem] font-bold leading-none text-amber-500/12 mb-4 select-none">{step.num}</div>
+      <h3 className="text-[16px] font-bold text-white mb-2">{step.title}</h3>
+      <p className="text-[13px] leading-relaxed text-slate-500">{step.desc}</p>
+      {index < total - 1 && (
+        <div className="hidden md:block absolute top-1/2 -right-3 -translate-y-1/2 z-10">
+          <ChevronRight className="h-5 w-5 text-amber-500/30" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Landing({ onLogin }: { onLogin?: () => void }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -332,16 +380,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
             <div className="grid gap-5 md:grid-cols-3">
               {steps.map((step, i) => (
                 <Reveal key={step.num} variant="up" delay={i * 80}>
-                  <div className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:border-amber-500/12 transition-all duration-200">
-                    <div className="font-display text-[3.5rem] font-bold leading-none text-amber-500/12 mb-4 select-none">{step.num}</div>
-                    <h3 className="text-[16px] font-bold text-white mb-2">{step.title}</h3>
-                    <p className="text-[13px] leading-relaxed text-slate-500">{step.desc}</p>
-                    {i < steps.length - 1 && (
-                      <div className="hidden md:block absolute top-1/2 -right-3 -translate-y-1/2 z-10">
-                        <ChevronRight className="h-5 w-5 text-amber-500/30" />
-                      </div>
-                    )}
-                  </div>
+                  <StepCard step={step} index={i} total={steps.length} onLogin={onLogin} />
                 </Reveal>
               ))}
             </div>
