@@ -181,6 +181,14 @@ async function createSchema() {
     );
 
     ALTER TABLE sim_referral_settings ADD COLUMN IF NOT EXISTS min_deposit_amount NUMERIC NOT NULL DEFAULT 0;
+
+    CREATE TABLE IF NOT EXISTS sim_service_margins (
+      service_code TEXT NOT NULL,
+      country_code TEXT NOT NULL DEFAULT '',
+      margin_percent NUMERIC NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (service_code, country_code)
+    );
   `);
 
   await pool.query(

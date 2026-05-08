@@ -93,6 +93,7 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   ly: { name: "Olacabs", category: "Travel" },
   mbt: { name: "Microsoft Bing", category: "Accounts" },
   pp: { name: "PayPal", category: "Finance" },
+  pb: { name: "PayPal", category: "Finance" },
   ot: { name: "Other", category: "General" },
 };
 
@@ -255,6 +256,44 @@ async function listAllCountryBasePrices(): Promise<Map<string, number>> {
   return new Map(result.rows.map((row) => [String(row.country_code), Number(row.base_price)]));
 }
 
+const DEFAULT_MARGIN_PERCENT = 55;
+
+function applyMargin(basePrice: number, marginPercent: number): number {
+  return Number((basePrice * (1 + marginPercent / 100)).toFixed(2));
+}
+
+async function getEffectiveMargin(serviceCode: string, countryCode?: string): Promise<number> {
+  if (countryCode) {
+    const r = await pool.query(
+      "SELECT margin_percent FROM sim_service_margins WHERE service_code = $1 AND country_code = $2",
+      [serviceCode, countryCode],
+    );
+    if (r.rows[0]) return Number(r.rows[0].margin_percent);
+  }
+  const r = await pool.query(
+    "SELECT margin_percent FROM sim_service_margins WHERE service_code = $1 AND country_code = ''",
+    [serviceCode],
+  );
+  if (r.rows[0]) return Number(r.rows[0].margin_percent);
+  return DEFAULT_MARGIN_PERCENT;
+}
+
+async function listAllServiceMargins(): Promise<Map<string, { global: number | null; byCountry: Map<string, number> }>> {
+  const result = await pool.query("SELECT service_code, country_code, margin_percent FROM sim_service_margins");
+  const map = new Map<string, { global: number | null; byCountry: Map<string, number> }>();
+  for (const row of result.rows) {
+    const code = String(row.service_code);
+    if (!map.has(code)) map.set(code, { global: null, byCountry: new Map() });
+    const entry = map.get(code)!;
+    if (String(row.country_code) === "") {
+      entry.global = Number(row.margin_percent);
+    } else {
+      entry.byCountry.set(String(row.country_code), Number(row.margin_percent));
+    }
+  }
+  return map;
+}
+
 async function listEnabledServiceCodes() {
   const result = await pool.query("SELECT service_code FROM sim_enabled_services WHERE enabled = TRUE");
   if (result.rows.length === 0) return null;
@@ -271,24 +310,25 @@ async function getServicePrice(service: Service, country: Country) {
   if (countryResult.rows[0]) return Number(countryResult.rows[0].price);
   const globalResult = await pool.query("SELECT price FROM sim_service_prices WHERE service_code = $1", [service.code]);
   if (globalResult.rows[0]) return Number(globalResult.rows[0].price);
-  return Number((service.price * 1.55).toFixed(2));
+  const margin = await getEffectiveMargin(service.code, country.code);
+  return applyMargin(service.price, margin);
 }
 
 async function servicesWithPrices(country?: Country, enabledOnly = true) {
   const prices = await listServicePrices();
   const countryPrices = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
-  const dbBasePrice = country ? await getCountryBasePrice(country.code) : null;
-  const countryBase = dbBasePrice ?? country?.startingPrice ?? 0;
   const enabledCodes = enabledOnly ? await listEnabledServiceCodes() : null;
   const services = await liveServices(country?.code);
-  return services.filter((service) => !enabledCodes || enabledCodes.has(service.code)).map((service) => ({
-    ...service,
-    price: countryPrices.has(service.code)
-      ? Number(countryPrices.get(service.code))
-      : prices.has(service.code)
-      ? Number(prices.get(service.code))
-      : Number((service.price * 1.55).toFixed(2)),
-  }));
+  const marginMap = await listAllServiceMargins();
+  return services.filter((service) => !enabledCodes || enabledCodes.has(service.code)).map((service) => {
+    if (countryPrices.has(service.code)) return { ...service, price: Number(countryPrices.get(service.code)) };
+    if (prices.has(service.code)) return { ...service, price: Number(prices.get(service.code)) };
+    const serviceMargins = marginMap.get(service.code);
+    const countryMargin = country ? (serviceMargins?.byCountry.get(country.code) ?? null) : null;
+    const globalMargin = serviceMargins?.global ?? null;
+    const effectiveMargin = countryMargin ?? globalMargin ?? DEFAULT_MARGIN_PERCENT;
+    return { ...service, price: applyMargin(service.price, effectiveMargin) };
+  });
 }
 
 function getUserId(req: Request): string {
@@ -1112,6 +1152,8 @@ router.get("/admin/services", async (req, res) => {
     return a.name.localeCompare(b.name);
   });
 
+  const marginMap = await listAllServiceMargins();
+
   res.json({
     selectedCountry: country ?? null,
     countries: allCountries.map((c) => ({
@@ -1119,18 +1161,30 @@ router.get("/admin/services", async (req, res) => {
       customBasePrice: countryBasePrices.has(c.code) ? countryBasePrices.get(c.code) : null,
     })),
     enabledServiceCodes: Array.from(enabledServiceCodes ?? new Set(activeServices.map((service) => service.code))),
-    services: allKnownServices.map((service) => ({
-      ...service,
-      basePrice: service.price,
-      price: countryOverrides.has(service.code)
+    defaultMarginPercent: DEFAULT_MARGIN_PERCENT,
+    services: allKnownServices.map((service) => {
+      const serviceMargins = marginMap.get(service.code);
+      const globalMargin = serviceMargins?.global ?? null;
+      const countryMargin = country ? (serviceMargins?.byCountry.get(country.code) ?? null) : null;
+      const effectiveMargin = countryMargin ?? globalMargin ?? DEFAULT_MARGIN_PERCENT;
+      const basePrice = service.price;
+      const price = countryOverrides.has(service.code)
         ? Number(countryOverrides.get(service.code))
         : priceOverrides.has(service.code)
         ? Number(priceOverrides.get(service.code))
-        : service.price,
-      customPrice: countryOverrides.has(service.code) || priceOverrides.has(service.code),
-      countryPrice: countryOverrides.has(service.code) ? Number(countryOverrides.get(service.code)) : null,
-      globalPrice: priceOverrides.has(service.code) ? Number(priceOverrides.get(service.code)) : null,
-    })),
+        : applyMargin(basePrice, effectiveMargin);
+      return {
+        ...service,
+        basePrice,
+        price,
+        customPrice: countryOverrides.has(service.code) || priceOverrides.has(service.code),
+        countryPrice: countryOverrides.has(service.code) ? Number(countryOverrides.get(service.code)) : null,
+        globalPrice: priceOverrides.has(service.code) ? Number(priceOverrides.get(service.code)) : null,
+        globalMargin,
+        countryMargin,
+        effectiveMargin,
+      };
+    }),
   });
 });
 
@@ -1229,6 +1283,66 @@ router.put("/admin/services/:code/price", async (req, res) => {
     customPrice: true,
     countryCode: countryCode || null,
   });
+});
+
+router.delete("/admin/services/:code/price", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const code = String(req.params.code);
+  const countryCode = typeof req.query.countryCode === "string" ? String(req.query.countryCode) : "";
+  if (countryCode) {
+    await pool.query("DELETE FROM sim_service_country_prices WHERE service_code = $1 AND country_code = $2", [code, countryCode]);
+  } else {
+    await pool.query("DELETE FROM sim_service_prices WHERE service_code = $1", [code]);
+  }
+  res.json({ success: true, code, countryCode: countryCode || null, message: "Fixed price removed. Margin-based pricing will apply." });
+});
+
+router.put("/admin/services/:code/margin", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const code = String(req.params.code);
+  const margin = Number(req.body?.margin);
+  const countryCode = typeof req.body?.countryCode === "string" ? String(req.body.countryCode) : "";
+  if (!Number.isFinite(margin) || margin < 0 || margin > 10000) {
+    res.status(400).json({ error: "Margin must be between 0 and 10000 percent." });
+    return;
+  }
+  await pool.query(
+    `INSERT INTO sim_service_margins (service_code, country_code, margin_percent, updated_at)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (service_code, country_code) DO UPDATE SET margin_percent = EXCLUDED.margin_percent, updated_at = NOW()`,
+    [code, countryCode, margin],
+  );
+  res.json({ success: true, code, countryCode: countryCode || null, margin });
+});
+
+router.delete("/admin/services/:code/margin", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const code = String(req.params.code);
+  const countryCode = typeof req.query.countryCode === "string" ? String(req.query.countryCode) : "";
+  await pool.query(
+    "DELETE FROM sim_service_margins WHERE service_code = $1 AND country_code = $2",
+    [code, countryCode],
+  );
+  res.json({ success: true, code, countryCode: countryCode || null, message: "Margin reset to default." });
+});
+
+router.get("/admin/hero-catalog-codes", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  try {
+    const catalog = await getHeroPriceCatalog();
+    const totals = new Map<string, { count: number; knownName: string | null }>();
+    for (const item of catalog) {
+      const current = totals.get(item.serviceCode) ?? { count: 0, knownName: serviceNames[item.serviceCode]?.name ?? null };
+      current.count += item.count;
+      totals.set(item.serviceCode, current);
+    }
+    const codes = Array.from(totals.entries())
+      .map(([code, data]) => ({ code, count: data.count, knownName: data.knownName }))
+      .sort((a, b) => b.count - a.count);
+    res.json({ codes, total: codes.length });
+  } catch (err) {
+    res.status(502).json({ error: err instanceof Error ? err.message : "Failed to fetch Hero SMS catalog." });
+  }
 });
 
 async function ticketMessages(ticketId: string, ticketRow: Record<string, unknown>) {

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { CheckCircle2, Globe, Loader2, Save, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Globe, Loader2, RotateCcw, Save, ShieldCheck, TrendingUp } from "lucide-react";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
 
@@ -30,18 +30,31 @@ type AdminService = {
   customPrice: boolean;
   countryPrice: number | null;
   globalPrice: number | null;
+  globalMargin: number | null;
+  countryMargin: number | null;
+  effectiveMargin: number;
 };
 
 export default function AdminServices() {
   const [services, setServices] = useState<AdminService[]>([]);
   const [countries, setCountries] = useState<AdminCountry[]>([]);
   const [enabledDraft, setEnabledDraft] = useState<Set<string>>(new Set());
+  const [defaultMarginPercent, setDefaultMarginPercent] = useState(55);
+
   const [selectedServiceCode, setSelectedServiceCode] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<string>("global");
   const [priceDraft, setPriceDraft] = useState<string>("");
+
+  const [marginServiceCode, setMarginServiceCode] = useState<string>("");
+  const [marginCountry, setMarginCountry] = useState<string>("global");
+  const [marginDraft, setMarginDraft] = useState<string>("");
+
   const [enabledSearch, setEnabledSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingPrice, setSavingPrice] = useState(false);
+  const [resettingPrice, setResettingPrice] = useState(false);
+  const [savingMargin, setSavingMargin] = useState(false);
+  const [resettingMargin, setResettingMargin] = useState(false);
   const [savingEnabled, setSavingEnabled] = useState(false);
   const [error, setError] = useState(false);
 
@@ -58,12 +71,21 @@ export default function AdminServices() {
       const params = country !== "global" ? `?countryCode=${encodeURIComponent(country)}` : "";
       const response = await fetch(`${API_URL}/api/admin/services${params}`, { credentials: "include" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json() as { services: AdminService[]; countries: AdminCountry[]; enabledServiceCodes: string[] };
+      const data = await response.json() as {
+        services: AdminService[];
+        countries: AdminCountry[];
+        enabledServiceCodes: string[];
+        defaultMarginPercent: number;
+      };
       setServices(data.services);
       setCountries(data.countries ?? []);
       setEnabledDraft(new Set(data.enabledServiceCodes ?? []));
-      if (data.services[0] && (!selectedServiceCode || !data.services.some((service) => service.code === selectedServiceCode))) {
+      setDefaultMarginPercent(data.defaultMarginPercent ?? 55);
+      if (data.services[0] && (!selectedServiceCode || !data.services.some((s) => s.code === selectedServiceCode))) {
         setSelectedServiceCode(data.services[0].code);
+      }
+      if (data.services[0] && (!marginServiceCode || !data.services.some((s) => s.code === marginServiceCode))) {
+        setMarginServiceCode(data.services[0].code);
       }
     } catch {
       setError(true);
@@ -74,13 +96,23 @@ export default function AdminServices() {
 
   useEffect(() => { loadServices("global"); }, []);
 
-  const selectedService = services.find((service) => service.code === selectedServiceCode);
-  const scopeLabel = selectedCountry === "global" ? "Global default" : countries.find((country) => country.code === selectedCountry)?.name ?? selectedCountry;
+  const selectedService = services.find((s) => s.code === selectedServiceCode);
+  const marginService = services.find((s) => s.code === marginServiceCode);
+  const scopeLabel = selectedCountry === "global" ? "Global default" : countries.find((c) => c.code === selectedCountry)?.name ?? selectedCountry;
+  const marginScopeLabel = marginCountry === "global" ? "Global default" : countries.find((c) => c.code === marginCountry)?.name ?? marginCountry;
 
   useEffect(() => {
     if (!selectedService) return;
     setPriceDraft(String(selectedService.price));
   }, [selectedServiceCode, selectedCountry, selectedService?.price]);
+
+  useEffect(() => {
+    if (!marginService) return;
+    const currentMargin = marginCountry !== "global"
+      ? (marginService.countryMargin ?? marginService.globalMargin ?? defaultMarginPercent)
+      : (marginService.globalMargin ?? defaultMarginPercent);
+    setMarginDraft(String(currentMargin));
+  }, [marginServiceCode, marginCountry, marginService?.globalMargin, marginService?.countryMargin, defaultMarginPercent]);
 
   const selectedBasePriceCountry = countries.find((c) => c.code === basePriceCountry);
   useEffect(() => {
@@ -88,37 +120,37 @@ export default function AdminServices() {
     setBasePriceDraft(selectedBasePriceCountry.customBasePrice != null ? String(selectedBasePriceCountry.customBasePrice) : String(selectedBasePriceCountry.startingPrice));
   }, [basePriceCountry, selectedBasePriceCountry?.customBasePrice, selectedBasePriceCountry?.startingPrice]);
 
-  const serviceOptions = useMemo(() => services.map((service) => ({
-    value: service.code,
-    label: service.name,
-    searchText: `${service.name} ${service.code} ${service.category}`,
-    meta: `${service.available.toLocaleString()} live`,
+  const serviceOptions = useMemo(() => services.map((s) => ({
+    value: s.code,
+    label: s.name,
+    searchText: `${s.name} ${s.code} ${s.category}`,
+    meta: `${s.available.toLocaleString()} live`,
   })), [services]);
 
   const countryOptions = useMemo(() => [
     { value: "global", label: "Global default", searchText: "global all countries default", meta: "All countries", icon: "🌐" },
-    ...countries.map((country) => ({
-      value: country.code,
-      label: country.name,
-      searchText: `${country.name} ${country.code}`,
-      meta: `${country.available.toLocaleString()} live`,
-      icon: country.flag || "🌍",
+    ...countries.map((c) => ({
+      value: c.code,
+      label: c.name,
+      searchText: `${c.name} ${c.code}`,
+      meta: `${c.available.toLocaleString()} live`,
+      icon: c.flag || "🌍",
     })),
   ], [countries]);
 
-  const basePriceCountryOptions = useMemo(() => countries.map((country) => ({
-    value: country.code,
-    label: country.name,
-    searchText: `${country.name} ${country.code}`,
-    meta: country.customBasePrice != null ? `Custom: $${country.customBasePrice.toFixed(2)}` : `API: $${country.startingPrice.toFixed(2)}`,
-    icon: country.flag || "🌍",
+  const basePriceCountryOptions = useMemo(() => countries.map((c) => ({
+    value: c.code,
+    label: c.name,
+    searchText: `${c.name} ${c.code}`,
+    meta: c.customBasePrice != null ? `Custom: $${c.customBasePrice.toFixed(2)}` : `API: $${c.startingPrice.toFixed(2)}`,
+    icon: c.flag || "🌍",
   })), [countries]);
 
   const enabledCount = enabledDraft.size;
   const filteredServices = useMemo(() => {
     const query = enabledSearch.trim().toLowerCase();
     if (!query) return services;
-    return services.filter((service) => `${service.name} ${service.code} ${service.category}`.toLowerCase().includes(query));
+    return services.filter((s) => `${s.name} ${s.code} ${s.category}`.toLowerCase().includes(query));
   }, [enabledSearch, services]);
 
   const handleCountryChange = (value: string) => {
@@ -146,7 +178,7 @@ export default function AdminServices() {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
-      toast({ title: "Enabled services updated", description: `${enabledDraft.size} services are now visible to users everywhere.` });
+      toast({ title: "Enabled services updated", description: `${enabledDraft.size} services are now visible to users.` });
     } catch (err) {
       toast({ title: "Failed to save enabled services", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
     } finally {
@@ -171,18 +203,99 @@ export default function AdminServices() {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
-      setServices((current) => current.map((service) => service.code === selectedService.code ? {
-        ...service,
+      setServices((current) => current.map((s) => s.code === selectedService.code ? {
+        ...s,
         price,
         customPrice: true,
-        countryPrice: selectedCountry === "global" ? service.countryPrice : price,
-        globalPrice: selectedCountry === "global" ? price : service.globalPrice,
-      } : service));
+        countryPrice: selectedCountry === "global" ? s.countryPrice : price,
+        globalPrice: selectedCountry === "global" ? price : s.globalPrice,
+      } : s));
       toast({ title: "Service price updated", description: `${selectedService.name} set to ${price === 0 ? "free" : `$${price.toFixed(2)}`} for ${scopeLabel}.` });
     } catch (err) {
       toast({ title: "Failed to update price", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
     } finally {
       setSavingPrice(false);
+    }
+  };
+
+  const resetPrice = async () => {
+    if (!selectedService) return;
+    setResettingPrice(true);
+    try {
+      const params = selectedCountry !== "global" ? `?countryCode=${encodeURIComponent(selectedCountry)}` : "";
+      const response = await fetch(`${API_URL}/api/admin/services/${selectedService.code}/price${params}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      setServices((current) => current.map((s) => s.code === selectedService.code ? {
+        ...s,
+        customPrice: selectedCountry !== "global" ? Boolean(s.globalPrice) : false,
+        countryPrice: selectedCountry !== "global" ? null : s.countryPrice,
+        globalPrice: selectedCountry === "global" ? null : s.globalPrice,
+      } : s));
+      toast({ title: "Fixed price removed", description: `${selectedService.name} will now use margin-based pricing for ${scopeLabel}.` });
+    } catch (err) {
+      toast({ title: "Failed to reset price", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setResettingPrice(false);
+    }
+  };
+
+  const saveMargin = async () => {
+    if (!marginService) return;
+    const margin = Number(marginDraft);
+    if (!Number.isFinite(margin) || margin < 0 || margin > 10000) {
+      toast({ title: "Invalid margin", description: "Enter a value between 0 and 10000.", variant: "destructive" });
+      return;
+    }
+    setSavingMargin(true);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/services/${marginService.code}/margin`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ margin, countryCode: marginCountry === "global" ? undefined : marginCountry }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      setServices((current) => current.map((s) => s.code === marginService.code ? {
+        ...s,
+        globalMargin: marginCountry === "global" ? margin : s.globalMargin,
+        countryMargin: marginCountry !== "global" ? margin : s.countryMargin,
+        effectiveMargin: margin,
+      } : s));
+      toast({ title: "Profit margin saved", description: `${marginService.name} set to ${margin}% margin for ${marginScopeLabel}. Provider cost + ${margin}% = user price.` });
+    } catch (err) {
+      toast({ title: "Failed to save margin", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setSavingMargin(false);
+    }
+  };
+
+  const resetMargin = async () => {
+    if (!marginService) return;
+    setResettingMargin(true);
+    try {
+      const params = marginCountry !== "global" ? `?countryCode=${encodeURIComponent(marginCountry)}` : "";
+      const response = await fetch(`${API_URL}/api/admin/services/${marginService.code}/margin${params}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      setServices((current) => current.map((s) => s.code === marginService.code ? {
+        ...s,
+        globalMargin: marginCountry === "global" ? null : s.globalMargin,
+        countryMargin: marginCountry !== "global" ? null : s.countryMargin,
+        effectiveMargin: defaultMarginPercent,
+      } : s));
+      toast({ title: "Margin reset", description: `${marginService.name} will use the default ${defaultMarginPercent}% margin for ${marginScopeLabel}.` });
+    } catch (err) {
+      toast({ title: "Failed to reset margin", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setResettingMargin(false);
     }
   };
 
@@ -244,7 +357,7 @@ export default function AdminServices() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-white">Service Control</h1>
-        <p className="text-muted-foreground mt-1 text-sm">Search services, set prices, and choose exactly which Hero SMS services users can see.</p>
+        <p className="text-muted-foreground mt-1 text-sm">Search services, set prices, margins, and choose exactly which services users can see.</p>
       </div>
 
       <Card className="glass-card">
@@ -293,8 +406,8 @@ export default function AdminServices() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Pricing Editor</CardTitle>
-          <CardDescription>Choose a service and country like a normal dropdown, type the price, then save.</CardDescription>
+          <CardTitle>Fixed Price Override</CardTitle>
+          <CardDescription>Set a hard fixed price for a service. This overrides margin-based pricing entirely. Use Reset to go back to margin-based pricing.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
@@ -329,9 +442,12 @@ export default function AdminServices() {
                   <div className="font-bold text-white">{selectedService.name}</div>
                   <div className="text-xs text-muted-foreground font-mono">{selectedService.code} · {scopeLabel}</div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Badge variant="outline" className="border-white/10 bg-white/[0.05] text-slate-300">Provider ${selectedService.basePrice.toFixed(2)}</Badge>
                   <Badge className="bg-cyan-400/10 text-cyan-200 border border-cyan-300/20">Current ${selectedService.price.toFixed(2)}</Badge>
+                  {selectedService.customPrice && (
+                    <Badge className="bg-amber-400/10 text-amber-200 border border-amber-300/20">Fixed override active</Badge>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -340,8 +456,99 @@ export default function AdminServices() {
                   {savingPrice ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Save Price
                 </Button>
+                <Button onClick={resetPrice} disabled={resettingPrice} variant="outline" className="h-12 rounded-full px-6 border-white/10 text-slate-300 hover:text-white">
+                  {resettingPrice ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                  Reset
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground">Use 0 to make this service free for the selected scope.</p>
+              <p className="text-xs text-muted-foreground">Use <strong>Reset</strong> to remove the fixed price and fall back to margin-based pricing.</p>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-emerald-300" /> Margin &amp; Profit</CardTitle>
+          <CardDescription>
+            Set a profit margin per service. The final user price is: <strong>Provider cost × (1 + margin%)</strong>.
+            Example: $0.10 provider cost + 100% margin = $0.20 user price. Default margin: {defaultMarginPercent}%.
+            Fixed price overrides (above) take priority over margin.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Service</label>
+              <SearchableSelect
+                value={marginServiceCode}
+                options={serviceOptions}
+                placeholder="Search and select service"
+                searchPlaceholder="Type service name..."
+                emptyText="No service found."
+                onChange={setMarginServiceCode}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Scope</label>
+              <SearchableSelect
+                value={marginCountry}
+                options={countryOptions}
+                placeholder="Select scope"
+                searchPlaceholder="Type country name..."
+                emptyText="No country found."
+                onChange={setMarginCountry}
+              />
+            </div>
+          </div>
+
+          {marginService ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-bold text-white">{marginService.name}</div>
+                  <div className="text-xs text-muted-foreground font-mono">{marginService.code} · {marginScopeLabel}</div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="outline" className="border-white/10 bg-white/[0.05] text-slate-300">Provider ${marginService.basePrice.toFixed(2)}</Badge>
+                  {marginService.globalMargin !== null && (
+                    <Badge className="bg-emerald-400/10 text-emerald-200 border border-emerald-300/20">Global: {marginService.globalMargin}%</Badge>
+                  )}
+                  {marginService.countryMargin !== null && (
+                    <Badge className="bg-purple-400/10 text-purple-200 border border-purple-300/20">Country: {marginService.countryMargin}%</Badge>
+                  )}
+                  <Badge className="bg-cyan-400/10 text-cyan-200 border border-cyan-300/20">
+                    Effective: {marginService.effectiveMargin}% → ${(marginService.basePrice * (1 + marginService.effectiveMargin / 100)).toFixed(2)}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row items-center">
+                <div className="relative flex-1 w-full">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="10000"
+                    step="1"
+                    value={marginDraft}
+                    onChange={(e) => setMarginDraft(e.target.value)}
+                    className="h-12 text-lg font-bold pr-10"
+                    placeholder="55"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">%</span>
+                </div>
+                <Button onClick={saveMargin} disabled={savingMargin} className="h-12 rounded-full px-8 w-full sm:w-auto">
+                  {savingMargin ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save Margin
+                </Button>
+                <Button onClick={resetMargin} disabled={resettingMargin} variant="outline" className="h-12 rounded-full px-6 border-white/10 text-slate-300 hover:text-white w-full sm:w-auto">
+                  {resettingMargin ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                  Reset
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <strong>Reset</strong> reverts to the default {defaultMarginPercent}% margin for the selected scope.
+                Country-specific margin overrides the global service margin.
+              </p>
             </div>
           ) : null}
         </CardContent>
