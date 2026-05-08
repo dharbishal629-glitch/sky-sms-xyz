@@ -143,17 +143,17 @@ function ApiKeysSection() {
                 {copied ? "Copied!" : "Copy"}
               </button>
             </div>
-            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <pre style={{
-                margin: 0, padding: "12px 16px",
-                fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
-                fontSize: "0.78rem", lineHeight: 1.6,
-                color: "#86efac", whiteSpace: "pre", minWidth: "max-content",
-                background: "transparent",
-              }}>
-                {revealedKey.key}
-              </pre>
-            </div>
+            <pre style={{
+              margin: 0, padding: "12px 16px",
+              fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
+              fontSize: "0.78rem", lineHeight: 1.6,
+              color: "#86efac", whiteSpace: "pre",
+              background: "transparent",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}>
+              {revealedKey.key}
+            </pre>
             <div className="px-4 py-2.5 border-t border-white/[0.04]">
               <button onClick={() => setRevealedKey(null)} className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
                 I've saved it — dismiss

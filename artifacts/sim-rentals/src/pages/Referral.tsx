@@ -68,20 +68,20 @@ function CopyLinkBlock({ url }: { url: string }) {
         </button>
       </div>
       {/* scrollable url */}
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
-        <pre style={{
-          margin: 0,
-          padding: "14px 16px",
-          fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
-          fontSize: "0.82rem",
-          lineHeight: 1.6,
-          color: "#d4a843",
-          whiteSpace: "pre",
-          minWidth: "max-content",
-        }}>
-          {url}
-        </pre>
-      </div>
+      <pre style={{
+        margin: 0,
+        padding: "14px 16px",
+        fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
+        fontSize: "0.82rem",
+        lineHeight: 1.6,
+        color: "#d4a843",
+        whiteSpace: "pre",
+        overflowX: "auto",
+        WebkitOverflowScrolling: "touch",
+        background: "transparent",
+      }}>
+        {url}
+      </pre>
     </div>
   );
 }
