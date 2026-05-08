@@ -82,7 +82,7 @@ function StatCard({
   sub: React.ReactNode; pulse?: boolean;
 }) {
   const colorMap = {
-    blue:    { from: "from-sky-500/8",     icon: "bg-sky-500/10 border-sky-400/20 text-sky-400",      dot: "bg-sky-400",     sub: "text-sky-400" },
+    blue:    { from: "from-amber-500/8",   icon: "bg-amber-500/10 border-amber-400/20 text-amber-400",  dot: "bg-amber-400",   sub: "text-amber-400" },
     indigo:  { from: "from-indigo-500/8",  icon: "bg-indigo-500/10 border-indigo-400/20 text-indigo-400", dot: "bg-indigo-400",  sub: "text-indigo-400" },
     emerald: { from: "from-emerald-500/7", icon: "bg-emerald-500/10 border-emerald-400/20 text-emerald-400", dot: "bg-emerald-400", sub: "text-emerald-400" },
     violet:  { from: "from-violet-500/7",  icon: "bg-violet-500/10 border-violet-400/20 text-violet-400", dot: "bg-violet-400",  sub: "text-violet-400" },

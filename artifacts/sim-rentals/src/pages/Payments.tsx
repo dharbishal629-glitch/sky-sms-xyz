@@ -375,13 +375,13 @@ export default function Payments() {
             <p className="text-muted-foreground mt-1">Add funds to your account to rent numbers.</p>
           </div>
           {userData && (
-            <div className="glass-card rounded-2xl px-5 py-4 flex items-center gap-3 shrink-0">
-              <div className="h-10 w-10 rounded-xl bg-sky-500/10 border border-sky-500/15 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-sky-400" />
+            <div className="rounded-2xl px-5 py-4 flex items-center gap-3 shrink-0 border border-amber-900/15 bg-amber-500/[0.03]">
+              <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-amber-400" />
               </div>
               <div>
-                <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Balance</div>
-                <div className="text-xl font-semibold text-white">${userData.credits.toFixed(2)}</div>
+                <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Current Balance</div>
+                <div className="text-xl font-bold text-white">${userData.credits.toFixed(2)}</div>
               </div>
             </div>
           )}
@@ -437,10 +437,10 @@ export default function Payments() {
       </Reveal>
 
       <Reveal variant="up" delay={80}>
-        <div className="glass-card rounded-2xl p-6 max-w-md">
+        <div className="rounded-2xl p-6 max-w-md border border-white/[0.07] bg-white/[0.02]">
           <div className="flex items-center gap-3 mb-1">
-            <div className="h-9 w-9 rounded-xl bg-sky-500/10 border border-sky-500/15 flex items-center justify-center">
-              <Pencil className="h-4 w-4 text-sky-400" />
+            <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+              <Pencil className="h-4 w-4 text-amber-400" />
             </div>
             <div>
               <h2 className="text-base font-semibold text-white">Custom Amount</h2>

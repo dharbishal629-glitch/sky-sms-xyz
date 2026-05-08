@@ -130,7 +130,7 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-80 rounded-2xl border border-amber-900/20 bg-[#080c18] shadow-[0_8px_40px_rgba(0,0,0,0.7),0_0_0_1px_rgba(212,168,67,0.06)] z-50 overflow-hidden"
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-amber-900/20 bg-[#080c18] shadow-[0_8px_40px_rgba(0,0,0,0.7),0_0_0_1px_rgba(212,168,67,0.06)] z-50 overflow-hidden"
           style={{ animation: "dropdown-in 0.2s cubic-bezier(0.16,1,0.3,1) both" }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05]">

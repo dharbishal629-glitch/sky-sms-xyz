@@ -183,7 +183,7 @@ export function Toaster() {
   return createPortal(
     <div style={{
       position: "fixed",
-      bottom: 20,
+      top: 16,
       right: 16,
       zIndex: 9999,
       display: "flex",

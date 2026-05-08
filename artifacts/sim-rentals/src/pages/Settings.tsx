@@ -123,23 +123,42 @@ function ApiKeysSection() {
       <div className="p-5 space-y-3">
         {/* Revealed key banner */}
         {revealedKey && (
-          <div className="rounded-xl border border-white/[0.09] bg-white/[0.03] p-4 space-y-3">
-            <div className="text-[12.5px] font-semibold text-white">Your new API key — copy it now</div>
-            <div className="text-[11.5px] text-slate-500">It won't be shown again after you dismiss this.</div>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-[11px] font-mono text-slate-300 bg-black/30 border border-white/[0.07] rounded-lg px-3 py-2.5 overflow-x-auto whitespace-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
-                {revealedKey.key}
-              </code>
+          <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.03] overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+              <div>
+                <div className="text-[12.5px] font-semibold text-white">Your new API key — copy it now</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">It won't be shown again after you dismiss this.</div>
+              </div>
               <button
                 onClick={() => copyKey(revealedKey.key)}
-                className="h-9 w-9 rounded-lg border border-white/[0.08] bg-white/[0.04] flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors shrink-0"
+                style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  fontSize: "0.7rem", fontWeight: 600,
+                  color: copied ? "#34d399" : "#9ca3af",
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: "4px 8px", borderRadius: 6, transition: "color .15s", flexShrink: 0,
+                }}
               >
-                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied ? "Copied!" : "Copy"}
               </button>
             </div>
-            <button onClick={() => setRevealedKey(null)} className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
-              I've saved it — dismiss
-            </button>
+            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <pre style={{
+                margin: 0, padding: "12px 16px",
+                fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
+                fontSize: "0.78rem", lineHeight: 1.6,
+                color: "#86efac", whiteSpace: "pre", minWidth: "max-content",
+                background: "transparent",
+              }}>
+                {revealedKey.key}
+              </pre>
+            </div>
+            <div className="px-4 py-2.5 border-t border-white/[0.04]">
+              <button onClick={() => setRevealedKey(null)} className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
+                I've saved it — dismiss
+              </button>
+            </div>
           </div>
         )}
 

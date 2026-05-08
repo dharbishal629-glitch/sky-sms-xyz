@@ -122,6 +122,7 @@ function AppWithRoutes() {
       <Route path="/settings" component={AppRoutes} />
       <Route path="/support" component={AppRoutes} />
       <Route path="/api-docs" component={AppRoutes} />
+      <Route path="/referral" component={AppRoutes} />
       <Route path="/admin" component={AppRoutes} />
       <Route path="/admin/users" component={AppRoutes} />
       <Route path="/admin/services" component={AppRoutes} />
