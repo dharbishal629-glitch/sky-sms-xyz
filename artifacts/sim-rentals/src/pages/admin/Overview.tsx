@@ -1,10 +1,119 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGetAdminOverview } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Phone, CreditCard, Activity, CheckCircle2, AlertCircle, Link2, Save, MessageCircle } from "lucide-react";
+import { Users, Phone, CreditCard, Activity, CheckCircle2, AlertCircle, Link2, Save, MessageCircle, Gift, ToggleLeft, ToggleRight, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCommunityLinks } from "@/hooks/useCommunityLinks";
 import { useToast } from "@/hooks/use-toast";
+
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+
+function ReferralSettingsCard() {
+  const { toast } = useToast();
+  const [enabled, setEnabled] = useState(true);
+  const [bonusAmount, setBonusAmount] = useState("0.50");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/admin/referral-settings`, { credentials: "include" })
+      .then(r => r.json())
+      .then(d => { setEnabled(d.enabled); setBonusAmount(Number(d.bonusAmount).toFixed(2)); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    const amt = parseFloat(bonusAmount);
+    if (isNaN(amt) || amt < 0 || amt > 100) {
+      toast({ title: "Invalid bonus amount", variant: "destructive" }); return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/referral-settings`, {
+        method: "PUT", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, bonusAmount: amt }),
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: "Referral settings saved", description: `Program ${enabled ? "enabled" : "disabled"}, bonus $${amt.toFixed(2)} per referral.` });
+    } catch {
+      toast({ title: "Failed to save settings", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+      <div className="px-6 py-5 border-b border-white/[0.06]">
+        <div className="font-bold text-white text-[15px] flex items-center gap-2">
+          <Gift className="h-4 w-4 text-amber-400" />
+          Referral Program
+        </div>
+        <div className="text-[12px] text-slate-500 mt-0.5">Control the referral system and bonus amounts.</div>
+      </div>
+      <div className="p-5 space-y-5">
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-12 rounded-xl bg-white/[0.04]" />
+            <Skeleton className="h-12 rounded-xl bg-white/[0.04]" />
+          </div>
+        ) : (
+          <>
+            {/* Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+              <div>
+                <div className="text-[13px] font-semibold text-white">Referral Program</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{enabled ? "Users can share codes and earn bonuses" : "Referral codes are disabled for all users"}</div>
+              </div>
+              <button
+                onClick={() => setEnabled(e => !e)}
+                className="ml-4 shrink-0 transition-colors"
+              >
+                {enabled
+                  ? <ToggleRight className="h-8 w-8 text-amber-400" />
+                  : <ToggleLeft className="h-8 w-8 text-slate-600" />}
+              </button>
+            </div>
+
+            {/* Bonus amount */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-[12px] font-semibold text-slate-400">
+                <div className="h-5 w-5 rounded-md bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
+                  <DollarSign className="h-3 w-3 text-amber-400" />
+                </div>
+                Bonus per referral (USD)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-[14px] pl-1">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={bonusAmount}
+                  onChange={e => setBonusAmount(e.target.value)}
+                  className="flex-1 h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-[13px] text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/35 transition-all"
+                />
+                <span className="text-slate-600 text-[12px]">per referral (both users)</span>
+              </div>
+            </div>
+
+            <button
+              onClick={save}
+              disabled={saving}
+              className="flex items-center gap-2 h-10 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[13px] font-semibold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all shadow-[0_4px_16px_rgba(212,168,67,0.2)] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {saving ? "Saving…" : "Save Settings"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function maskProviderName(name: string): string {
   return name === "Hero SMS" ? "SKY SMS" : name;
@@ -98,6 +207,11 @@ export default function AdminOverview() {
             </div>
           );
         })}
+      </div>
+
+      {/* Referral settings */}
+      <div className="page-enter page-enter-d3">
+        <ReferralSettingsCard />
       </div>
 
       {/* Provider status + Community links */}

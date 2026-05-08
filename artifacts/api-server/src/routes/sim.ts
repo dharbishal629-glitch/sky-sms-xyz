@@ -1590,7 +1590,12 @@ router.post("/referrals/apply", async (req, res) => {
   const referrerId = String(referrer.rows[0].id);
   if (referrerId === userId) return res.status(400).json({ error: "You cannot use your own referral code." });
 
-  const BONUS = 0.5;
+  const settingsRow = await pool.query("SELECT enabled, bonus_amount FROM sim_referral_settings WHERE id = 1");
+  const refSettings = settingsRow.rows[0] ?? { enabled: true, bonus_amount: 0.5 };
+  if (!refSettings.enabled) {
+    return res.status(403).json({ error: "The referral program is currently disabled." });
+  }
+  const BONUS = Number(refSettings.bonus_amount);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -1622,6 +1627,32 @@ router.post("/referrals/apply", async (req, res) => {
   }
 
   return res.json({ success: true, bonusAmount: BONUS });
+});
+
+router.get("/admin/referral-settings", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const user = req.user as AuthUser;
+  if (!isAdminEmail(user.email)) return res.status(403).json({ error: "Forbidden" });
+  const result = await pool.query("SELECT enabled, bonus_amount FROM sim_referral_settings WHERE id = 1");
+  const row = result.rows[0] ?? { enabled: true, bonus_amount: 0.5 };
+  return res.json({ enabled: Boolean(row.enabled), bonusAmount: Number(row.bonus_amount) });
+});
+
+router.put("/admin/referral-settings", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const user = req.user as AuthUser;
+  if (!isAdminEmail(user.email)) return res.status(403).json({ error: "Forbidden" });
+  const { enabled, bonusAmount } = req.body as { enabled?: boolean; bonusAmount?: number };
+  if (typeof enabled !== "boolean" || typeof bonusAmount !== "number" || bonusAmount < 0 || bonusAmount > 100) {
+    return res.status(400).json({ error: "Invalid settings" });
+  }
+  await pool.query(
+    `INSERT INTO sim_referral_settings (id, enabled, bonus_amount, updated_at)
+     VALUES (1, $1, $2, NOW())
+     ON CONFLICT (id) DO UPDATE SET enabled = $1, bonus_amount = $2, updated_at = NOW()`,
+    [enabled, bonusAmount],
+  );
+  return res.json({ success: true, enabled, bonusAmount });
 });
 
 export default router;

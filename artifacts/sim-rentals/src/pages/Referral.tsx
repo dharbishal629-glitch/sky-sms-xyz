@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Check, Gift, Users2, Link2, ChevronRight } from "lucide-react";
+import { Copy, Check, Gift, Users2, Link2, ChevronRight, Share2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -167,11 +167,32 @@ export default function Referral() {
             <Link2 className="h-4 w-4 text-amber-400" />
             <span className="font-semibold text-white text-[14px]">Your Referral Link</span>
           </div>
-          <div className="p-5">
+          <div className="p-5 space-y-3">
             {loading ? (
               <Skeleton className="h-20 w-full rounded-xl bg-white/[0.04]" />
             ) : data ? (
-              <CopyLinkBlock url={referralUrl} />
+              <>
+                <CopyLinkBlock url={referralUrl} />
+                {typeof navigator !== "undefined" && "share" in navigator && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.share({
+                          title: "Join SKY SMS",
+                          text: "Rent phone numbers instantly for SMS verification. Use my referral link and we both get $0.50 credit!",
+                          url: referralUrl,
+                        });
+                      } catch {
+                        // user cancelled or not supported
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-amber-500/20 bg-amber-500/[0.05] text-[13px] font-semibold text-amber-400 hover:bg-amber-500/[0.1] transition-all active:scale-[0.98]"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share via WhatsApp, Telegram, or SMS
+                  </button>
+                )}
+              </>
             ) : (
               <p className="text-[13px] text-slate-500 text-center py-4">Could not load referral data</p>
             )}

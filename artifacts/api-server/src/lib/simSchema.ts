@@ -171,7 +171,20 @@ async function createSchema() {
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS sim_users_referral_code_idx ON sim_users(referral_code) WHERE referral_code IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS sim_referral_settings (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      bonus_amount NUMERIC NOT NULL DEFAULT 0.50,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
+
+  await pool.query(
+    `INSERT INTO sim_referral_settings (id, enabled, bonus_amount)
+     VALUES (1, TRUE, 0.50)
+     ON CONFLICT (id) DO NOTHING`
+  );
 
   for (const code of SEED_ENABLED_SERVICES) {
     await pool.query(
