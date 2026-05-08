@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   User, LogOut, HelpCircle, FileText, RefreshCw, Shield,
   ExternalLink, DollarSign, Zap, Globe, Clock, MessageSquare, Lock,
-  Key, Plus, Trash2, Copy, Check, AlertTriangle
+  Key, Plus, Trash2, Copy, Check, AlertTriangle, Gift, Users2, Link2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "wouter";
@@ -226,6 +226,177 @@ function ApiKeysSection() {
   );
 }
 
+interface ReferralData {
+  referralCode: string;
+  totalReferrals: number;
+  totalBonus: number;
+  creditedCount: number;
+  referrals: { id: number; referredName: string; bonusAmount: number; credited: boolean; createdAt: string }[];
+}
+
+function ReferralSection() {
+  const { toast } = useToast();
+  const [data, setData] = useState<ReferralData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [applyCode, setApplyCode] = useState("");
+  const [applying, setApplying] = useState(false);
+
+  useEffect(() => {
+    const fetchReferrals = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/referrals`, { credentials: "include" });
+        if (res.ok) {
+          const d = await res.json() as ReferralData;
+          setData(d);
+        }
+      } catch {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReferrals();
+  }, []);
+
+  const copyCode = () => {
+    if (!data?.referralCode) return;
+    const url = `${window.location.origin}/?ref=${data.referralCode}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      toast({ title: "Referral link copied!" });
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const applyReferralCode = async () => {
+    if (!applyCode.trim()) return;
+    setApplying(true);
+    try {
+      const res = await fetch(`${API_URL}/api/referrals/apply`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: applyCode.trim() }),
+      });
+      const result = await res.json() as { success?: boolean; bonusAmount?: number; error?: string };
+      if (!res.ok) {
+        toast({ title: result.error ?? "Failed to apply code", variant: "destructive" });
+      } else {
+        toast({ title: `Referral applied! You both earned $${(result.bonusAmount ?? 0).toFixed(2)} credit.` });
+        setApplyCode("");
+        // Refresh
+        const r = await fetch(`${API_URL}/api/referrals`, { credentials: "include" });
+        if (r.ok) setData(await r.json() as ReferralData);
+      }
+    } catch {
+      toast({ title: "Failed to apply referral code", variant: "destructive" });
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+      <div className="flex items-center gap-2.5 px-6 py-4 border-b border-white/[0.05]">
+        <Gift className="h-4 w-4 text-amber-400" />
+        <span className="font-semibold text-white text-[14px]">Referral Program</span>
+        <span className="ml-auto text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/15 rounded-full px-2.5 py-0.5">$0.50 per referral</span>
+      </div>
+      <div className="p-5 space-y-4">
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full rounded-xl bg-white/[0.04]" />
+            <div className="grid grid-cols-3 gap-3">
+              {[1,2,3].map(i => <Skeleton key={i} className="h-14 rounded-xl bg-white/[0.03]" />)}
+            </div>
+          </div>
+        ) : data ? (
+          <>
+            {/* Your referral link */}
+            <div>
+              <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">Your referral link</p>
+              <div className="flex items-center gap-2 p-3 rounded-xl border border-amber-900/15 bg-amber-500/[0.03]">
+                <Link2 className="h-3.5 w-3.5 text-amber-500/60 shrink-0" />
+                <span className="flex-1 font-mono text-[12px] text-amber-200/70 truncate">
+                  {window.location.origin}/?ref={data.referralCode}
+                </span>
+                <button
+                  onClick={copyCode}
+                  className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-amber-500/15 border border-amber-500/20 text-[11px] font-semibold text-amber-400 hover:bg-amber-500/25 transition-all shrink-0"
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Total referrals", value: data.totalReferrals, icon: Users2, color: "text-amber-400" },
+                { label: "Total earned",    value: `$${data.totalBonus.toFixed(2)}`, icon: Gift, color: "text-emerald-400" },
+                { label: "Credited",        value: data.creditedCount, icon: Check, color: "text-slate-300" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-3 text-center">
+                  <s.icon className={`h-4 w-4 ${s.color} mx-auto mb-1.5`} />
+                  <div className={`text-[16px] font-bold ${s.color}`}>{s.value}</div>
+                  <div className="text-[10px] text-slate-600 mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Apply a code */}
+            <div>
+              <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">Have a referral code?</p>
+              <div className="flex gap-2">
+                <input
+                  value={applyCode}
+                  onChange={(e) => setApplyCode(e.target.value.toUpperCase())}
+                  placeholder="SKY-XXXXXX"
+                  className="flex-1 h-9 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 text-[12.5px] font-mono text-white placeholder-slate-700 focus:outline-none focus:border-amber-500/35 transition-all"
+                  onKeyDown={(e) => e.key === "Enter" && applyReferralCode()}
+                  maxLength={12}
+                />
+                <button
+                  onClick={applyReferralCode}
+                  disabled={applying || !applyCode.trim()}
+                  className="h-9 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[12px] font-semibold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                >
+                  {applying ? "Applying…" : "Apply"}
+                </button>
+              </div>
+            </div>
+
+            {/* Recent referrals */}
+            {data.referrals.length > 0 && (
+              <div>
+                <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">Your referrals</p>
+                <div className="space-y-1.5">
+                  {data.referrals.map((r) => (
+                    <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.04] bg-white/[0.01]">
+                      <div className="h-7 w-7 shrink-0 rounded-full bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+                        <span className="text-[11px] font-bold text-amber-400">{r.referredName.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[12px] font-semibold text-white">{r.referredName}</span>
+                        <span className="text-[11px] text-slate-600 ml-2">{format(new Date(r.createdAt), "MMM d, yyyy")}</span>
+                      </div>
+                      <span className="text-[12px] font-semibold text-emerald-400">+${r.bonusAmount.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-[13px] text-slate-500 text-center py-4">Could not load referral data</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Settings() {
   const { data: user, isLoading: userLoading } = useGetMe();
   const { logout } = useAuth();
@@ -281,6 +452,11 @@ export default function Settings() {
             ) : null}
           </div>
         </section>
+      </Reveal>
+
+      {/* Referral */}
+      <Reveal variant="up" delay={50}>
+        <ReferralSection />
       </Reveal>
 
       {/* API Keys */}

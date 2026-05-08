@@ -10,6 +10,7 @@ import AdminTransactions from "@/pages/admin/Transactions";
 import AdminServices from "@/pages/admin/Services";
 import AdminSupport from "@/pages/admin/Support";
 import AdminCoupons from "@/pages/admin/Coupons";
+import AdminNotifications from "@/pages/admin/Notifications";
 import Support from "@/pages/Support";
 import ApiDocs from "@/pages/ApiDocs";
 import { useAuth } from "@/hooks/useAuth";
@@ -108,6 +109,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/admin/coupons">
         <AdminRoute component={AdminCoupons} />
+      </Route>
+      <Route path="/admin/notifications">
+        <AdminRoute component={AdminNotifications} />
       </Route>
     </Switch>
   );

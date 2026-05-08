@@ -19,11 +19,11 @@ function LoadingSpinner() {
   return (
     <div className="min-h-screen premium-shell flex items-center justify-center">
       <div className="flex flex-col items-center gap-5">
-        <div className="h-12 w-12 rounded-2xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center shadow-[0_0_24px_rgba(14,165,233,0.2)]">
-          <Phone className="h-6 w-6 text-sky-400" />
+        <div className="h-12 w-12 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shadow-[0_0_24px_rgba(212,168,67,0.18)]">
+          <Phone className="h-6 w-6 text-amber-400" />
         </div>
         <div className="h-0.5 w-32 rounded-full bg-white/[0.06] overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-sky-500 to-violet-500 rounded-full animate-[shimmer_1.2s_ease-in-out_infinite]" style={{ width: "60%", animation: "loading-bar 1.4s ease-in-out infinite" }} />
+          <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full" style={{ width: "60%", animation: "loading-bar 1.4s ease-in-out infinite" }} />
         </div>
       </div>
     </div>
@@ -55,25 +55,25 @@ function AuthPage() {
       {/* Ambient */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full"
-          style={{ background: "radial-gradient(ellipse at center, rgba(14,165,233,0.1) 0%, transparent 70%)", filter: "blur(80px)" }} />
+          style={{ background: "radial-gradient(ellipse at center, rgba(212,168,67,0.08) 0%, transparent 70%)", filter: "blur(80px)" }} />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full"
-          style={{ background: "radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 70%)", filter: "blur(80px)" }} />
+          style={{ background: "radial-gradient(ellipse at center, rgba(180,100,40,0.06) 0%, transparent 70%)", filter: "blur(80px)" }} />
       </div>
 
       <div className="relative z-10 w-full max-w-md modal-content-enter">
         {/* Top line accent */}
-        <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-sky-400/50 to-transparent rounded-t-3xl" />
+        <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent rounded-t-3xl" />
 
-        <div className="rounded-3xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-white/[0.01] shadow-[0_0_0_1px_rgba(14,165,233,0.1),0_8px_60px_rgba(0,0,0,0.6),0_0_80px_rgba(14,165,233,0.06)] p-9 text-center backdrop-blur-xl">
+        <div className="rounded-3xl border border-amber-900/15 bg-gradient-to-br from-white/[0.04] to-white/[0.01] shadow-[0_0_0_1px_rgba(212,168,67,0.08),0_8px_60px_rgba(0,0,0,0.6),0_0_80px_rgba(212,168,67,0.04)] p-9 text-center backdrop-blur-xl">
 
-          <a href={`${basePath}/`} className="mx-auto mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-5 py-2.5 hover:bg-white/[0.07] transition-colors">
-            <div className="h-6 w-6 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
-              <Phone className="h-3 w-3 text-sky-400" />
+          <a href={`${basePath}/`} className="mx-auto mb-8 inline-flex items-center gap-2.5 rounded-full border border-amber-900/20 bg-amber-500/[0.05] px-5 py-2.5 hover:bg-amber-500/[0.08] transition-colors">
+            <div className="h-6 w-6 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+              <Phone className="h-3 w-3 text-amber-400" />
             </div>
             <span className="text-[14px] font-bold text-white">SKY SMS</span>
           </a>
 
-          <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.25em] text-sky-400">Welcome back</p>
+          <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">Welcome back</p>
           <h1 className="text-[2rem] font-black tracking-tight text-white leading-tight">Access your dashboard</h1>
           <p className="mt-4 text-[14px] leading-relaxed text-slate-400 max-w-xs mx-auto">
             Sign in to manage your balance, rent live SMS numbers, and track verification messages.
@@ -95,9 +95,9 @@ function AuthPage() {
 
             <p className="text-[11px] text-slate-600 text-center leading-relaxed">
               By continuing, you agree to our{" "}
-              <a href={`${basePath}/terms`} className="text-sky-400 hover:text-sky-300 underline underline-offset-2 transition-colors">Terms</a>{" "}
+              <a href={`${basePath}/terms`} className="text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors">Terms</a>{" "}
               and{" "}
-              <a href={`${basePath}/refund-policy`} className="text-sky-400 hover:text-sky-300 underline underline-offset-2 transition-colors">Refund Policy</a>.
+              <a href={`${basePath}/refund-policy`} className="text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors">Refund Policy</a>.
             </p>
           </div>
         </div>
@@ -128,6 +128,7 @@ function AppWithRoutes() {
       <Route path="/admin/transactions" component={AppRoutes} />
       <Route path="/admin/support" component={AppRoutes} />
       <Route path="/admin/coupons" component={AppRoutes} />
+      <Route path="/admin/notifications" component={AppRoutes} />
 
       <Route component={NotFound} />
     </Switch>

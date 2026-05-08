@@ -1049,7 +1049,19 @@ router.get("/admin/services", async (req, res) => {
   const countryOverrides = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
   const activeServices = await liveServices(country?.code);
   const enabledServiceCodes = await listEnabledServiceCodes();
-  const allCountries = await liveCountries();
+  // Admin: return ALL available countries (not limited to MAX_COUNTRIES) so prices can be set for any country
+  const fullCatalog = await withFastFallback(getHeroPriceCatalog(), [], 8000);
+  const allCountryTotals = new Map<string, { count: number; cost: number }>();
+  for (const item of fullCatalog) {
+    const current = allCountryTotals.get(item.countryCode) ?? { count: 0, cost: item.cost };
+    current.count += item.count;
+    if (item.cost > 0 && (current.cost === 0 || item.cost < current.cost)) current.cost = item.cost;
+    allCountryTotals.set(item.countryCode, current);
+  }
+  const allCountries = Array.from(allCountryTotals.entries())
+    .map(([code, live]) => countryFromCode(code, live))
+    .filter((c) => c.available > 0)
+    .sort((a, b) => a.startingPrice - b.startingPrice || a.name.localeCompare(b.name));
   const countryBasePrices = await listAllCountryBasePrices();
   res.json({
     selectedCountry: country ?? null,
@@ -1417,6 +1429,199 @@ router.delete("/keys/:id", async (req, res) => {
   );
   if (result.rowCount === 0) return res.status(404).json({ error: "Key not found" });
   return res.json({ success: true });
+});
+
+// ─── Notifications: user ──────────────────────────────────────────────────
+router.get("/notifications", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const userId = getUserId(req);
+  const result = await pool.query(
+    `SELECT id, title, message, type, read, link, created_at
+     FROM sim_notifications
+     WHERE user_id = $1 OR user_id IS NULL
+     ORDER BY created_at DESC
+     LIMIT 30`,
+    [userId],
+  );
+  return res.json({
+    notifications: result.rows.map((r) => ({
+      id: Number(r.id),
+      title: String(r.title),
+      message: String(r.message),
+      type: String(r.type),
+      read: Boolean(r.read),
+      link: r.link ?? null,
+      createdAt: new Date(r.created_at).toISOString(),
+    })),
+  });
+});
+
+router.post("/notifications/:id/read", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const userId = getUserId(req);
+  const id = Number(req.params.id);
+  await pool.query(
+    `UPDATE sim_notifications SET read = TRUE WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)`,
+    [id, userId],
+  );
+  return res.json({ success: true });
+});
+
+router.post("/notifications/read-all", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const userId = getUserId(req);
+  await pool.query(
+    `UPDATE sim_notifications SET read = TRUE WHERE user_id = $1 OR user_id IS NULL`,
+    [userId],
+  );
+  return res.json({ success: true });
+});
+
+// ─── Notifications: admin broadcast ───────────────────────────────────────
+router.post("/admin/notifications", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const { title, message, type = "info", userId = null, link = null } = req.body as {
+    title?: string; message?: string; type?: string; userId?: string | null; link?: string | null;
+  };
+  if (!title || !message) return res.status(400).json({ error: "title and message are required" });
+  const result = await pool.query(
+    `INSERT INTO sim_notifications (user_id, title, message, type, link) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [userId, title, message, type, link],
+  );
+  return res.status(201).json({ id: Number(result.rows[0].id), success: true });
+});
+
+router.get("/admin/notifications", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const result = await pool.query(
+    `SELECT n.id, n.user_id, n.title, n.message, n.type, n.link, n.read, n.created_at,
+            u.name as user_name
+     FROM sim_notifications n
+     LEFT JOIN sim_users u ON u.id = n.user_id
+     ORDER BY n.created_at DESC
+     LIMIT 100`,
+  );
+  return res.json({
+    notifications: result.rows.map((r) => ({
+      id: Number(r.id),
+      userId: r.user_id ?? null,
+      userName: r.user_name ?? "All users",
+      title: String(r.title),
+      message: String(r.message),
+      type: String(r.type),
+      link: r.link ?? null,
+      read: Boolean(r.read),
+      createdAt: new Date(r.created_at).toISOString(),
+    })),
+  });
+});
+
+// ─── Referrals ──────────────────────────────────────────────────────────────
+function generateReferralCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "SKY-";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+async function ensureReferralCode(userId: string): Promise<string> {
+  const existing = await pool.query("SELECT referral_code FROM sim_users WHERE id = $1", [userId]);
+  if (existing.rows[0]?.referral_code) return String(existing.rows[0].referral_code);
+  // Generate unique code
+  let code = generateReferralCode();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const conflict = await pool.query("SELECT id FROM sim_users WHERE referral_code = $1", [code]);
+    if (conflict.rowCount === 0) break;
+    code = generateReferralCode();
+  }
+  await pool.query("UPDATE sim_users SET referral_code = $1 WHERE id = $2", [code, userId]);
+  return code;
+}
+
+router.get("/referrals", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const userId = getUserId(req);
+  const code = await ensureReferralCode(userId);
+  const stats = await pool.query(
+    `SELECT COUNT(*) AS total, SUM(bonus_amount) AS total_bonus, COUNT(*) FILTER (WHERE credited) AS credited
+     FROM sim_referrals WHERE referrer_id = $1`,
+    [userId],
+  );
+  const referrals = await pool.query(
+    `SELECT r.id, r.bonus_amount, r.credited, r.created_at, u.name AS referred_name
+     FROM sim_referrals r
+     JOIN sim_users u ON u.id = r.referred_id
+     WHERE r.referrer_id = $1
+     ORDER BY r.created_at DESC
+     LIMIT 20`,
+    [userId],
+  );
+  const s = stats.rows[0];
+  return res.json({
+    referralCode: code,
+    totalReferrals: Number(s.total ?? 0),
+    totalBonus: Number(s.total_bonus ?? 0),
+    creditedCount: Number(s.credited ?? 0),
+    referrals: referrals.rows.map((r) => ({
+      id: Number(r.id),
+      referredName: String(r.referred_name),
+      bonusAmount: Number(r.bonus_amount),
+      credited: Boolean(r.credited),
+      createdAt: new Date(r.created_at).toISOString(),
+    })),
+  });
+});
+
+router.post("/referrals/apply", async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+  const userId = getUserId(req);
+  const { code } = req.body as { code?: string };
+  if (!code || typeof code !== "string") return res.status(400).json({ error: "Referral code is required" });
+  // Check already has a referrer
+  const alreadyReferred = await pool.query("SELECT id FROM sim_referrals WHERE referred_id = $1", [userId]);
+  if (alreadyReferred.rowCount && alreadyReferred.rowCount > 0) {
+    return res.status(409).json({ error: "You have already used a referral code." });
+  }
+  // Find referrer
+  const referrer = await pool.query("SELECT id FROM sim_users WHERE UPPER(referral_code) = UPPER($1)", [code.trim()]);
+  if (!referrer.rows[0]) return res.status(404).json({ error: "Referral code not found." });
+  const referrerId = String(referrer.rows[0].id);
+  if (referrerId === userId) return res.status(400).json({ error: "You cannot use your own referral code." });
+
+  const BONUS = 0.5;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `INSERT INTO sim_referrals (referrer_id, referred_id, bonus_amount, credited)
+       VALUES ($1, $2, $3, TRUE)`,
+      [referrerId, userId, BONUS],
+    );
+    // Credit both users
+    await client.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [BONUS, referrerId]);
+    await client.query("UPDATE sim_users SET credits = credits + $1 WHERE id = $2", [BONUS, userId]);
+    // Send notifications to both
+    await client.query(
+      `INSERT INTO sim_notifications (user_id, title, message, type)
+       VALUES ($1, $2, $3, 'success')`,
+      [referrerId, "Referral bonus earned! 🎉", `Someone signed up using your referral code. You both received $${BONUS.toFixed(2)} credit!`],
+    );
+    await client.query(
+      `INSERT INTO sim_notifications (user_id, title, message, type)
+       VALUES ($1, $2, $3, 'success')`,
+      [userId, "Welcome bonus applied! 🎉", `Your referral code was accepted. $${BONUS.toFixed(2)} credit has been added to your account!`],
+    );
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  return res.json({ success: true, bonusAmount: BONUS });
 });
 
 export default router;

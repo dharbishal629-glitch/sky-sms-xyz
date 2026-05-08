@@ -144,6 +144,33 @@ async function createSchema() {
       revoked BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    -- Notifications system
+    CREATE TABLE IF NOT EXISTS sim_notifications (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT REFERENCES sim_users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'info',
+      link TEXT,
+      read BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Referral system
+    ALTER TABLE sim_users ADD COLUMN IF NOT EXISTS referral_code TEXT;
+    ALTER TABLE sim_users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+    CREATE TABLE IF NOT EXISTS sim_referrals (
+      id SERIAL PRIMARY KEY,
+      referrer_id TEXT NOT NULL REFERENCES sim_users(id),
+      referred_id TEXT NOT NULL UNIQUE REFERENCES sim_users(id),
+      bonus_amount NUMERIC NOT NULL DEFAULT 0.50,
+      credited BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS sim_users_referral_code_idx ON sim_users(referral_code) WHERE referral_code IS NOT NULL;
   `);
 
   for (const code of SEED_ENABLED_SERVICES) {
