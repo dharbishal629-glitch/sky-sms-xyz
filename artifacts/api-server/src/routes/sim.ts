@@ -12,6 +12,7 @@ import {
   getHeroStatus,
   rentHeroNumber,
   setHeroStatus,
+  warmCatalogCache,
 } from "../lib/heroSms";
 import {
   GetMeResponse,
@@ -525,6 +526,17 @@ router.use(async (_req, res, next) => {
   }
 });
 
+// Pre-warm the full price catalog cache on first request so admin live counts
+// are available immediately (avoids a cold 10-20 second fetch on first admin load).
+let catalogWarmedUp = false;
+router.use((_req, _res, next) => {
+  if (!catalogWarmedUp) {
+    catalogWarmedUp = true;
+    warmCatalogCache();
+  }
+  next();
+});
+
 router.get("/me", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -568,6 +580,13 @@ router.get("/catalog/countries", async (_req, res) => {
   res.json(ListCountriesResponse.parse({ countries: await liveCountries(), provider: providerStatus("Hero SMS") }));
 });
 
+// Service code aliases: when one code returns no/few countries, also try the alias codes.
+// This handles cases where Hero SMS may use "pp" vs "pb" for PayPal, etc.
+const SERVICE_CODE_ALIASES: Record<string, string[]> = {
+  pb: ["pb", "pp"],
+  pp: ["pp", "pb"],
+};
+
 router.get("/catalog/countries-for-service", async (req, res) => {
   const serviceCode = String(req.query.serviceCode ?? "");
   if (!serviceCode.trim()) {
@@ -579,13 +598,28 @@ router.get("/catalog/countries-for-service", async (req, res) => {
     return;
   }
 
-  const liveData = await withFastFallback(getHeroCountriesForService(serviceCode), []);
+  // Fetch countries using the primary code + any alias codes in parallel, then merge.
+  const codesToTry = SERVICE_CODE_ALIASES[serviceCode] ?? [serviceCode];
+  const allResults = await withFastFallback(
+    Promise.all(codesToTry.map((c) => getHeroCountriesForService(c))).then((arrays) => {
+      // Merge by country code, keeping the best (highest count) entry per country
+      const byCountry = new Map<string, { countryCode: string; count: number; cost: number; activationMinutes: number }>();
+      for (const arr of arrays) {
+        for (const entry of arr) {
+          const existing = byCountry.get(entry.countryCode);
+          if (!existing || entry.count > existing.count) byCountry.set(entry.countryCode, entry);
+        }
+      }
+      return Array.from(byCountry.values());
+    }),
+    [],
+    10_000,
+  );
 
-  const mapped = liveData
+  const mapped = allResults
     .map((live) => ({ country: countryFromCode(live.countryCode, live), available: live.count, heroPrice: live.cost, activationMinutes: live.activationMinutes ?? 20 }))
     .filter((c) => c.available > 0)
     .sort((a, b) => a.heroPrice - b.heroPrice || b.available - a.available);
-  // No country limit here — show all available countries for the selected service
 
   const service = serviceFromCode(serviceCode);
   const result = await Promise.all(
@@ -1120,9 +1154,9 @@ router.get("/admin/services", async (req, res) => {
   const countryOverrides = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
   const enabledServiceCodes = await listEnabledServiceCodes();
 
-  // Fetch full catalog WITHOUT a short timeout — admin can afford to wait for accurate live data.
-  // We compute both country totals and service totals from a single catalog fetch.
-  const fullCatalog = await getHeroPriceCatalog().catch(() => []);
+  // Fetch full catalog — use a generous timeout so the admin page shows real live counts.
+  // The singleton pattern in getHeroPriceCatalog prevents duplicate concurrent requests.
+  const fullCatalog = await withFastFallback(getHeroPriceCatalog(), [], 25_000);
   const allCountryTotals = new Map<string, { count: number; cost: number }>();
   const serviceTotals = new Map<string, { count: number; cost: number }>();
   for (const item of fullCatalog) {

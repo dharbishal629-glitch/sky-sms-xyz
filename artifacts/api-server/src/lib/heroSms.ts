@@ -253,7 +253,9 @@ export async function getHeroCountriesForService(serviceCode: string): Promise<{
     const countryId = Number(countryIdStr);
     const countryCode = reverseCountryMap[countryId];
     if (!countryCode) continue;
-    const data = serviceData[serviceCode];
+    // Hero SMS may return the data under the requested key OR under any key when filtered —
+    // fall back to the first available service entry in this country's data.
+    const data = serviceData[serviceCode] ?? Object.values(serviceData)[0];
     if (!data) continue;
     const count = Number(data.count ?? 0);
     if (count <= 0) continue;
@@ -261,34 +263,48 @@ export async function getHeroCountriesForService(serviceCode: string): Promise<{
     results.push({ countryCode, count, cost: Number(data.cost ?? 0), activationMinutes: rawMinutes > 0 ? rawMinutes : 20 });
   }
 
-  setCached(cacheKey, results, 20_000);
+  setCached(cacheKey, results, 30_000);
   return results;
 }
+
+// Singleton in-flight fetch — prevents multiple concurrent full-catalog HTTP requests.
+let catalogInFlight: Promise<Array<{ countryCode: string; serviceCode: string; count: number; cost: number; activationMinutes: number }>> | null = null;
 
 export async function getHeroPriceCatalog(): Promise<Array<{ countryCode: string; serviceCode: string; count: number; cost: number }>> {
   const cacheKey = "price-catalog";
   const cached = getCached<Array<{ countryCode: string; serviceCode: string; count: number; cost: number }>>(cacheKey);
   if (cached !== null) return cached;
 
-  const text = await heroRequest({ action: "getPrices" });
-  const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string }>>>(text);
-  if (!json) return [];
+  // Reuse an existing in-flight request instead of launching a duplicate.
+  if (!catalogInFlight) {
+    catalogInFlight = (async () => {
+      const text = await heroRequest({ action: "getPrices" });
+      const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string }>>>(text);
+      if (!json) return [];
 
-  const results: Array<{ countryCode: string; serviceCode: string; count: number; cost: number; activationMinutes: number }> = [];
-  for (const [countryIdStr, services] of Object.entries(json)) {
-    const countryId = Number(countryIdStr);
-    const countryCode = reverseCountryMap[countryId];
-    if (!countryCode) continue;
-    for (const [serviceCode, data] of Object.entries(services)) {
-      const count = Number(data.count ?? 0);
-      const cost = Number(data.cost ?? 0);
-      const rawMinutes = Number((data as Record<string, unknown>).time ?? (data as Record<string, unknown>).minutes ?? 0);
-      if (count > 0) results.push({ countryCode, serviceCode, count, cost, activationMinutes: rawMinutes > 0 ? rawMinutes : 20 });
-    }
+      const results: Array<{ countryCode: string; serviceCode: string; count: number; cost: number; activationMinutes: number }> = [];
+      for (const [countryIdStr, services] of Object.entries(json)) {
+        const countryId = Number(countryIdStr);
+        const countryCode = reverseCountryMap[countryId];
+        if (!countryCode) continue;
+        for (const [serviceCode, data] of Object.entries(services)) {
+          const count = Number(data.count ?? 0);
+          const cost = Number(data.cost ?? 0);
+          const rawMinutes = Number((data as Record<string, unknown>).time ?? (data as Record<string, unknown>).minutes ?? 0);
+          if (count > 0) results.push({ countryCode, serviceCode, count, cost, activationMinutes: rawMinutes > 0 ? rawMinutes : 20 });
+        }
+      }
+      setCached(cacheKey, results, 45_000);
+      return results;
+    })().finally(() => { catalogInFlight = null; });
   }
 
-  setCached(cacheKey, results, 20_000);
-  return results;
+  return catalogInFlight;
+}
+
+/** Pre-warms the price catalog cache. Call once on server start. */
+export function warmCatalogCache(): void {
+  getHeroPriceCatalog().catch(() => { /* best-effort */ });
 }
 
 const HERO_ERROR_MESSAGES: Record<string, string> = {
