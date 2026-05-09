@@ -214,7 +214,7 @@ export async function getHeroAvailability(serviceCode: string, countryCode: stri
   if (country === undefined) return null;
 
   const cacheKey = `availability:${serviceCode}:${countryCode}`;
-  const cached = getCached<{ count: number; cost: number }>(cacheKey);
+  const cached = getCached<{ count: number; cost: number; activationMinutes: number }>(cacheKey);
   if (cached !== null) return cached;
 
   const text = await heroRequest({
@@ -222,31 +222,33 @@ export async function getHeroAvailability(serviceCode: string, countryCode: stri
     service: serviceCode,
     country,
   });
-  const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string }>>>(text);
+  const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string; time?: number | string; minutes?: number | string }>>>(text);
   const countryData = json?.[String(country)];
   const serviceData = countryData?.[serviceCode];
 
   if (!serviceData) return null;
 
+  const rawMinutes = Number(serviceData.time ?? serviceData.minutes ?? 0);
   const result = {
     count: Number(serviceData.count ?? 0),
     cost: Number(serviceData.cost ?? 0),
+    activationMinutes: rawMinutes > 0 ? rawMinutes : 20,
   };
 
   setCached(cacheKey, result, 20_000);
   return result;
 }
 
-export async function getHeroCountriesForService(serviceCode: string): Promise<{ countryCode: string; count: number; cost: number }[]> {
+export async function getHeroCountriesForService(serviceCode: string): Promise<{ countryCode: string; count: number; cost: number; activationMinutes: number }[]> {
   const cacheKey = `countries:${serviceCode}`;
-  const cached = getCached<{ countryCode: string; count: number; cost: number }[]>(cacheKey);
+  const cached = getCached<{ countryCode: string; count: number; cost: number; activationMinutes: number }[]>(cacheKey);
   if (cached !== null) return cached;
 
   const text = await heroRequest({ action: "getPrices", service: serviceCode });
-  const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string }>>>(text);
+  const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string; time?: number | string; minutes?: number | string }>>>(text);
   if (!json) return [];
 
-  const results: { countryCode: string; count: number; cost: number }[] = [];
+  const results: { countryCode: string; count: number; cost: number; activationMinutes: number }[] = [];
   for (const [countryIdStr, serviceData] of Object.entries(json)) {
     const countryId = Number(countryIdStr);
     const countryCode = reverseCountryMap[countryId];
@@ -255,7 +257,8 @@ export async function getHeroCountriesForService(serviceCode: string): Promise<{
     if (!data) continue;
     const count = Number(data.count ?? 0);
     if (count <= 0) continue;
-    results.push({ countryCode, count, cost: Number(data.cost ?? 0) });
+    const rawMinutes = Number(data.time ?? data.minutes ?? 0);
+    results.push({ countryCode, count, cost: Number(data.cost ?? 0), activationMinutes: rawMinutes > 0 ? rawMinutes : 20 });
   }
 
   setCached(cacheKey, results, 20_000);
@@ -271,7 +274,7 @@ export async function getHeroPriceCatalog(): Promise<Array<{ countryCode: string
   const json = parseJson<Record<string, Record<string, { count?: number | string; cost?: number | string }>>>(text);
   if (!json) return [];
 
-  const results: Array<{ countryCode: string; serviceCode: string; count: number; cost: number }> = [];
+  const results: Array<{ countryCode: string; serviceCode: string; count: number; cost: number; activationMinutes: number }> = [];
   for (const [countryIdStr, services] of Object.entries(json)) {
     const countryId = Number(countryIdStr);
     const countryCode = reverseCountryMap[countryId];
@@ -279,7 +282,8 @@ export async function getHeroPriceCatalog(): Promise<Array<{ countryCode: string
     for (const [serviceCode, data] of Object.entries(services)) {
       const count = Number(data.count ?? 0);
       const cost = Number(data.cost ?? 0);
-      if (count > 0) results.push({ countryCode, serviceCode, count, cost });
+      const rawMinutes = Number((data as Record<string, unknown>).time ?? (data as Record<string, unknown>).minutes ?? 0);
+      if (count > 0) results.push({ countryCode, serviceCode, count, cost, activationMinutes: rawMinutes > 0 ? rawMinutes : 20 });
     }
   }
 

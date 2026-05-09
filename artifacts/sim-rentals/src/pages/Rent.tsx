@@ -98,9 +98,10 @@ export default function Rent() {
     if (!countryCode || !serviceCode) return;
     createRental.mutate({ data: { countryCode, serviceCode } }, {
       onSuccess: (rental) => {
+        const mins = availability?.activationMinutes ?? 20;
         toast({
           title: "Number rented successfully",
-          description: `You have 20 minutes to receive an SMS for ${rental.serviceName}.`,
+          description: `You have ${mins} minute${mins !== 1 ? "s" : ""} to receive an SMS for ${rental.serviceName}.`,
         });
         queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
@@ -140,7 +141,7 @@ export default function Rent() {
       <Reveal variant="up">
         <div>
           <h1 className="text-xl font-semibold text-white">Rent a Number</h1>
-          <p className="text-slate-500 mt-1.5 text-[14px]">Select a service, then choose a live country. Prices and stock refresh every 20 seconds.</p>
+          <p className="text-slate-500 mt-1.5 text-[14px]">Select a service, then choose a live country. Prices and stock refresh in real time.</p>
         </div>
       </Reveal>
 
@@ -244,7 +245,7 @@ export default function Rent() {
                       <div>
                         <div className="font-bold text-emerald-200 text-[14px]">Numbers available</div>
                         <div className="text-[12.5px] mt-1 text-emerald-100/70 leading-relaxed">
-                          {availability.available.toLocaleString()} numbers ready · Est. wait: {availability.estimatedWait} · 20-min activation window
+                          {availability.available.toLocaleString()} numbers ready · Est. wait: {availability.estimatedWait}
                         </div>
                       </div>
                     </div>

@@ -12,6 +12,7 @@ export interface Availability {
   serviceCode: string;
   available: number;
   price: number;
+  activationMinutes?: number;
   estimatedWait: string;
   provider: ProviderStatus;
 }

@@ -148,6 +148,7 @@ export const GetAvailabilityResponse = zod.object({
   serviceCode: zod.string(),
   available: zod.number(),
   price: zod.number(),
+  activationMinutes: zod.number().optional().default(20),
   estimatedWait: zod.string(),
   provider: zod.object({
     name: zod.string(),

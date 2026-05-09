@@ -587,19 +587,20 @@ router.get("/catalog/countries-for-service", async (req, res) => {
   const liveData = await withFastFallback(getHeroCountriesForService(serviceCode), []);
 
   const mapped = liveData
-    .map((live) => ({ country: countryFromCode(live.countryCode, live), available: live.count, heroPrice: live.cost }))
+    .map((live) => ({ country: countryFromCode(live.countryCode, live), available: live.count, heroPrice: live.cost, activationMinutes: live.activationMinutes ?? 20 }))
     .filter((c) => c.available > 0)
-    .sort((a, b) => a.heroPrice - b.heroPrice || b.available - a.available)
-    .slice(0, MAX_COUNTRIES);
+    .sort((a, b) => a.heroPrice - b.heroPrice || b.available - a.available);
+  // No country limit here — show all available countries for the selected service
 
   const service = serviceFromCode(serviceCode);
   const result = await Promise.all(
-    mapped.map(async ({ country, available, heroPrice }) => ({
+    mapped.map(async ({ country, available, heroPrice, activationMinutes }) => ({
       code: country.code,
       name: country.name,
       flag: country.flag,
       available,
       heroPrice,
+      activationMinutes,
       price: await getServicePrice(service, country),
     })),
   );
@@ -628,13 +629,15 @@ router.get("/catalog/availability", async (req, res) => {
     return;
   }
   const customPrice = await getServicePrice(service, country);
+  const activationMinutes = live?.activationMinutes ?? 20;
   res.json(
     GetAvailabilityResponse.parse({
       countryCode: country.code,
       serviceCode: service.code,
       available: live?.count ?? 0,
       price: customPrice,
-      estimatedWait: "20 minute activation window",
+      activationMinutes,
+      estimatedWait: `${activationMinutes}-minute activation window`,
       provider: providerStatus("Hero SMS"),
     }),
   );
@@ -660,6 +663,7 @@ router.post("/rentals", async (req, res) => {
   const country = countryFromCode(body.countryCode, live ?? undefined);
   const service = serviceFromCode(body.serviceCode, live ?? undefined);
   const price = await getServicePrice(service, country);
+  const activationMinutes = live?.activationMinutes ?? 20;
 
   if (account.credits < price) {
     res.status(402).json({ error: "Insufficient credits" });
@@ -672,11 +676,12 @@ router.post("/rentals", async (req, res) => {
     if (price > 0) {
       await pool.query("UPDATE sim_users SET credits = credits - $1 WHERE id = $2", [price, userId]);
     }
+    const expiresAt = new Date(Date.now() + activationMinutes * 60_000).toISOString();
     const result = await pool.query(
-      `INSERT INTO sim_rentals (id, user_id, country_code, country_name, service_code, service_name, phone_number, price, status, provider, provider_activation_id, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'Hero SMS', $9, NOW() + INTERVAL '20 minutes')
+      `INSERT INTO sim_rentals (id, user_id, country_code, country_name, service_code, service_name, phone_number, price, status, provider, provider_activation_id, activation_minutes, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'Hero SMS', $9, $10, $11)
        RETURNING *`,
-      [id, userId, country.code, country.name, service.code, service.name, providerRental.phoneNumber, price, providerRental.activationId],
+      [id, userId, country.code, country.name, service.code, service.name, providerRental.phoneNumber, price, providerRental.activationId, activationMinutes, expiresAt],
     );
     res.json(CreateRentalResponse.parse(mapRental(result.rows[0])));
   } catch (error) {

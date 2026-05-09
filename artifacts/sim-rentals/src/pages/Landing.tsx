@@ -22,7 +22,7 @@ const features = [
   { icon: Globe,         title: "Global Coverage",      desc: "Multiple countries with live availability counts. See real stock before you spend a single cent." },
   { icon: Lock,          title: "Crypto Payments",      desc: "Top up with BTC, ETH, USDT, and 30+ coins via OxaPay. Private, borderless, zero chargebacks." },
   { icon: MessageSquare, title: "Live SMS Inbox",       desc: "Verification codes appear instantly on your rental card. One tap to copy." },
-  { icon: RefreshCw,     title: "Automatic Refunds",    desc: "Cancel before the 20-minute window ends and get your balance back immediately." },
+  { icon: RefreshCw,     title: "Automatic Refunds",    desc: "Cancel before the activation window ends and get your balance back immediately." },
   { icon: Code2,         title: "Developer API",        desc: "Full REST API with API key authentication. Automate number rentals, poll messages, and more." },
 ];
 
@@ -33,10 +33,10 @@ const steps = [
 ];
 
 const faqs = [
-  { q: "How does SMS number rental work?",    a: "Add funds, pick a country and service, and get a temporary phone number instantly. Incoming SMS codes appear on your dashboard in real time. Numbers stay active for 20 minutes." },
+  { q: "How does SMS number rental work?",    a: "Add funds, pick a country and service, and get a temporary phone number instantly. Incoming SMS codes appear on your dashboard in real time. Each rental stays active for a service-specific window." },
   { q: "Which services are supported?",       a: "We support 50+ platforms including Telegram, WhatsApp, Google, Instagram, Facebook, Discord, Amazon, PayPal, and many more — with live availability before you purchase." },
   { q: "What payment methods are accepted?",  a: "We accept crypto payments via OxaPay — BTC, ETH, USDT (TRC20 & ERC20), LTC, TRX, DOGE, and 30+ other coins. All payments are private and borderless." },
-  { q: "What if I don't receive an SMS?",     a: "Cancel an active rental before the 20-minute window closes for an instant full refund. If the window expires with no SMS, your balance is also refunded automatically." },
+  { q: "What if I don't receive an SMS?",     a: "Cancel an active rental before the activation window closes for an instant full refund. If the window expires with no SMS, your balance is also refunded automatically." },
   { q: "Are the numbers recycled?",           a: "Numbers are recycled between sessions, but each rental starts completely fresh — you only see messages that arrive during your active window. No shared history." },
   { q: "Is there a developer API?",           a: "Yes. SKY SMS provides a full REST API with API key authentication. List services, create rentals, poll for SMS, and cancel — all programmatically." },
 ];
@@ -44,13 +44,13 @@ const faqs = [
 const stats = [
   { value: "50+",    label: "Platforms" },
   { value: "10+",    label: "Countries" },
-  { value: "20 min", label: "Window" },
+  { value: "Live",   label: "Window" },
   { value: "100%",   label: "Refund rate" },
 ];
 
 const trustBadges = [
   { icon: Shield, text: "Secure & Private" },
-  { icon: Clock,  text: "20-min Guarantee" },
+  { icon: Clock,  text: "Auto Refund" },
   { icon: Users,  text: "Thousands of Users" },
   { icon: Star,   text: "Crypto Payments" },
 ];

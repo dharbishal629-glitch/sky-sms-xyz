@@ -181,6 +181,7 @@ async function createSchema() {
     );
 
     ALTER TABLE sim_referral_settings ADD COLUMN IF NOT EXISTS min_deposit_amount NUMERIC NOT NULL DEFAULT 0;
+    ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS activation_minutes INTEGER NOT NULL DEFAULT 20;
 
     CREATE TABLE IF NOT EXISTS sim_service_margins (
       service_code TEXT NOT NULL,
