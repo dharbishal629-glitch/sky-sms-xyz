@@ -54,9 +54,7 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   dp: { name: "Proton", category: "Email" },
   ew: { name: "Nike", category: "Shopping" },
   fh: { name: "Bolt", category: "Travel" },
-  fu: { name: "Snapchat", category: "Social" },
   kt: { name: "KakaoTalk", category: "Messaging" },
-  lf: { name: "TikTok", category: "Social" },
   mb: { name: "Yahoo", category: "Email" },
   mt: { name: "Steam", category: "Gaming" },
   nv: { name: "Naver", category: "Accounts" },
@@ -69,7 +67,6 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   uu: { name: "Wildberries", category: "Shopping" },
   vg: { name: "ShellBox", category: "Shopping" },
   vs: { name: "WinzoGame", category: "Gaming" },
-  wx: { name: "Apple", category: "Accounts" },
   ya: { name: "Yandex", category: "Accounts" },
   tg: { name: "Telegram", category: "Messaging" },
   wa: { name: "WhatsApp", category: "Messaging" },
@@ -83,7 +80,6 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   tk: { name: "TikTok", category: "Social" },
   sn: { name: "Snapchat", category: "Social" },
   nf: { name: "Netflix", category: "Entertainment" },
-  nt: { name: "Netflix", category: "Entertainment" },
   qq: { name: "QQ", category: "Messaging" },
   wb: { name: "WeChat", category: "Messaging" },
   vi: { name: "Viber", category: "Messaging" },
@@ -92,7 +88,6 @@ const serviceNames: Record<string, { name: string; category: string }> = {
   ub: { name: "Uber", category: "Travel" },
   ly: { name: "Olacabs", category: "Travel" },
   mbt: { name: "Microsoft Bing", category: "Accounts" },
-  pp: { name: "PayPal", category: "Finance" },
   pb: { name: "PayPal", category: "Finance" },
   ot: { name: "Other", category: "General" },
 };
@@ -1123,17 +1118,27 @@ router.get("/admin/services", async (req, res) => {
   const countryCode = String(req.query.countryCode ?? "");
   const country = countryCode ? countryFromCode(countryCode) : undefined;
   const countryOverrides = country ? await listCountryServicePrices(country.code) : new Map<string, number>();
-  const activeServices = await liveServices(country?.code);
   const enabledServiceCodes = await listEnabledServiceCodes();
-  // Admin: return ALL available countries (not limited to MAX_COUNTRIES) so prices can be set for any country
-  const fullCatalog = await withFastFallback(getHeroPriceCatalog(), [], 8000);
+
+  // Fetch full catalog WITHOUT a short timeout — admin can afford to wait for accurate live data.
+  // We compute both country totals and service totals from a single catalog fetch.
+  const fullCatalog = await getHeroPriceCatalog().catch(() => []);
   const allCountryTotals = new Map<string, { count: number; cost: number }>();
+  const serviceTotals = new Map<string, { count: number; cost: number }>();
   for (const item of fullCatalog) {
-    const current = allCountryTotals.get(item.countryCode) ?? { count: 0, cost: item.cost };
-    current.count += item.count;
-    if (item.cost > 0 && (current.cost === 0 || item.cost < current.cost)) current.cost = item.cost;
-    allCountryTotals.set(item.countryCode, current);
+    // Country aggregation (all countries, not filtered)
+    const cCurrent = allCountryTotals.get(item.countryCode) ?? { count: 0, cost: item.cost };
+    cCurrent.count += item.count;
+    if (item.cost > 0 && (cCurrent.cost === 0 || item.cost < cCurrent.cost)) cCurrent.cost = item.cost;
+    allCountryTotals.set(item.countryCode, cCurrent);
+    // Service aggregation (optionally scoped to selected country)
+    if (country && item.countryCode !== country.code) continue;
+    const sCurrent = serviceTotals.get(item.serviceCode) ?? { count: 0, cost: item.cost };
+    sCurrent.count += item.count;
+    sCurrent.cost = sCurrent.cost || item.cost;
+    serviceTotals.set(item.serviceCode, sCurrent);
   }
+  const activeServices = Array.from(serviceTotals.entries()).map(([code, live]) => serviceFromCode(code, live));
   const allCountries = Array.from(allCountryTotals.entries())
     .map(([code, live]) => countryFromCode(code, live))
     .filter((c) => c.available > 0)
@@ -1141,8 +1146,7 @@ router.get("/admin/services", async (req, res) => {
   const countryBasePrices = await listAllCountryBasePrices();
 
   // Merge live catalog services with ALL known services from serviceNames so that
-  // every predefined service (e.g. PayPal "pp") is always visible in the admin panel,
-  // even when the Hero SMS catalog doesn't include it in the current response.
+  // every predefined service is always visible in the admin panel.
   const liveCodeSet = new Set(activeServices.map((s) => s.code));
   const allKnownServices: Service[] = [...activeServices];
   for (const [code, meta] of Object.entries(serviceNames)) {

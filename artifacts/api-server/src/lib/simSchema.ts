@@ -183,6 +183,13 @@ async function createSchema() {
     ALTER TABLE sim_referral_settings ADD COLUMN IF NOT EXISTS min_deposit_amount NUMERIC NOT NULL DEFAULT 0;
     ALTER TABLE sim_rentals ADD COLUMN IF NOT EXISTS activation_minutes INTEGER NOT NULL DEFAULT 20;
 
+    -- Migrate duplicate service codes to canonical codes in enabled services
+    INSERT INTO sim_enabled_services (service_code) SELECT 'pb' FROM sim_enabled_services WHERE service_code = 'pp' ON CONFLICT DO NOTHING;
+    DELETE FROM sim_enabled_services WHERE service_code IN ('pp', 'wx', 'nt', 'lf', 'fu');
+    -- Migrate duplicate service price overrides
+    INSERT INTO sim_service_prices (service_code, price, updated_at) SELECT 'pb', price, updated_at FROM sim_service_prices WHERE service_code = 'pp' ON CONFLICT DO NOTHING;
+    DELETE FROM sim_service_prices WHERE service_code IN ('pp', 'wx', 'nt', 'lf', 'fu');
+
     CREATE TABLE IF NOT EXISTS sim_service_margins (
       service_code TEXT NOT NULL,
       country_code TEXT NOT NULL DEFAULT '',
