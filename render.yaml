@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run build:render
+    buildCommand: npm install -g pnpm@10.26.1 && pnpm install --no-frozen-lockfile && pnpm run build:render
     startCommand: pnpm run start:render
     envVars:
       - key: NODE_ENV
