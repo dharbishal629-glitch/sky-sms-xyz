@@ -254,6 +254,11 @@ async function listAllCountryBasePrices(): Promise<Map<string, number>> {
 
 const DEFAULT_MARGIN_PERCENT = 55;
 
+// Absolute minimum markup over Hero SMS cost. Even if an admin sets a fixed price,
+// we will NEVER charge the customer less than (heroSMSCost * (1 + this/100)).
+// This prevents selling at a loss when Hero SMS prices rise above a stale fixed price.
+const MINIMUM_SAFE_MARGIN_PERCENT = 10;
+
 function applyMargin(basePrice: number, marginPercent: number): number {
   return Number((basePrice * (1 + marginPercent / 100)).toFixed(2));
 }
@@ -301,13 +306,42 @@ async function isServiceEnabled(serviceCode: string) {
   return !enabled || enabled.has(serviceCode);
 }
 
-async function getServicePrice(service: Service, country: Country) {
-  const countryResult = await pool.query("SELECT price FROM sim_service_country_prices WHERE service_code = $1 AND country_code = $2", [service.code, country.code]);
-  if (countryResult.rows[0]) return Number(countryResult.rows[0].price);
-  const globalResult = await pool.query("SELECT price FROM sim_service_prices WHERE service_code = $1", [service.code]);
-  if (globalResult.rows[0]) return Number(globalResult.rows[0].price);
-  const margin = await getEffectiveMargin(service.code, country.code);
-  return applyMargin(service.price, margin);
+async function getServicePrice(service: Service, country: Country): Promise<number> {
+  // service.price is the live Hero SMS cost fetched from their API at purchase time
+  const heroSMSCost = service.price;
+
+  let configuredPrice: number | null = null;
+
+  const countryResult = await pool.query(
+    "SELECT price FROM sim_service_country_prices WHERE service_code = $1 AND country_code = $2",
+    [service.code, country.code],
+  );
+  if (countryResult.rows[0]) configuredPrice = Number(countryResult.rows[0].price);
+
+  if (configuredPrice === null) {
+    const globalResult = await pool.query(
+      "SELECT price FROM sim_service_prices WHERE service_code = $1",
+      [service.code],
+    );
+    if (globalResult.rows[0]) configuredPrice = Number(globalResult.rows[0].price);
+  }
+
+  if (configuredPrice === null) {
+    const margin = await getEffectiveMargin(service.code, country.code);
+    configuredPrice = applyMargin(heroSMSCost, margin);
+  }
+
+  // SAFETY FLOOR: never charge less than heroSMSCost + MINIMUM_SAFE_MARGIN_PERCENT.
+  // This prevents selling at a loss when a fixed admin price becomes stale
+  // and Hero SMS raises their price above what we charge customers.
+  if (heroSMSCost > 0) {
+    const minimumSafePrice = applyMargin(heroSMSCost, MINIMUM_SAFE_MARGIN_PERCENT);
+    if (configuredPrice < minimumSafePrice) {
+      configuredPrice = minimumSafePrice;
+    }
+  }
+
+  return configuredPrice;
 }
 
 async function servicesWithPrices(country?: Country, enabledOnly = true) {
@@ -317,13 +351,29 @@ async function servicesWithPrices(country?: Country, enabledOnly = true) {
   const services = await liveServices(country?.code);
   const marginMap = await listAllServiceMargins();
   return services.filter((service) => !enabledCodes || enabledCodes.has(service.code)).map((service) => {
-    if (countryPrices.has(service.code)) return { ...service, price: Number(countryPrices.get(service.code)) };
-    if (prices.has(service.code)) return { ...service, price: Number(prices.get(service.code)) };
-    const serviceMargins = marginMap.get(service.code);
-    const countryMargin = country ? (serviceMargins?.byCountry.get(country.code) ?? null) : null;
-    const globalMargin = serviceMargins?.global ?? null;
-    const effectiveMargin = countryMargin ?? globalMargin ?? DEFAULT_MARGIN_PERCENT;
-    return { ...service, price: applyMargin(service.price, effectiveMargin) };
+    const heroSMSCost = service.price;
+
+    let computedPrice: number;
+    if (countryPrices.has(service.code)) {
+      computedPrice = Number(countryPrices.get(service.code));
+    } else if (prices.has(service.code)) {
+      computedPrice = Number(prices.get(service.code));
+    } else {
+      const serviceMargins = marginMap.get(service.code);
+      const countryMargin = country ? (serviceMargins?.byCountry.get(country.code) ?? null) : null;
+      const globalMargin = serviceMargins?.global ?? null;
+      const effectiveMargin = countryMargin ?? globalMargin ?? DEFAULT_MARGIN_PERCENT;
+      computedPrice = applyMargin(heroSMSCost, effectiveMargin);
+    }
+
+    // Apply the same safety floor as getServicePrice so the displayed price
+    // always matches what will actually be charged at purchase time.
+    if (heroSMSCost > 0) {
+      const minimumSafePrice = applyMargin(heroSMSCost, MINIMUM_SAFE_MARGIN_PERCENT);
+      if (computedPrice < minimumSafePrice) computedPrice = minimumSafePrice;
+    }
+
+    return { ...service, price: computedPrice };
   });
 }
 
