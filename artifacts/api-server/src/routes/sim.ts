@@ -587,6 +587,34 @@ router.use((_req, _res, next) => {
   next();
 });
 
+// ─── Suspension guard — blocks suspended/banned users on all user-facing routes ─
+const SUSPENSION_EXEMPT = ["/admin", "/payments/oxapay/webhook", "/catalog"];
+router.use(async (req, res, next) => {
+  if (!req.isAuthenticated()) return next();
+  const path = req.path ?? "";
+  const isExempt = SUSPENSION_EXEMPT.some((p) => path.startsWith(p));
+  if (isExempt) return next();
+  try {
+    const result = await pool.query(
+      "SELECT status, suspension_reason FROM sim_users WHERE id = $1",
+      [req.user.id],
+    );
+    const row = result.rows[0];
+    if (row && (row.status === "suspended" || row.status === "banned")) {
+      req.logout((err) => { if (err) console.error("[suspension] logout error:", err); });
+      res.status(403).json({
+        error: "Account suspended",
+        reason: row.suspension_reason || "Your account has been suspended. Contact support for assistance.",
+        suspended: true,
+      });
+      return;
+    }
+  } catch (err) {
+    console.error("[suspension] DB check failed:", err);
+  }
+  next();
+});
+
 router.get("/me", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });

@@ -10,6 +10,7 @@ import { AppRoutes } from "./Routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Phone, Mail, Lock, Eye, EyeOff, User, ChevronLeft, Loader2, X } from "lucide-react";
+import { CookieBanner } from "@/components/CookieBanner";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
@@ -415,6 +416,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <ScrollToTop />
           <AppWithRoutes />
+          <CookieBanner />
         </QueryClientProvider>
       </WouterRouter>
       <Toaster />

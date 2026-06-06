@@ -3,13 +3,9 @@ import { Link } from "wouter";
 import { useListRentals, useRefreshRental, useCancelRental, getGetDashboardQueryKey, getListRentalsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, differenceInSeconds } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw, X, MessageSquare, Clock, Copy, Check, Loader2, Phone, History, Zap, CheckCircle2, TrendingUp } from "lucide-react";
+import { RefreshCw, X, MessageSquare, Clock, Copy, Check, Loader2, Phone, Zap, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Reveal } from "@/components/Reveal";
 
 function maskSender(sender: string): string {
   if (!sender) return sender;
@@ -18,7 +14,65 @@ function maskSender(sender: string): string {
   return sender;
 }
 
-function RentalCard({ rental }: { rental: any }) {
+const statusStyles: Record<string, { label: string; cls: string }> = {
+  active:       { label: "Active",    cls: "text-emerald-300 border-emerald-500/20 bg-emerald-500/10" },
+  completed:    { label: "Expired",   cls: "text-slate-500 border-white/[0.07] bg-white/[0.03]" },
+  sms_received: { label: "SMS ✓",     cls: "text-emerald-300 border-emerald-500/20 bg-emerald-500/10" },
+  cancelled:    { label: "Cancelled", cls: "text-slate-500 border-white/[0.06] bg-white/[0.02]" },
+  expired:      { label: "Expired",   cls: "text-slate-500 border-white/[0.06] bg-white/[0.02]" },
+};
+
+function ActiveTimer({ expiresAt, urgentThreshold = 120 }: { expiresAt: string; urgentThreshold?: number }) {
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [progress, setProgress] = useState(100);
+  const totalRef = useState(() => differenceInSeconds(new Date(expiresAt), new Date()))[0];
+
+  useEffect(() => {
+    const tick = () => {
+      const diff = Math.max(0, differenceInSeconds(new Date(expiresAt), new Date()));
+      setTimeLeft(diff);
+      setProgress(totalRef > 0 ? Math.min(100, (diff / totalRef) * 100) : 0);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [expiresAt, totalRef]);
+
+  const urgent = timeLeft < urgentThreshold;
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  const color = timeLeft < 60 ? "red" : timeLeft < 120 ? "amber" : "emerald";
+
+  return (
+    <div className={`rounded-xl border overflow-hidden ${
+      color === "red" ? "border-red-500/20 bg-red-500/[0.06]" :
+      color === "amber" ? "border-amber-500/20 bg-amber-500/[0.06]" :
+      "border-emerald-500/20 bg-emerald-500/[0.05]"
+    }`}>
+      <div className="flex items-center justify-between px-3.5 py-2.5">
+        <div className="flex items-center gap-2">
+          <Clock className={`h-3.5 w-3.5 ${color === "red" ? "text-red-400" : color === "amber" ? "text-amber-400" : "text-emerald-400"}`} />
+          <span className={`text-[12.5px] font-semibold ${color === "red" ? "text-red-200" : color === "amber" ? "text-amber-200" : "text-emerald-200"}`}>
+            {timeLeft === 0 ? "Expired…" : "Expires in"}
+          </span>
+        </div>
+        <span className={`font-mono text-[15px] font-bold tabular-nums ${color === "red" ? "text-red-300" : color === "amber" ? "text-amber-300" : "text-emerald-300"}`}>
+          {m}:{s.toString().padStart(2, "0")}
+        </span>
+      </div>
+      <div className="h-1 w-full bg-white/[0.04]">
+        <div
+          className={`h-full transition-all duration-1000 ease-linear rounded-full ${
+            color === "red" ? "bg-red-500" : color === "amber" ? "bg-amber-500" : "bg-emerald-500"
+          }`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ActiveRentalCard({ rental }: { rental: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const refreshMutation = useRefreshRental();
@@ -26,285 +80,260 @@ function RentalCard({ rental }: { rental: any }) {
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  const isActive = rental.status === 'active';
   const hasMessages = rental.messages && rental.messages.length > 0;
-  const hasCodes = rental.messages?.some((m: any) => m.code);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [progress, setProgress] = useState<number>(100);
 
-  const totalDuration = differenceInSeconds(new Date(rental.expiresAt), new Date(rental.createdAt));
-
-  useEffect(() => {
-    if (!isActive) return;
-    const calculateTimeLeft = () => {
-      const expiresAt = new Date(rental.expiresAt);
-      const diff = Math.max(0, differenceInSeconds(expiresAt, new Date()));
-      setTimeLeft(diff);
-      const pct = totalDuration > 0 ? Math.min(100, Math.max(0, (diff / totalDuration) * 100)) : 0;
-      setProgress(pct);
-      if (diff === 0) {
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: getListRentalsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
-        }, 1500);
-      }
-    };
-    calculateTimeLeft();
-    const interval = setInterval(calculateTimeLeft, 1000);
-    return () => clearInterval(interval);
-  }, [isActive, rental.expiresAt, rental.createdAt, totalDuration, queryClient]);
-
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+  const copy = (text: string, isCode = false) => {
+    navigator.clipboard.writeText(text);
+    if (isCode) { setCopiedCode(text); setTimeout(() => setCopiedCode(null), 2000); }
+    else { setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    toast({ title: "Copied!", duration: 1500 });
   };
 
-  const copyToClipboard = (text: string, isCode = false) => {
-    navigator.clipboard.writeText(text);
-    if (isCode) {
-      setCopiedCode(text);
-      setTimeout(() => setCopiedCode(null), 2000);
-    } else {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-    toast({ title: "Copied to clipboard", duration: 2000 });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getListRentalsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
   };
 
   return (
-    <Card className={`glass-card overflow-hidden transition-all duration-300 ${isActive ? 'border-sky-400/15' : 'opacity-80 hover:opacity-100'}`} data-testid={`card-rental-${rental.id}`}>
-      <div className={`h-1.5 w-full ${isActive ? 'bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-400' : rental.status === 'completed' || rental.status === 'sms_received' ? 'bg-emerald-400' : 'bg-slate-700'}`} />
+    <div className="rounded-2xl border border-emerald-500/15 bg-white/[0.025] overflow-hidden" data-testid={`card-rental-${rental.id}`}>
+      {/* Top bar */}
+      <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500/40 via-emerald-400/60 to-emerald-500/40" />
 
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="flex items-center gap-2 text-lg flex-wrap">
-              {rental.serviceName}
-              <Badge variant={isActive ? 'default' : (rental.status === 'completed' || rental.status === 'sms_received') ? 'secondary' : 'outline'}>
-                {rental.status === 'sms_received' ? '✓ SMS received' : rental.status}
-              </Badge>
-            </CardTitle>
-            <div className="text-sm text-muted-foreground mt-1">
-              {rental.countryName} &bull; {format(new Date(rental.createdAt), "MMM d, yyyy · HH:mm")}
-            </div>
+      <div className="p-4 space-y-3.5">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="font-bold text-white text-[15px]">{rental.serviceName}</div>
+            <div className="text-[12px] text-slate-500 mt-0.5">{rental.countryName} · {format(new Date(rental.createdAt), "MMM d, HH:mm")}</div>
           </div>
-          <div className="text-right ml-3 shrink-0">
-            <div className="font-bold text-base text-white" data-testid={`text-rental-price-${rental.id}`}>${rental.price.toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">charged</div>
+          <div className="text-right">
+            <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-semibold text-emerald-300 border-emerald-500/20 bg-emerald-500/10">Active</span>
+            <div className="text-[12px] font-bold text-white mt-1">${rental.price.toFixed(2)}</div>
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="pb-4 space-y-4">
-        {/* Phone Number — premium display */}
-        <div className={`rounded-2xl p-5 border overflow-hidden ${
-          isActive
-            ? 'bg-sky-400/[0.05] border-sky-400/20'
-            : 'bg-white/[0.03] border-white/10'
-        }`}>
+        {/* Phone Number */}
+        <div className="flex items-center justify-between rounded-xl bg-emerald-500/[0.05] border border-emerald-500/15 px-3.5 py-3">
           <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold">Your Number</span>
-            </div>
-
+            <div className="text-[10px] text-emerald-400/60 font-bold uppercase tracking-wider mb-1">Your Number</div>
             {rental.phoneNumber ? (
-              <div className="flex items-center justify-between gap-2">
-                <div
-                  className={`font-mono font-semibold select-all break-all min-w-0 ${
-                    isActive ? 'text-white text-lg sm:text-2xl' : 'text-slate-300 text-base sm:text-xl'
-                  }`}
-                  data-testid={`text-rental-number-${rental.id}`}
-                >
-                  +{rental.phoneNumber}
-                </div>
-                <button
-                  onClick={() => copyToClipboard(`+${rental.phoneNumber}`)}
-                  data-testid={`button-copy-number-${rental.id}`}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all duration-200 ${
-                    copied
-                      ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-300/30'
-                      : 'bg-white/[0.08] text-white border border-white/[0.12] hover:bg-white/[0.14] hover:border-sky-400/30'
-                  }`}
-                >
-                  {copied ? (
-                    <><Check className="h-3.5 w-3.5" /><span className="hidden sm:inline ml-1">Copied</span></>
-                  ) : (
-                    <><Copy className="h-3.5 w-3.5" /><span className="hidden sm:inline ml-1">Copy</span></>
-                  )}
-                </button>
+              <div className="font-mono font-bold text-white text-[16px] tracking-wide" data-testid={`text-rental-number-${rental.id}`}>
+                +{rental.phoneNumber}
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Allocating your number...
+              <div className="flex items-center gap-2 text-slate-500 text-[13px]">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Allocating…
               </div>
             )}
           </div>
+          {rental.phoneNumber && (
+            <button
+              onClick={() => copy(`+${rental.phoneNumber}`)}
+              data-testid={`button-copy-number-${rental.id}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-all ${
+                copied ? "bg-emerald-400/20 text-emerald-300" : "bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]"
+              }`}
+            >
+              {copied ? <><Check className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+            </button>
+          )}
         </div>
 
         {/* Timer */}
-        {isActive && (
-          <div className={`rounded-2xl border overflow-hidden ${timeLeft < 120 ? 'border-red-300/30 bg-red-400/[0.08]' : timeLeft < 300 ? 'border-amber-300/30 bg-amber-400/[0.08]' : 'border-sky-300/20 bg-sky-400/[0.07]'}`}>
-            <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <Clock className={`h-4 w-4 shrink-0 ${timeLeft < 120 ? 'text-red-400' : timeLeft < 300 ? 'text-amber-400' : 'text-sky-400'}`} />
-                <span className={`text-sm font-semibold truncate ${timeLeft < 120 ? 'text-red-200' : timeLeft < 300 ? 'text-amber-200' : 'text-sky-200'}`}>
-                  {timeLeft === 0 ? "Expired — refreshing..." : "Expires in"}
-                </span>
-              </div>
-              <span className={`font-mono text-xl font-semibold tabular-nums shrink-0 ${timeLeft < 120 ? 'text-red-300' : timeLeft < 300 ? 'text-amber-300' : 'text-sky-300'}`}>
-                {formatTime(timeLeft)}
-              </span>
-            </div>
-            {/* Progress bar */}
-            <div className="h-1.5 w-full bg-white/[0.06]">
-              <div
-                className={`h-full transition-all duration-1000 ease-linear rounded-full ${
-                  timeLeft < 120
-                    ? 'bg-gradient-to-r from-red-500 to-red-400'
-                    : timeLeft < 300
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                    : 'bg-gradient-to-r from-sky-500 to-cyan-400'
-                }`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* SMS Code History — prominent summary for expired rentals */}
-        {!isActive && hasCodes && (
-          <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.06] p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-              <span className="text-sm font-bold text-emerald-300 uppercase tracking-wide">SMS Codes Received</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {rental.messages
-                .filter((m: any) => m.code)
-                .map((m: any) => (
-                  <button
-                    key={m.id}
-                    onClick={() => copyToClipboard(m.code, true)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-semibold text-base tracking-[0.15em] transition-all ${
-                      copiedCode === m.code
-                        ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-200'
-                        : 'bg-white/[0.06] border-emerald-300/20 text-cyan-200 hover:bg-emerald-400/15 hover:border-emerald-300/30'
-                    }`}
-                  >
-                    {m.code}
-                    {copiedCode === m.code ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 opacity-50" />}
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
+        {rental.expiresAt && <ActiveTimer expiresAt={rental.expiresAt} />}
 
         {/* Messages */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-            <MessageSquare className="h-4 w-4" /> Messages
-            {hasMessages && (
-              <Badge variant="outline" className="text-emerald-300 border-emerald-300/20 bg-emerald-400/10 text-xs ml-auto">
-                {rental.messages.length} received
-              </Badge>
-            )}
-          </div>
-
-          {hasMessages ? (
-            <div className="space-y-3">
-              {rental.messages.map((msg: any) => (
-                <div key={msg.id} className="bg-sky-400/[0.08] border border-sky-300/20 rounded-2xl p-4" data-testid={`row-message-${msg.id}`}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-sky-300 uppercase tracking-wider">{maskSender(msg.sender)}</span>
-                    <span className="text-xs text-sky-300/60 font-mono">{format(new Date(msg.receivedAt), "HH:mm:ss")}</span>
-                  </div>
-                  <div className="text-sm text-white leading-relaxed">{msg.message}</div>
-                  {msg.code && (
-                    <div className="mt-3 pt-3 border-t border-sky-200/20 flex items-center justify-between gap-2">
-                      <div>
-                        <div className="text-xs text-sky-300/70 font-semibold uppercase tracking-wider mb-1">Verification Code</div>
-                        <span className="font-mono font-bold text-xl text-sky-300 tracking-[0.2em]">{msg.code}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="rounded-full bg-cyan-400/15 text-cyan-200 border border-cyan-300/20 hover:bg-cyan-400/25 h-9 px-4"
-                        onClick={() => copyToClipboard(msg.code, true)}
-                      >
-                        {copiedCode === msg.code ? <><Check className="h-3.5 w-3.5 mr-1.5 text-emerald-400" /> Copied</> : <><Copy className="h-3.5 w-3.5 mr-1.5" /> Copy</>}
-                      </Button>
+        {hasMessages ? (
+          <div className="space-y-2">
+            {rental.messages.map((msg: any) => (
+              <div key={msg.id} className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-3.5" data-testid={`row-message-${msg.id}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wide">{maskSender(msg.sender)}</span>
+                  <span className="text-[10px] text-slate-600 font-mono">{format(new Date(msg.receivedAt), "HH:mm:ss")}</span>
+                </div>
+                <div className="text-[13px] text-slate-200 leading-relaxed">{msg.message}</div>
+                {msg.code && (
+                  <div className="mt-2.5 pt-2.5 border-t border-white/[0.06] flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider mb-0.5">Code</div>
+                      <span className="font-mono font-bold text-[17px] text-emerald-300 tracking-[0.2em]">{msg.code}</span>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-white/[0.02] rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">
-              {isActive ? (
-                <div className="flex flex-col items-center gap-2">
-                  <MessageSquare className="h-6 w-6 opacity-40" />
-                  Waiting for incoming SMS...
-                </div>
-              ) : "No messages received during this rental."}
-            </div>
-          )}
-        </div>
-      </CardContent>
+                    <button
+                      onClick={() => copy(msg.code, true)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-all ${
+                        copiedCode === msg.code ? "bg-emerald-400/20 text-emerald-300" : "bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]"
+                      }`}
+                    >
+                      {copiedCode === msg.code ? <><Check className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 bg-white/[0.02] border border-dashed border-white/[0.08] rounded-xl px-4 py-3.5 text-[12.5px] text-slate-600">
+            <MessageSquare className="h-4 w-4 text-slate-700 shrink-0" />
+            Waiting for incoming SMS…
+          </div>
+        )}
 
-      {isActive && (
-        <CardFooter className="bg-white/[0.02] px-5 py-3 border-t border-white/[0.06] flex flex-col min-[360px]:flex-row justify-between gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
+        {/* Actions */}
+        <div className="flex gap-2 pt-0.5">
+          <button
             onClick={() => cancelMutation.mutate({ id: rental.id }, {
               onSuccess: () => {
-                queryClient.invalidateQueries({ queryKey: getListRentalsQueryKey() });
-                queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
-                toast({ title: "Cancelled", description: "Rental cancelled. Refund applied if eligible." });
+                invalidate();
+                toast({ title: "Cancelled", description: "Refund applied if eligible." });
               }
             })}
             disabled={cancelMutation.isPending}
-            className="text-muted-foreground hover:text-red-300 hover:bg-red-400/10 rounded-full w-full min-[360px]:w-auto"
             data-testid={`button-cancel-rental-${rental.id}`}
+            className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/[0.05] text-[12.5px] font-semibold text-red-400 hover:bg-red-500/[0.1] transition-all disabled:opacity-50"
           >
-            {cancelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
-            Cancel & Refund
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
+            {cancelMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+            Cancel
+          </button>
+          <button
             onClick={() => refreshMutation.mutate({ id: rental.id }, {
               onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: getListRentalsQueryKey() });
-                toast({ title: "Refreshed", description: "Checked for new messages." });
+                toast({ title: "Refreshed" });
               }
             })}
             disabled={refreshMutation.isPending}
-            className="rounded-full w-full min-[360px]:w-auto"
             data-testid={`button-refresh-rental-${rental.id}`}
+            className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[12.5px] font-semibold text-slate-300 hover:bg-white/[0.06] transition-all disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
             Refresh SMS
-          </Button>
-        </CardFooter>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PastRentalRow({ rental }: { rental: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const hasMessages = rental.messages && rental.messages.length > 0;
+  const hasCodes = rental.messages?.some((m: any) => m.code);
+  const st = statusStyles[rental.status] ?? statusStyles.cancelled;
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(text);
+    setTimeout(() => setCopiedCode(null), 2000);
+    toast({ title: "Copied!", duration: 1500 });
+  };
+
+  return (
+    <div className="border-b border-white/[0.04] last:border-0">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
+        data-testid={`card-rental-${rental.id}`}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-white text-[13.5px] truncate">{rental.serviceName}</span>
+            {hasCodes && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
+          </div>
+          <div className="text-[11.5px] text-slate-600 mt-0.5 truncate">
+            {rental.countryName} · {format(new Date(rental.createdAt), "MMM d, yyyy · HH:mm")}
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="text-right">
+            <div className="text-[13px] font-bold text-white">${rental.price.toFixed(2)}</div>
+            <span className={`inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold ${st.cls}`}>
+              {st.label}
+            </span>
+          </div>
+          {expanded ? <ChevronUp className="h-3.5 w-3.5 text-slate-600" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-600" />}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-3.5 space-y-3">
+          {/* Phone number */}
+          {rental.phoneNumber && (
+            <div className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/[0.07] px-3.5 py-2.5">
+              <div>
+                <div className="text-[10px] text-slate-600 font-bold uppercase tracking-wider mb-1">Number</div>
+                <div className="font-mono text-white text-[14px] font-semibold" data-testid={`text-rental-number-${rental.id}`}>+{rental.phoneNumber}</div>
+              </div>
+              <button
+                onClick={() => copy(`+${rental.phoneNumber}`)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/[0.05] text-slate-400 hover:bg-white/[0.1] transition-all"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </button>
+            </div>
+          )}
+
+          {/* SMS codes */}
+          {hasCodes && (
+            <div className="space-y-2">
+              <div className="text-[10.5px] font-bold text-emerald-400/70 uppercase tracking-wider">SMS Codes Received</div>
+              <div className="flex flex-wrap gap-2">
+                {rental.messages.filter((m: any) => m.code).map((m: any) => (
+                  <button
+                    key={m.id}
+                    onClick={() => copy(m.code)}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border font-mono font-bold text-[14px] tracking-widest transition-all ${
+                      copiedCode === m.code
+                        ? "bg-emerald-400/15 border-emerald-400/30 text-emerald-200"
+                        : "bg-white/[0.04] border-white/[0.1] text-white hover:bg-emerald-400/[0.08] hover:border-emerald-400/20"
+                    }`}
+                  >
+                    {m.code}
+                    {copiedCode === m.code ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 opacity-40" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Messages */}
+          {hasMessages && !hasCodes && (
+            <div className="space-y-2">
+              {rental.messages.map((msg: any) => (
+                <div key={msg.id} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3" data-testid={`row-message-${msg.id}`}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[10.5px] font-bold text-slate-500">{maskSender(msg.sender)}</span>
+                    <span className="text-[10px] text-slate-700 font-mono">{format(new Date(msg.receivedAt), "HH:mm")}</span>
+                  </div>
+                  <div className="text-[12.5px] text-slate-300 leading-relaxed">{msg.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!hasMessages && (
+            <div className="text-[12px] text-slate-600 text-center py-3 border border-dashed border-white/[0.07] rounded-xl">
+              No messages received during this rental.
+            </div>
+          )}
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
 
 export default function Rentals() {
-  const { data, isLoading, error } = useListRentals({ query: { refetchInterval: 15000 } });
+  const { data, isLoading, error } = useListRentals({ query: { refetchInterval: 10000 } });
 
   if (isLoading) {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
-        <div><Skeleton className="h-8 w-48 mb-2" /><Skeleton className="h-4 w-64" /></div>
-        <div className="grid gap-4">
-          {[1, 2].map(i => <Skeleton key={i} className="h-72 w-full rounded-2xl" />)}
+      <div className="space-y-4 max-w-lg mx-auto">
+        <Skeleton className="h-6 w-32 bg-white/[0.04]" />
+        <div className="space-y-3">
+          {[1, 2].map(i => <Skeleton key={i} className="h-56 rounded-2xl bg-white/[0.04]" />)}
         </div>
       </div>
     );
@@ -312,130 +341,67 @@ export default function Rentals() {
 
   if (error || !data) {
     return (
-      <div className="text-center py-16 max-w-4xl mx-auto">
-        <div className="glass-card rounded-2xl p-10 inline-block">
-          <h2 className="text-xl font-bold mb-2 text-white">Could not load rentals</h2>
-          <p className="text-muted-foreground text-sm">Please refresh the page and try again.</p>
-        </div>
+      <div className="text-center py-16 max-w-lg mx-auto">
+        <h2 className="text-[15px] font-semibold text-white mb-1">Could not load rentals</h2>
+        <p className="text-slate-500 text-[13px]">Please refresh the page.</p>
       </div>
     );
   }
 
-  const activeRentals = data.rentals.filter((r: any) => r.status === 'active');
-  const pastRentals = data.rentals.filter((r: any) => r.status !== 'active');
-  const smsReceived = data.rentals.filter((r: any) => r.status === 'sms_received' || r.messages?.length > 0).length;
+  const activeRentals = data.rentals.filter((r: any) => r.status === "active");
+  const pastRentals = data.rentals.filter((r: any) => r.status !== "active");
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10">
+    <div className="max-w-lg mx-auto space-y-5">
 
       {/* Header */}
-      <Reveal variant="up">
-        <div>
-          <h1 className="text-xl font-semibold text-white">My Rentals</h1>
-          <p className="text-muted-foreground mt-1">Manage active numbers and view your rental history.</p>
-        </div>
-      </Reveal>
-
-      {/* Stats */}
-      {data.rentals.length > 0 && (
-        <Reveal variant="up" delay={40}>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { icon: TrendingUp, label: "Total", value: data.rentals.length, color: "cyan" },
-              { icon: Zap, label: "Active", value: activeRentals.length, color: "indigo" },
-              { icon: CheckCircle2, label: "Received", value: smsReceived, color: "emerald" },
-            ].map((stat, i) => (
-              <div key={i} className={`glass-card rounded-2xl p-4 text-center border ${stat.color === 'cyan' ? 'border-cyan-400/10' : stat.color === 'indigo' ? 'border-indigo-400/10' : 'border-emerald-400/10'}`}>
-                <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <div className="text-xs text-muted-foreground mt-1 font-semibold">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      )}
-
-      {/* Active Rentals */}
-      <div className="space-y-4">
-        <Reveal variant="up" delay={60}>
-          <h2 className="text-lg font-bold flex items-center gap-2 text-white">
-            <span className="inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
-            Active Now
-            <span className="text-muted-foreground font-normal text-sm">({activeRentals.length})</span>
-          </h2>
-        </Reveal>
-
-        {activeRentals.length === 0 ? (
-          <Reveal variant="up" delay={80}>
-            <div className="glass-card rounded-2xl border-dashed">
-              <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-                <div className="h-16 w-16 rounded-2xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center mb-5">
-                  <Phone className="h-8 w-8 text-cyan-400/60" />
-                </div>
-                <h3 className="font-semibold text-white text-base mb-2">No active rentals</h3>
-                <p className="text-muted-foreground text-sm mb-6 max-w-xs">
-                  Rent a temporary number to receive SMS verification codes instantly.
-                </p>
-                <Button asChild className="rounded-full">
-                  <Link href="/rent">Rent a Number Now</Link>
-                </Button>
-              </div>
-            </div>
-          </Reveal>
-        ) : (
-          <div className="grid gap-5 md:grid-cols-2">
-            {activeRentals.map((rental: any, i: number) => (
-              <Reveal key={rental.id} variant="up" delay={i * 60}>
-                <RentalCard rental={rental} />
-              </Reveal>
-            ))}
-          </div>
-        )}
+      <div>
+        <h1 className="text-[17px] font-bold text-white">My Rentals</h1>
+        <p className="text-slate-500 mt-0.5 text-[13px]">
+          {data.rentals.length === 0 ? "No rentals yet." : `${activeRentals.length} active · ${pastRentals.length} past`}
+        </p>
       </div>
 
-      {/* How it Works guide (when no past rentals either) */}
-      {data.rentals.length === 0 && (
-        <Reveal variant="up" delay={120}>
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-white">How to Rent a Number</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { step: "1", icon: Zap, title: "Choose Service & Country", desc: "Go to Rent a Number, pick your service (e.g. WhatsApp) and a country with available stock." },
-                { step: "2", icon: Phone, title: "Receive Your Number", desc: "A temporary number is allocated instantly. You have 20 minutes to receive an SMS code." },
-                { step: "3", icon: CheckCircle2, title: "Copy the Code", desc: "Your verification code appears in real-time on the rental card. Tap once to copy it." },
-              ].map((item) => (
-                <div key={item.step} className="glass-card rounded-2xl p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-8 w-8 rounded-full bg-sky-500/10 border border-sky-500/15 flex items-center justify-center shrink-0 font-semibold text-sky-400 text-sm">
-                      {item.step}
-                    </div>
-                    <div className="h-7 w-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                      <item.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    </div>
-                  </div>
-                  <div className="font-bold text-white text-sm mb-1">{item.title}</div>
-                  <div className="text-xs text-muted-foreground leading-relaxed">{item.desc}</div>
-                </div>
-              ))}
-            </div>
+      {/* Active Rentals */}
+      {activeRentals.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[13px] font-bold text-white">Active Now</span>
+            <span className="text-[12px] text-slate-600">({activeRentals.length})</span>
           </div>
-        </Reveal>
+          {activeRentals.map((rental: any) => (
+            <ActiveRentalCard key={rental.id} rental={rental} />
+          ))}
+        </div>
       )}
 
-      {/* Past Rentals */}
+      {/* Empty state */}
+      {data.rentals.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-14 text-center rounded-2xl border border-dashed border-white/[0.07]">
+          <div className="h-12 w-12 rounded-2xl bg-amber-400/[0.07] border border-amber-400/15 flex items-center justify-center mb-4">
+            <Phone className="h-6 w-6 text-amber-400/40" />
+          </div>
+          <h3 className="font-semibold text-white text-[14px] mb-1">No rentals yet</h3>
+          <p className="text-[12.5px] text-slate-500 mb-5 max-w-[200px]">Rent a temporary number to receive SMS verification codes.</p>
+          <Link href="/rent">
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2.5 text-[12.5px] font-bold text-slate-900 hover:bg-amber-400 transition-colors cursor-pointer">
+              <Zap className="h-3.5 w-3.5" /> Rent Now
+            </span>
+          </Link>
+        </div>
+      )}
+
+      {/* Past Rentals — compact accordion list */}
       {pastRentals.length > 0 && (
-        <div className="space-y-4 pt-4 border-t border-white/[0.06]">
-          <Reveal variant="up">
-            <h2 className="text-lg font-bold flex items-center gap-2 text-muted-foreground">
-              <History className="h-5 w-5" />
-              Past Rentals
-              <span className="text-muted-foreground font-normal text-sm">({pastRentals.length})</span>
-            </h2>
-          </Reveal>
-          <div className="grid gap-5 md:grid-cols-2">
-            {pastRentals.map((rental: any, i: number) => (
-              <Reveal key={rental.id} variant="up" delay={i * 40}>
-                <RentalCard rental={rental} />
-              </Reveal>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[13px] font-bold text-slate-500">Past Rentals</span>
+            <span className="text-[12px] text-slate-700">({pastRentals.length})</span>
+          </div>
+          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+            {pastRentals.map((rental: any) => (
+              <PastRentalRow key={rental.id} rental={rental} />
             ))}
           </div>
         </div>

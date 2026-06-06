@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 
 function svcIcon(domain: string) {
   return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=128`;
@@ -240,6 +241,9 @@ function LiveDashboardMockup() {
 export default function Landing({ onLogin }: { onLogin?: () => void }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [, setLocation] = useLocation();
+
+  const goSignIn = () => setLocation("/sign-in");
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -285,13 +289,13 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
           {/* CTAs */}
           <div className="flex items-center gap-3">
             <button
-              onClick={onLogin}
+              onClick={goSignIn}
               className="hidden text-[13px] font-medium text-slate-400 hover:text-white transition-colors sm:inline"
             >
               Sign in
             </button>
             <button
-              onClick={onLogin}
+              onClick={goSignIn}
               className="h-9 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[13px] font-semibold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all duration-200 active:scale-95 shadow-[0_2px_16px_rgba(212,168,67,0.3)] btn-reflect"
             >
               Get started
@@ -331,7 +335,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
               <Reveal variant="up" delay={220}>
                 <div className="flex flex-wrap gap-3 mb-8">
                   <button
-                    onClick={onLogin}
+                    onClick={goSignIn}
                     className="group h-12 px-8 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[15px] font-bold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all flex items-center gap-2 active:scale-95 shadow-[0_4px_24px_rgba(212,168,67,0.35)] btn-reflect"
                   >
                     Rent a number
@@ -393,7 +397,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
               {[...services, ...services].map((svc, i) => (
                 <button
                   key={`${svc.name}-${i}`}
-                  onClick={onLogin}
+                  onClick={goSignIn}
                   className="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 hover:border-amber-500/15 hover:bg-amber-500/[0.03] transition-all duration-200 shrink-0 group"
                 >
                   <div className="h-7 w-7 rounded-lg bg-white/[0.05] flex items-center justify-center overflow-hidden shrink-0">
@@ -524,7 +528,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                     ))}
                   </ul>
                   <button
-                    onClick={onLogin}
+                    onClick={goSignIn}
                     className="h-13 px-10 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[15px] font-bold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all active:scale-95 shadow-[0_4px_24px_rgba(212,168,67,0.4)] btn-reflect"
                   >
                     Start for free
@@ -592,7 +596,7 @@ export default function Landing({ onLogin }: { onLogin?: () => void }) {
                     No account approvals. No identity checks. Sign in with Google and rent your first number right away.
                   </p>
                   <button
-                    onClick={onLogin}
+                    onClick={goSignIn}
                     className="group h-14 px-10 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[16px] font-bold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all inline-flex items-center gap-2.5 active:scale-95 shadow-[0_4px_30px_rgba(212,168,67,0.4)] btn-reflect"
                   >
                     Start renting now

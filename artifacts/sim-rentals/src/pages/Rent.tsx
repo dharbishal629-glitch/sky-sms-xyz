@@ -1,14 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useListServices, useGetAvailability, useCreateRental, getGetDashboardQueryKey } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Label } from "@/components/ui/label";
-import { Loader2, Globe, Server, CheckCircle2, AlertCircle, Zap, ArrowRight, RefreshCw } from "lucide-react";
+import { Loader2, Globe, Server, CheckCircle2, AlertCircle, Zap, ArrowRight, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useLocation } from "wouter";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { useToast } from "@/hooks/use-toast";
-import { Reveal } from "@/components/Reveal";
 
 interface LiveCountry {
   code: string;
@@ -45,7 +42,7 @@ const serviceIconDomains: Record<string, string> = {
   wechat: "wechat.com", viber: "viber.com", vk: "vk.com",
   tinder: "tinder.com", bumble: "bumble.com", "pof.com": "pof.com",
   coinbase: "coinbase.com", steam: "steampowered.com", naver: "naver.com",
-  bolt: "bolt.eu", wise: "wise.com", nike: "nike.com",
+  bolt: "bolt.eu", wise: "wise.com", nike: "nike.com", microsoft: "microsoft.com",
 };
 
 function getServiceIcon(name: string): string | null {
@@ -59,18 +56,28 @@ function maskProviderName(name: string): string {
   return name === "Hero SMS" ? "SKY SMS" : name;
 }
 
-function InfoRow({ label, value, highlight }: { label: string; value: React.ReactNode; highlight?: boolean }) {
+type SortMode = "stock" | "price-asc" | "price-desc";
+
+function SortButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/[0.05] last:border-0">
-      <span className="text-[13px] text-slate-500 font-medium">{label}</span>
-      <span className={`text-[13px] font-semibold ${highlight ? "text-white" : "text-slate-300"}`}>{value}</span>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold transition-all duration-150 ${
+        active
+          ? "bg-amber-500/15 border border-amber-500/25 text-amber-300"
+          : "border border-white/[0.07] text-slate-600 hover:text-slate-400 hover:border-white/[0.12]"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
 export default function Rent() {
   const [serviceCode, setServiceCode] = useState<string>("");
   const [countryCode, setCountryCode] = useState<string>("");
+  const [sort, setSort] = useState<SortMode>("stock");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -100,8 +107,8 @@ export default function Rent() {
       onSuccess: (rental) => {
         const mins = availability?.activationMinutes ?? 20;
         toast({
-          title: "Number rented successfully",
-          description: `You have ${mins} minute${mins !== 1 ? "s" : ""} to receive an SMS for ${rental.serviceName}.`,
+          title: "Number rented!",
+          description: `${mins} minutes to receive SMS for ${rental.serviceName}.`,
         });
         queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
@@ -109,13 +116,21 @@ export default function Rent() {
       },
       onError: (error: unknown) => {
         const apiErr = error as { data?: { error?: string }; message?: string } | null;
-        const description = apiErr?.data?.error || apiErr?.message || "An unexpected error occurred. You might need more funds.";
-        toast({ title: "Failed to rent number", description, variant: "destructive" });
+        const description = apiErr?.data?.error || apiErr?.message || "Check your balance and try again.";
+        toast({ title: "Failed to rent", description, variant: "destructive" });
       }
     });
   };
 
   const liveCountries = countriesData?.countries ?? [];
+
+  const sortedCountries = useMemo(() => {
+    const arr = [...liveCountries];
+    if (sort === "price-asc") return arr.sort((a, b) => (a.price || 999) - (b.price || 999));
+    if (sort === "price-desc") return arr.sort((a, b) => (b.price || 0) - (a.price || 0));
+    return arr.sort((a, b) => b.available - a.available);
+  }, [liveCountries, sort]);
+
   const serviceOptions = (servicesData?.services ?? []).map((service) => ({
     value: service.code,
     label: service.name,
@@ -123,11 +138,12 @@ export default function Rent() {
     meta: `$${service.price.toFixed(2)}`,
     icon: getServiceIcon(service.name),
   }));
-  const countryOptions = liveCountries.map((country) => ({
+
+  const countryOptions = sortedCountries.map((country) => ({
     value: country.code,
     label: country.name,
     searchText: `${country.name} ${country.code}`,
-    meta: `${country.price > 0 ? `$${country.price.toFixed(2)} · ` : ""}${country.available.toLocaleString()} left`,
+    meta: `${country.price > 0 ? `$${country.price.toFixed(2)}` : ""} · ${country.available.toLocaleString()}`,
     icon: country.flag || "🌍",
   }));
 
@@ -135,219 +151,221 @@ export default function Rent() {
   const canRent = isAvailable && !createRental.isPending;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-7">
+    <div className="max-w-lg mx-auto space-y-4">
 
       {/* Header */}
-      <Reveal variant="up">
-        <div>
-          <h1 className="text-xl font-semibold text-white">Rent a Number</h1>
-          <p className="text-slate-500 mt-1.5 text-[14px]">Select a service, then choose a live country. Prices and stock refresh in real time.</p>
-        </div>
-      </Reveal>
+      <div>
+        <h1 className="text-[17px] font-bold text-white">Rent a Number</h1>
+        <p className="text-slate-500 mt-0.5 text-[13px]">Pick a service and country. Prices refresh in real time.</p>
+      </div>
 
       {/* Selection card */}
-      <Reveal variant="up" delay={60}>
-        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] overflow-hidden" data-testid="card-rent-selection">
-          <div className="px-6 py-5 border-b border-white/[0.06]">
-            <div className="font-semibold text-white text-[15px]">Configure Rental</div>
-            <div className="text-[12px] text-slate-500 mt-0.5">Choose your service first, then select a country.</div>
+      <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] overflow-hidden">
+        <div className="px-4 py-3.5 border-b border-white/[0.05]">
+          <div className="font-semibold text-white text-[14px]">Configure Rental</div>
+          <div className="text-[12px] text-slate-500 mt-0.5">Select service first, then choose a country.</div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Service */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-[12px] font-semibold text-slate-400">
+              <div className="h-4.5 w-4.5 rounded-md bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
+                <Server className="h-2.5 w-2.5 text-amber-400" />
+              </div>
+              Service
+            </label>
+            <SearchableSelect
+              value={serviceCode}
+              options={serviceOptions}
+              placeholder={loadingServices ? "Loading services…" : servicesError ? "Error loading" : "Search a service…"}
+              searchPlaceholder="Telegram, WhatsApp, Google…"
+              emptyText="No service found."
+              disabled={loadingServices || servicesError}
+              onChange={(val) => { setServiceCode(val); setCountryCode(""); }}
+            />
+            {servicesError && (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2.5 text-[12px] text-amber-200">
+                <span>Services failed to load.</span>
+                <button type="button" onClick={() => refetchServices()} className="font-bold text-amber-100 flex items-center gap-1 hover:text-white transition-colors">
+                  <RefreshCw className="h-3 w-3" /> Retry
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="p-6 space-y-6">
-            {/* Service */}
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2 text-[13px] font-semibold text-slate-300">
-                <div className="h-5 w-5 rounded-md bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
-                  <Server className="h-3 w-3 text-sky-400" />
-                </div>
-                Service
-              </Label>
-              <SearchableSelect
-                value={serviceCode}
-                options={serviceOptions}
-                placeholder={loadingServices ? "Loading services…" : servicesError ? "Could not load services" : "Search and select a service"}
-                searchPlaceholder="Type service name…"
-                emptyText="No service found."
-                disabled={loadingServices || servicesError}
-                onChange={(val) => { setServiceCode(val); setCountryCode(""); }}
-              />
-              {servicesError && (
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-[12.5px] text-amber-200">
-                  <span>Services could not be loaded. Please retry.</span>
-                  <button type="button" onClick={() => refetchServices()} className="font-bold text-amber-100 flex items-center gap-1 hover:text-white transition-colors">
-                    <RefreshCw className="h-3 w-3" /> Retry
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Country */}
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2 text-[13px] font-semibold text-slate-300">
-                <div className="h-5 w-5 rounded-md bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
-                  <Globe className="h-3 w-3 text-indigo-400" />
+          {/* Country */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-[12px] font-semibold text-slate-400">
+                <div className="h-4.5 w-4.5 rounded-md bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center">
+                  <Globe className="h-2.5 w-2.5 text-indigo-400" />
                 </div>
                 Country
                 {serviceCode && loadingCountries && (
-                  <Loader2 className="h-3 w-3 animate-spin text-slate-600 ml-1" />
+                  <Loader2 className="h-3 w-3 animate-spin text-slate-600" />
                 )}
-              </Label>
-              <SearchableSelect
-                value={countryCode}
-                options={countryOptions}
-                placeholder={
-                  !serviceCode ? "Select a service first" :
-                  loadingCountries ? "Loading available countries…" :
-                  liveCountries.length === 0 ? "No countries available for this service" :
-                  "Search and select a country"
-                }
-                searchPlaceholder="Type country name…"
-                emptyText="No country found."
-                disabled={!serviceCode || loadingCountries || liveCountries.length === 0}
-                onChange={setCountryCode}
-              />
-              {serviceCode && !loadingCountries && liveCountries.length === 0 && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-[12.5px] text-amber-200">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  No countries currently have stock for this service. Try a different service or check back later.
+              </label>
+
+              {/* Sort controls */}
+              {serviceCode && !loadingCountries && liveCountries.length > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <SortButton active={sort === "stock"} onClick={() => setSort("stock")}>
+                    <ArrowUpDown className="h-3 w-3" /> Stock
+                  </SortButton>
+                  <SortButton active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
+                    <ArrowUp className="h-3 w-3" /> Price
+                  </SortButton>
+                  <SortButton active={sort === "price-desc"} onClick={() => setSort("price-desc")}>
+                    <ArrowDown className="h-3 w-3" /> Price
+                  </SortButton>
                 </div>
               )}
             </div>
+
+            <SearchableSelect
+              value={countryCode}
+              options={countryOptions}
+              placeholder={
+                !serviceCode ? "Select a service first" :
+                loadingCountries ? "Loading countries…" :
+                liveCountries.length === 0 ? "No countries available" :
+                "Search a country…"
+              }
+              searchPlaceholder="Type country name…"
+              emptyText="No country found."
+              disabled={!serviceCode || loadingCountries || liveCountries.length === 0}
+              onChange={setCountryCode}
+            />
+
+            {serviceCode && !loadingCountries && liveCountries.length === 0 && (
+              <div className="flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2.5 text-[12px] text-amber-200">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                No countries available for this service. Try a different one.
+              </div>
+            )}
           </div>
         </div>
-      </Reveal>
+      </div>
 
       {/* Availability card */}
       {countryCode && serviceCode && (
-        <Reveal variant="up" delay={80}>
-          <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${isAvailable ? "border-sky-500/20" : "border-white/[0.07]"} bg-white/[0.025]`} data-testid="card-availability">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
-              <div className="font-semibold text-white text-[15px]">Availability</div>
-              {(loadingAvailability || fetchingAvailability) && (
-                <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
-              )}
-            </div>
-
-            <div className="p-6">
-              {!availability && !loadingAvailability ? (
-                <div className="flex items-center gap-3 text-rose-300 bg-rose-400/8 border border-rose-400/15 rounded-xl p-4">
-                  <AlertCircle className="h-5 w-5 shrink-0" />
-                  <span className="text-[13.5px] font-medium">Failed to check availability. Please try again.</span>
-                </div>
-              ) : availability ? (
-                <div className="space-y-5">
-                  {/* Status banner */}
-                  {availability.available > 0 ? (
-                    <div className="flex items-start gap-3.5 bg-emerald-400/8 border border-emerald-400/15 rounded-xl p-4">
-                      <div className="h-8 w-8 rounded-xl bg-emerald-400/15 border border-emerald-400/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-emerald-200 text-[14px]">Numbers available</div>
-                        <div className="text-[12.5px] mt-1 text-emerald-100/70 leading-relaxed">
-                          {availability.available.toLocaleString()} numbers ready · Est. wait: {availability.estimatedWait}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-3.5 bg-amber-400/8 border border-amber-400/15 rounded-xl p-4">
-                      <div className="h-8 w-8 rounded-xl bg-amber-400/15 border border-amber-400/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <AlertCircle className="h-4 w-4 text-amber-400" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-amber-200 text-[14px]">No numbers available</div>
-                        <div className="text-[12.5px] mt-1 text-amber-100/70">
-                          This provider is out of stock for this combination. Try a different country or check back later.
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Info rows */}
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5">
-                    <InfoRow label="Price per SMS" value={
-                      <span className="text-xl font-bold text-white" data-testid="text-price-quote">${availability.price.toFixed(2)}</span>
-                    } highlight />
-                    <InfoRow label="Numbers in stock" value={availability.available.toLocaleString()} />
-                    <InfoRow label="Network" value={maskProviderName(availability.provider.name)} />
-                    {availability.provider.mode !== "live" && (
-                      <InfoRow label="Status" value={
-                        <Badge variant="outline" className="text-amber-200 border-amber-400/20 bg-amber-400/10 text-[11px] font-semibold">
-                          {availability.provider.mode}
-                        </Badge>
-                      } />
-                    )}
-                    {availability.price === 0 && (
-                      <InfoRow label="" value={
-                        <span className="text-[11px] text-amber-400">Price not set — configure in admin panel</span>
-                      } />
-                    )}
-                  </div>
-
-                  {/* Rent button */}
-                  <button
-                    className={`w-full h-13 rounded-xl text-[15px] font-bold transition-all duration-250 flex items-center justify-center gap-2.5 active:scale-[0.98] ${
-                      canRent
-                        ? "bg-sky-500 text-white hover:bg-sky-400"
-                        : "bg-white/[0.05] border border-white/[0.08] text-slate-600 cursor-not-allowed"
-                    }`}
-                    disabled={!canRent}
-                    onClick={handleRent}
-                    data-testid="button-confirm-rent"
-                  >
-                    {createRental.isPending ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Allocating number…
-                      </>
-                    ) : availability?.provider.mode !== "live" ? (
-                      "Provider Unavailable"
-                    ) : availability?.available === 0 ? (
-                      "No Numbers Available"
-                    ) : (
-                      <>
-                        <Zap className="h-5 w-5" />
-                        Rent Number — ${availability.price.toFixed(2)}
-                        <ArrowRight className="h-4 w-4 ml-auto" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <Skeleton className="h-20 w-full rounded-xl bg-white/[0.04]" />
-                  <Skeleton className="h-24 w-full rounded-xl bg-white/[0.04]" />
-                  <Skeleton className="h-13 w-full rounded-xl bg-white/[0.04]" />
-                </div>
-              )}
-            </div>
+        <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${isAvailable ? "border-emerald-500/20" : "border-white/[0.07]"} bg-white/[0.025]`}>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.05]">
+            <div className="font-semibold text-white text-[14px]">Availability</div>
+            {(loadingAvailability || fetchingAvailability) && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-600" />
+            )}
           </div>
-        </Reveal>
+
+          <div className="p-4">
+            {!availability && !loadingAvailability ? (
+              <div className="flex items-center gap-3 text-rose-300 bg-rose-400/[0.06] border border-rose-400/15 rounded-xl p-3.5">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="text-[13px] font-medium">Failed to check availability.</span>
+              </div>
+            ) : availability ? (
+              <div className="space-y-4">
+                {/* Status */}
+                {availability.available > 0 ? (
+                  <div className="flex items-center gap-3 bg-emerald-400/[0.06] border border-emerald-400/15 rounded-xl p-3.5">
+                    <div className="h-7 w-7 rounded-lg bg-emerald-400/15 border border-emerald-400/20 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-emerald-200 text-[13.5px]">Numbers available</div>
+                      <div className="text-[12px] mt-0.5 text-emerald-100/60">
+                        {availability.available.toLocaleString()} ready · {availability.estimatedWait}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 bg-amber-400/[0.06] border border-amber-400/15 rounded-xl p-3.5">
+                    <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="font-bold text-amber-200 text-[13.5px]">No numbers available</div>
+                      <div className="text-[12px] mt-0.5 text-amber-100/60">Try a different country.</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info rows */}
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] divide-y divide-white/[0.04]">
+                  <div className="flex items-center justify-between px-4 py-2.5">
+                    <span className="text-[12.5px] text-slate-500">Price per SMS</span>
+                    <span className="text-[18px] font-bold text-white" data-testid="text-price-quote">${availability.price.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-2.5">
+                    <span className="text-[12.5px] text-slate-500">Numbers in stock</span>
+                    <span className="text-[13px] font-semibold text-slate-300">{availability.available.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-2.5">
+                    <span className="text-[12.5px] text-slate-500">Network</span>
+                    <span className="text-[13px] font-semibold text-slate-300">{maskProviderName(availability.provider.name)}</span>
+                  </div>
+                </div>
+
+                {/* Rent button — amber, not blue */}
+                <button
+                  className={`w-full h-12 rounded-xl text-[14.5px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] ${
+                    canRent
+                      ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 hover:from-amber-400 hover:to-amber-500 shadow-[0_2px_16px_rgba(212,168,67,0.3)]"
+                      : "bg-white/[0.04] border border-white/[0.07] text-slate-600 cursor-not-allowed"
+                  }`}
+                  disabled={!canRent}
+                  onClick={handleRent}
+                  data-testid="button-confirm-rent"
+                >
+                  {createRental.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Allocating number…
+                    </>
+                  ) : availability?.provider.mode !== "live" ? (
+                    "Provider Unavailable"
+                  ) : availability?.available === 0 ? (
+                    "No Numbers Available"
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4" />
+                      Rent Number — ${availability.price.toFixed(2)}
+                      <ArrowRight className="h-4 w-4 ml-auto" />
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Skeleton className="h-14 w-full rounded-xl bg-white/[0.04]" />
+                <Skeleton className="h-24 w-full rounded-xl bg-white/[0.04]" />
+                <Skeleton className="h-12 w-full rounded-xl bg-white/[0.04]" />
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* Tips */}
+      {/* How it works */}
       {!countryCode && (
-        <Reveal variant="up" delay={120}>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-            <div className="text-[13px] font-bold text-slate-500 mb-4 uppercase tracking-wider">How it works</div>
-            <div className="space-y-4">
-              {[
-                { n: "01", title: "Pick a service", desc: "Search for Telegram, WhatsApp, Google, or any of 50+ platforms." },
-                { n: "02", title: "Choose a country", desc: "Live stock counts are shown per country before you commit." },
-                { n: "03", title: "Get your number", desc: "A real phone number is allocated instantly after purchase." },
-                { n: "04", title: "Receive the SMS", desc: "Codes appear on your rental card in real time. Copy with one tap." },
-              ].map((step) => (
-                <div key={step.n} className="flex items-start gap-4">
-                  <span className="text-[11px] font-semibold text-sky-400/60 font-mono w-6 shrink-0 mt-0.5">{step.n}</span>
-                  <div>
-                    <div className="text-[13px] font-bold text-white">{step.title}</div>
-                    <div className="text-[12px] text-slate-500 mt-0.5">{step.desc}</div>
-                  </div>
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
+          <div className="text-[11px] font-bold text-slate-600 mb-3 uppercase tracking-wider">How it works</div>
+          <div className="space-y-3">
+            {[
+              { n: "1", title: "Pick a service", desc: "Search for Telegram, WhatsApp, Google, and 50+ more." },
+              { n: "2", title: "Choose a country", desc: "Live stock counts shown per country." },
+              { n: "3", title: "Get your number", desc: "Allocated instantly after purchase." },
+              { n: "4", title: "Receive the SMS", desc: "Code appears in real time. Copy with one tap." },
+            ].map((step) => (
+              <div key={step.n} className="flex items-start gap-3">
+                <span className="text-[10px] font-bold text-amber-500/50 font-mono w-4 shrink-0 mt-0.5">{step.n}</span>
+                <div>
+                  <div className="text-[13px] font-semibold text-white">{step.title}</div>
+                  <div className="text-[12px] text-slate-500 mt-0.5">{step.desc}</div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </Reveal>
+        </div>
       )}
     </div>
   );
