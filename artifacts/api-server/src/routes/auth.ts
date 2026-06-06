@@ -1,6 +1,7 @@
 import * as oidc from "openid-client";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { pool } from "@workspace/db";
+import bcrypt from "bcryptjs";
 import {
   clearSession,
   getOidcConfig,
@@ -64,8 +65,6 @@ async function upsertSimUser(user: AuthUser) {
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || "User";
   const email = user.email || `user-${user.id}@example.com`;
 
-  // Role is determined strictly by the admin email allowlist.
-  // No "first user" or "no admins" fallback — that was the security hole.
   const role = isAdminEmail(user.email) ? "admin" : "user";
 
   await pool.query(
@@ -77,6 +76,25 @@ async function upsertSimUser(user: AuthUser) {
        role  = EXCLUDED.role`,
     [user.id, name, email, role],
   );
+}
+
+async function checkUserSuspended(email: string, res: Response): Promise<boolean> {
+  const result = await pool.query(
+    "SELECT status, suspension_reason FROM sim_users WHERE email = $1",
+    [email],
+  );
+  if (!result.rows[0]) return false;
+  const { status, suspension_reason } = result.rows[0];
+  if (status === "suspended" || status === "banned") {
+    const reason = suspension_reason ? `: ${suspension_reason}` : "";
+    res.status(403).json({ error: `Account ${status}${reason}` });
+    return true;
+  }
+  return false;
+}
+
+function generateUserId(): string {
+  return "em_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 router.get("/auth/user", (req: Request, res: Response) => {
@@ -169,6 +187,19 @@ router.get("/callback", async (req: Request, res: Response) => {
 
   await upsertSimUser(user);
 
+  if (user.email) {
+    const statusCheck = await pool.query(
+      "SELECT status, suspension_reason FROM sim_users WHERE id = $1",
+      [user.id],
+    );
+    const row = statusCheck.rows[0];
+    if (row && (row.status === "suspended" || row.status === "banned")) {
+      const reason = row.suspension_reason ? encodeURIComponent(row.suspension_reason) : "";
+      res.redirect(`/sign-in?suspended=1&reason=${reason}`);
+      return;
+    }
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const sessionData: SessionData = {
     user,
@@ -180,6 +211,123 @@ router.get("/callback", async (req: Request, res: Response) => {
   const sid = await createSession(sessionData);
   setSessionCookie(res, sid);
   res.redirect(returnTo);
+});
+
+// ── Email / Password: Register ──────────────────────────────────────────────
+router.post("/auth/register", async (req: Request, res: Response) => {
+  await ensureSimSchema();
+  const email = String(req.body?.email ?? "").toLowerCase().trim();
+  const password = String(req.body?.password ?? "");
+  const name = String(req.body?.name ?? "").trim() || "User";
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "A valid email address is required." });
+    return;
+  }
+  if (!password || password.length < 8) {
+    res.status(400).json({ error: "Password must be at least 8 characters." });
+    return;
+  }
+
+  const existing = await pool.query("SELECT id FROM sim_email_credentials WHERE email = $1", [email]);
+  if (existing.rows[0]) {
+    res.status(409).json({ error: "An account with this email already exists." });
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const userId = generateUserId();
+  const role = isAdminEmail(email) ? "admin" : "user";
+
+  await pool.query(
+    `INSERT INTO sim_users (id, name, email, role, credits, status)
+     VALUES ($1, $2, $3, $4, 0, 'active')
+     ON CONFLICT (email) DO NOTHING`,
+    [userId, name, email, role],
+  );
+
+  const userRow = await pool.query("SELECT id FROM sim_users WHERE email = $1", [email]);
+  const finalUserId = String(userRow.rows[0].id);
+
+  await pool.query(
+    `INSERT INTO sim_email_credentials (id, email, password_hash, user_id, verified)
+     VALUES ($1, $2, $3, $4, TRUE)
+     ON CONFLICT (email) DO NOTHING`,
+    [generateUserId(), email, passwordHash, finalUserId],
+  );
+
+  const user: AuthUser = {
+    id: finalUserId,
+    email,
+    firstName: name.split(" ")[0] || name,
+    lastName: name.split(" ").slice(1).join(" ") || null,
+    profileImageUrl: null,
+  };
+
+  const sessionData: SessionData = {
+    user,
+    access_token: "",
+    refresh_token: undefined,
+    expires_at: undefined,
+  };
+
+  const sid = await createSession(sessionData);
+  setSessionCookie(res, sid);
+  res.json({ success: true, user: { id: finalUserId, email, name, role } });
+});
+
+// ── Email / Password: Login ──────────────────────────────────────────────────
+router.post("/auth/login-email", async (req: Request, res: Response) => {
+  await ensureSimSchema();
+  const email = String(req.body?.email ?? "").toLowerCase().trim();
+  const password = String(req.body?.password ?? "");
+
+  if (!email || !password) {
+    res.status(400).json({ error: "Email and password are required." });
+    return;
+  }
+
+  const cred = await pool.query(
+    "SELECT c.*, u.id AS uid, u.name, u.role, u.status, u.suspension_reason FROM sim_email_credentials c JOIN sim_users u ON u.id = c.user_id WHERE c.email = $1",
+    [email],
+  );
+
+  if (!cred.rows[0]) {
+    res.status(401).json({ error: "Invalid email or password." });
+    return;
+  }
+
+  const row = cred.rows[0];
+  const valid = await bcrypt.compare(password, String(row.password_hash));
+  if (!valid) {
+    res.status(401).json({ error: "Invalid email or password." });
+    return;
+  }
+
+  if (row.status === "suspended" || row.status === "banned") {
+    const reason = row.suspension_reason ? `: ${row.suspension_reason}` : "";
+    res.status(403).json({ error: `Account ${row.status}${reason}` });
+    return;
+  }
+
+  const user: AuthUser = {
+    id: String(row.uid),
+    email,
+    firstName: String(row.name).split(" ")[0] || String(row.name),
+    lastName: String(row.name).split(" ").slice(1).join(" ") || null,
+    profileImageUrl: null,
+  };
+
+  const sessionData: SessionData = {
+    user,
+    access_token: "",
+    refresh_token: undefined,
+    expires_at: undefined,
+  };
+
+  const sid = await createSession(sessionData);
+  setSessionCookie(res, sid);
+  res.json({ success: true, user: { id: user.id, email, name: row.name, role: row.role } });
 });
 
 router.get("/logout", async (req: Request, res: Response) => {

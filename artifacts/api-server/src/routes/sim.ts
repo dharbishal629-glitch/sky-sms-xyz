@@ -1196,6 +1196,41 @@ router.put("/admin/users/:id/role", async (req, res) => {
   });
 });
 
+router.put("/admin/users/:id/status", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const userId = String(req.params.id);
+  const status = String(req.body?.status ?? "");
+  const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : null;
+
+  if (status !== "active" && status !== "suspended" && status !== "banned") {
+    res.status(400).json({ error: "Status must be 'active', 'suspended', or 'banned'." });
+    return;
+  }
+
+  const result = await pool.query(
+    `UPDATE sim_users
+     SET status = $1, suspension_reason = $2
+     WHERE id = $3
+     RETURNING id, name, email, role, credits, status, suspension_reason`,
+    [status, status === "active" ? null : (reason || null), userId],
+  );
+
+  if (!result.rows[0]) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
+  const row = result.rows[0];
+  res.json({
+    id: String(row.id),
+    name: String(row.name),
+    email: String(row.email),
+    role: String(row.role),
+    credits: Number(row.credits),
+    status: String(row.status),
+    suspensionReason: row.suspension_reason ? String(row.suspension_reason) : null,
+  });
+});
+
 router.get("/admin/services", async (req, res) => {
   if (!await requireAdmin(req, res)) return;
   const priceOverrides = await listServicePrices();

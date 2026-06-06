@@ -6,7 +6,7 @@ import { useCommunityLinks } from "@/hooks/useCommunityLinks";
 import {
   LayoutDashboard, Phone, History, CreditCard, Settings, Shield, Users,
   Activity, SlidersHorizontal, LogOut, Menu, DollarSign, Zap, ChevronRight,
-  X, LifeBuoy, Tag, Bell, Check, Info, AlertCircle
+  X, LifeBuoy, Tag, Bell, Check, Info, AlertCircle, Code2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +20,7 @@ const navItems = [
   { href: "/rentals",   label: "My Rentals",  icon: History },
   { href: "/payments",  label: "Payments",    icon: CreditCard },
   { href: "/referral",  label: "Referral",    icon: Tag },
+  { href: "/api-docs",  label: "API",         icon: Code2 },
   { href: "/support",   label: "Support",     icon: LifeBuoy },
   { href: "/settings",  label: "Settings",    icon: Settings },
 ];
@@ -30,7 +31,7 @@ const adminItems = [
   { href: "/admin/transactions",       label: "Transactions",   icon: Activity },
   { href: "/admin/users",              label: "Users",          icon: Users },
   { href: "/admin/coupons",            label: "Coupons",        icon: Tag },
-  { href: "/admin/notifications",      label: "Notifications",  icon: Bell },
+  { href: "/admin/notifications",      label: "Announcements",  icon: Bell },
   { href: "/admin/support",            label: "Support",        icon: LifeBuoy },
 ];
 
@@ -130,9 +131,10 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-amber-900/20 bg-[#080c18] shadow-[0_8px_40px_rgba(0,0,0,0.7),0_0_0_1px_rgba(212,168,67,0.06)] z-50 overflow-hidden"
-          style={{ animation: "dropdown-in 0.2s cubic-bezier(0.16,1,0.3,1) both" }}>
-          {/* Header */}
+        <div
+          className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-amber-900/20 bg-[#080c18] shadow-[0_8px_40px_rgba(0,0,0,0.7),0_0_0_1px_rgba(212,168,67,0.06)] z-50 overflow-hidden"
+          style={{ animation: "dropdown-in 0.2s cubic-bezier(0.16,1,0.3,1) both" }}
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05]">
             <span className="text-[12px] font-bold text-white">Notifications</span>
             {unreadCount > 0 && (
@@ -142,7 +144,6 @@ function NotificationBell() {
             )}
           </div>
 
-          {/* List */}
           <div className="max-h-72 overflow-y-auto">
             {loading && notifications.length === 0 ? (
               <div className="px-4 py-6 space-y-3">
@@ -199,13 +200,13 @@ function NavItem({
     <Link href={href}>
       <span
         onClick={onClick}
-        className={`group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 cursor-pointer select-none ${
+        className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 cursor-pointer select-none ${
           active
-            ? "bg-gradient-to-r from-amber-500/10 to-transparent text-white border border-amber-500/15 shadow-[0_1px_8px_rgba(0,0,0,0.2)]"
+            ? "bg-gradient-to-r from-amber-500/12 to-amber-500/4 text-white border border-amber-500/18 shadow-[0_1px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(212,168,67,0.06)]"
             : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 border border-transparent"
         }`}
       >
-        <Icon className={`h-[16px] w-[16px] shrink-0 transition-colors ${active ? "text-amber-400" : "text-slate-600 group-hover:text-slate-400"}`} />
+        <Icon className={`h-[15px] w-[15px] shrink-0 transition-colors ${active ? "text-amber-400" : "text-slate-600 group-hover:text-slate-400"}`} />
         <span className="flex-1 leading-none">{label}</span>
         {badge}
         {active && <div className="h-1.5 w-1.5 rounded-full bg-amber-400/80 shrink-0" />}
@@ -225,15 +226,15 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Logo — no bell here on mobile (bell is in mobile header) */}
+      {/* Logo */}
       <div className={`px-4 pt-5 pb-4 flex items-center justify-between ${onNav ? "pr-14" : ""}`}>
         <Link href="/dashboard">
           <span className="flex items-center gap-2.5 cursor-pointer group" onClick={onNav}>
-            <div className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:bg-amber-500/15">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-700/10 border border-amber-500/25 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(212,168,67,0.12)] transition-all duration-200 group-hover:shadow-[0_0_18px_rgba(212,168,67,0.2)]">
               <Phone className="h-4 w-4 text-amber-400" />
             </div>
             <div>
-              <div className="text-[15px] font-bold text-white tracking-tight leading-none">SKY SMS</div>
+              <div className="font-display text-[15px] font-bold text-white tracking-tight leading-none">SKY SMS</div>
             </div>
           </span>
         </Link>
@@ -244,19 +245,22 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
 
       {/* Balance card */}
       {!isLoading && user && (
-        <div className="mx-4 mb-4 rounded-2xl border border-amber-900/15 bg-amber-500/[0.03] p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Balance</span>
-            <DollarSign className="h-3.5 w-3.5 text-amber-500/50" />
+        <div className="mx-4 mb-4 rounded-2xl border border-amber-900/20 bg-gradient-to-br from-amber-500/[0.05] to-transparent p-4 relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 100% 0%, rgba(212,168,67,0.06) 0%, transparent 60%)" }} />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Your Balance</span>
+              <DollarSign className="h-3.5 w-3.5 text-amber-500/40" />
+            </div>
+            <div className="font-display text-[28px] font-bold text-white tracking-tight leading-none" data-testid="text-user-credits">
+              ${user.credits.toFixed(2)}
+            </div>
+            <Link href="/payments">
+              <span className="mt-3 flex items-center gap-1 text-[11px] text-amber-400 font-semibold hover:text-amber-300 transition-colors cursor-pointer" data-testid="link-buy-credits" onClick={onNav}>
+                Add funds <ChevronRight className="h-3 w-3" />
+              </span>
+            </Link>
           </div>
-          <div className="font-display text-[26px] font-bold text-white tracking-tight leading-none" data-testid="text-user-credits">
-            ${user.credits.toFixed(2)}
-          </div>
-          <Link href="/payments">
-            <span className="mt-2.5 flex items-center gap-1 text-[11px] text-amber-400 font-semibold hover:text-amber-300 transition-colors cursor-pointer" data-testid="link-buy-credits" onClick={onNav}>
-              Add funds <ChevronRight className="h-3 w-3" />
-            </span>
-          </Link>
         </div>
       )}
       {isLoading && (
@@ -272,7 +276,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         <Link href="/rent">
           <span
             onClick={onNav}
-            className="flex items-center justify-center gap-2 h-9 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[13px] font-semibold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all cursor-pointer shadow-[0_2px_12px_rgba(212,168,67,0.25)] active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 h-9 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-[13px] font-bold text-slate-900 hover:from-amber-400 hover:to-amber-500 transition-all cursor-pointer shadow-[0_2px_16px_rgba(212,168,67,0.28)] active:scale-[0.98] btn-reflect"
           >
             <Zap className="h-3.5 w-3.5" />
             Rent a number
@@ -282,15 +286,15 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
 
       {/* Nav */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5 min-h-0">
-        <div className="mb-2 px-2 text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">Navigation</div>
+        <div className="mb-2 px-2 text-[9.5px] font-bold text-slate-700 uppercase tracking-[0.22em]">Navigation</div>
         {navItems.map((item) => {
           const active = location === item.href || (item.href !== "/dashboard" && location.startsWith(item.href + "/"));
           return <NavItem key={item.href} {...item} active={active} onClick={onNav} />;
         })}
 
         {isAdmin && (
-          <div className="mt-4 pt-4 border-t border-amber-900/10">
-            <div className="mb-2 px-2 text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">Admin</div>
+          <div className="mt-4 pt-4 border-t border-amber-900/[0.1]">
+            <div className="mb-2 px-2 text-[9.5px] font-bold text-slate-700 uppercase tracking-[0.22em]">Admin Panel</div>
             {adminItems.map((item) => {
               const active = location === item.href || (item.href !== "/admin" && location.startsWith(item.href + "/"));
               return (
@@ -314,7 +318,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
       {/* Community links */}
       {hasCommunity && (
         <div className="px-4 py-3 border-t border-white/[0.04]">
-          <div className="mb-2 px-1 text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">Community</div>
+          <div className="mb-2 px-1 text-[9.5px] font-bold text-slate-700 uppercase tracking-[0.22em]">Community</div>
           <div className="flex gap-2">
             {discord && (
               <a
@@ -405,7 +409,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="app-shell min-h-screen flex">
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-[250px] flex-col fixed inset-y-0 left-0 z-30 border-r border-amber-900/10 bg-[#060a16]">
+      <aside className="hidden md:flex w-[252px] flex-col fixed inset-y-0 left-0 z-30 border-r border-amber-900/[0.08] bg-[#060a16]">
         <SidebarContent />
       </aside>
 
@@ -429,7 +433,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <div className="relative z-10 flex-1 min-w-0 flex flex-col md:pl-[250px]">
+      <div className="relative z-10 flex-1 min-w-0 flex flex-col md:pl-[252px]">
 
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-20 flex items-center justify-between px-4 h-14 border-b border-amber-900/10 bg-[#060a16]">
@@ -438,20 +442,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="h-7 w-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
                 <Phone className="h-3.5 w-3.5 text-amber-400" />
               </div>
-              <span className="text-[14px] font-bold text-white">SKY SMS</span>
+              <span className="font-display text-[14px] font-bold text-white">SKY SMS</span>
             </span>
           </Link>
           <div className="flex items-center gap-2">
             {user && (
-              <div className="flex items-center gap-1.5 rounded-full border border-amber-900/15 bg-amber-500/[0.04] px-3 py-1">
+              <div className="flex items-center gap-1.5 rounded-full border border-amber-900/20 bg-amber-500/[0.05] px-3 py-1">
                 <span className="text-[12px] text-amber-500/70">$</span>
-                <span className="text-[13px] font-semibold text-white">{user.credits.toFixed(2)}</span>
+                <span className="text-[13px] font-bold text-white">{user.credits.toFixed(2)}</span>
               </div>
             )}
             <NotificationBell />
             <button
               onClick={openSidebar}
-              className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/[0.07] text-white hover:bg-white/[0.06] transition-all duration-150 active:scale-95"
+              className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/[0.08] text-white hover:bg-white/[0.06] transition-all duration-150 active:scale-95"
             >
               <Menu className="h-[18px] w-[18px]" />
             </button>

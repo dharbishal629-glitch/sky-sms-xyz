@@ -41,7 +41,7 @@ function IconDisplay({ icon, size = "sm" }: { icon: string | null | undefined; s
   return isEmoji ? (
     <span className={sizeClass}>{icon}</span>
   ) : (
-    <img src={icon} alt="" className={imgClass} />
+    <img src={icon} alt="" className={imgClass} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
   );
 }
 
@@ -68,11 +68,16 @@ export function SearchableSelect({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn("h-12 w-full justify-between rounded-xl border-white/10 bg-white/[0.03] px-4 text-left font-normal hover:bg-white/[0.06]", triggerClassName)}
+          className={cn(
+            "h-12 w-full justify-between rounded-xl border-white/10 bg-white/[0.03] px-4 text-left font-normal hover:bg-white/[0.06] focus:ring-amber-500/30",
+            triggerClassName
+          )}
         >
           <span className="flex min-w-0 items-center gap-2">
             <IconDisplay icon={selected?.icon} />
-            <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected?.label ?? placeholder}</span>
+            <span className={cn("truncate", !selected && "text-muted-foreground")}>
+              {selected?.label ?? placeholder}
+            </span>
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -80,11 +85,15 @@ export function SearchableSelect({
       <PopoverContent
         className={cn("w-[var(--radix-popover-trigger-width)] p-0", className)}
         align="start"
+        side="bottom"
+        sideOffset={6}
+        avoidCollisions={true}
+        collisionPadding={12}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
-          <CommandList className="max-h-80">
+          <CommandList className="max-h-72">
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -102,7 +111,9 @@ export function SearchableSelect({
                   <IconDisplay icon={option.icon} />
                   {!option.icon && <span className="h-4 w-4 shrink-0 rounded-sm bg-white/10" />}
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                  {option.meta ? <span className="ml-auto shrink-0 text-xs font-medium text-cyan-300">{option.meta}</span> : null}
+                  {option.meta ? (
+                    <span className="ml-auto shrink-0 text-xs font-medium text-amber-300/80">{option.meta}</span>
+                  ) : null}
                 </CommandItem>
               ))}
             </CommandGroup>

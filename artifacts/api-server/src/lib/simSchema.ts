@@ -197,6 +197,21 @@ async function createSchema() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (service_code, country_code)
     );
+
+    -- Account suspension reason
+    ALTER TABLE sim_users ADD COLUMN IF NOT EXISTS suspension_reason TEXT;
+
+    -- Email/password authentication
+    CREATE TABLE IF NOT EXISTS sim_email_credentials (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      user_id TEXT REFERENCES sim_users(id) ON DELETE CASCADE,
+      verified BOOLEAN NOT NULL DEFAULT FALSE,
+      reset_token TEXT,
+      reset_token_expires TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   await pool.query(
