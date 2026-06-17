@@ -1000,6 +1000,53 @@ router.post("/payments/checkout", async (req, res) => {
   }
 });
 
+// ─── Checkout Session: Create ───────────────────────────────────────────────
+router.post("/payments/checkout-session", async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    await getAccount(userId, req.user);
+    const { amount, currency = "USD" } = req.body as { amount?: number; currency?: string };
+    if (!amount || typeof amount !== "number" || amount <= 0) {
+      res.status(400).json({ error: "Invalid amount." });
+      return;
+    }
+    const id = crypto.randomUUID();
+    await pool.query(
+      `INSERT INTO sim_checkout_sessions (id, user_id, amount, currency) VALUES ($1, $2, $3, $4)`,
+      [id, userId, amount, currency],
+    );
+    res.json({ id });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to create checkout session." });
+  }
+});
+
+// ─── Checkout Session: Get ───────────────────────────────────────────────────
+router.get("/payments/checkout-session/:id", async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { id } = req.params;
+    const result = await pool.query(
+      "SELECT * FROM sim_checkout_sessions WHERE id = $1 AND user_id = $2 AND expires_at > NOW()",
+      [id, userId],
+    );
+    if (!result.rows[0]) {
+      res.status(404).json({ error: "Checkout session not found or expired." });
+      return;
+    }
+    const session = result.rows[0];
+    res.json({
+      id: session.id,
+      amount: Number(session.amount),
+      currency: session.currency,
+      status: session.status,
+      createdAt: new Date(session.created_at).toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to get checkout session." });
+  }
+});
+
 // ─── Coupon: validate (user-facing) ────────────────────────────────────────
 router.post("/coupons/validate", async (req, res) => {
   try {

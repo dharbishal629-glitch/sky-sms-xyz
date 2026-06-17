@@ -47,7 +47,7 @@ function TxModal({ tx, onClose }: { tx: Tx; onClose: () => void }) {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className={`h-8 w-8 rounded-full flex items-center justify-center ${isDeposit ? "bg-emerald-400/10 text-emerald-400" : "bg-sky-400/10 text-sky-400"}`}>
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center ${isDeposit ? "bg-emerald-400/10 text-emerald-400" : "bg-amber-400/10 text-amber-400"}`}>
               {isDeposit ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
             </div>
             <div>
@@ -173,7 +173,7 @@ export default function AdminTransactions() {
                 className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.03] transition-colors"
               >
                 <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
-                  tx.type === "deposit" || tx.type === "credit_purchase" ? "bg-emerald-400/10 text-emerald-400" : "bg-sky-400/10 text-sky-400"
+                  tx.type === "deposit" || tx.type === "credit_purchase" ? "bg-emerald-400/10 text-emerald-400" : "bg-amber-400/10 text-amber-400"
                 }`}>
                   {tx.type === "deposit" || tx.type === "credit_purchase" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
                 </div>

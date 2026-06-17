@@ -392,6 +392,7 @@ function AppWithRoutes() {
       <Route path="/rent" component={AppRoutes} />
       <Route path="/rentals" component={AppRoutes} />
       <Route path="/payments" component={AppRoutes} />
+      <Route path="/checkout/:id" component={AppRoutes} />
       <Route path="/settings" component={AppRoutes} />
       <Route path="/support" component={AppRoutes} />
       <Route path="/api-docs" component={AppRoutes} />

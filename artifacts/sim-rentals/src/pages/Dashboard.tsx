@@ -124,7 +124,7 @@ export default function Dashboard() {
 
   const colorMap = {
     amber:   { icon: "bg-amber-500/12 border-amber-400/20 text-amber-400",   val: "text-white" },
-    sky:     { icon: "bg-sky-500/12 border-sky-400/20 text-sky-400",         val: "text-white" },
+    sky:     { icon: "bg-amber-500/12 border-amber-400/20 text-amber-400",    val: "text-white" },
     emerald: { icon: "bg-emerald-500/10 border-emerald-400/20 text-emerald-400", val: "text-white" },
     violet:  { icon: "bg-violet-500/10 border-violet-400/20 text-violet-400", val: "text-white" },
   };

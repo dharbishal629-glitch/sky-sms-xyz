@@ -170,7 +170,7 @@ function UserProfileModal({
                   isSuspended ? "text-red-300 border-red-500/20 bg-red-500/10" : "text-emerald-300 border-emerald-500/20 bg-emerald-500/10"
                 }`}>{user.status}</span>
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
-                  user.role === "admin" ? "text-sky-300 border-sky-500/20 bg-sky-500/10" : "text-slate-400 border-white/10 bg-white/[0.04]"
+                  user.role === "admin" ? "text-amber-300 border-amber-500/20 bg-amber-500/10" : "text-slate-400 border-white/10 bg-white/[0.04]"
                 }`}>{user.role}</span>
               </div>
             </div>
@@ -189,7 +189,7 @@ function UserProfileModal({
               { icon: Calendar, label: "Joined", value: user.createdAt ? format(new Date(user.createdAt), "MMM d") : "—", color: "violet" },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
-                <Icon className={`h-3.5 w-3.5 mx-auto mb-1.5 ${color === "amber" ? "text-amber-400" : color === "sky" ? "text-sky-400" : "text-violet-400"}`} />
+                <Icon className={`h-3.5 w-3.5 mx-auto mb-1.5 ${color === "amber" ? "text-amber-400" : color === "sky" ? "text-amber-400" : "text-violet-400"}`} />
                 <div className="text-[13px] font-bold text-white">{value}</div>
                 <div className="text-[10px] text-slate-600 mt-0.5">{label}</div>
               </div>
@@ -242,7 +242,7 @@ function UserProfileModal({
             <button
               onClick={handleRole}
               disabled={roleLoading}
-              className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/20 bg-sky-500/[0.06] text-[12.5px] font-semibold text-sky-400 hover:bg-sky-500/[0.1] transition-all disabled:opacity-50"
+              className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] text-[12.5px] font-semibold text-amber-400 hover:bg-amber-500/[0.1] transition-all disabled:opacity-50"
             >
               {user.role === "admin" ? <User className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
               {roleLoading ? "…" : user.role === "admin" ? "Demote" : "Make Admin"}
@@ -452,7 +452,7 @@ export default function AdminUsers() {
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-white text-[13.5px] truncate">{user.name}</span>
                         {user.role === "admin" && (
-                          <span className="inline-flex items-center text-[9.5px] font-bold px-1.5 py-0 rounded-full border text-sky-300 border-sky-500/20 bg-sky-500/10">Admin</span>
+                          <span className="inline-flex items-center text-[9.5px] font-bold px-1.5 py-0 rounded-full border text-amber-300 border-amber-500/20 bg-amber-500/10">Admin</span>
                         )}
                         {isSuspended && (
                           <span className="inline-flex items-center text-[9.5px] font-bold px-1.5 py-0 rounded-full border text-red-300 border-red-500/20 bg-red-500/10">Suspended</span>
